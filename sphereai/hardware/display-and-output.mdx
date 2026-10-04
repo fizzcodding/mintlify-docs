@@ -1,0 +1,82 @@
+---
+title: "Display and Output: Speaking, Showing, and Calming"
+sidebarTitle: "Display and Output"
+description: "SphereAI outputs emotional responses through text-to-speech, a speaker, a rover-mounted OLED, and calming audio playback across the home environment."
+icon: "volume-high"
+---
+
+SphereAI does not only listen and classify; it responds. Its output layer translates emotional state and conversational intent into sound, light, and text that the user can perceive without training, special glasses, or a smartphone.
+
+## Text-to-Speech and the Home Speaker
+
+When SphereAI decides to speak, it generates a textual response on the RDK X5 and routes it through a text-to-speech engine. The source does not name the specific engine, but the function is clear: synthetic voice output that carries tone, timing, and content appropriate to the user's emotional state. A stress-spike response might use slower cadence and lower pitch. A routine check-in might sound friendly and brief.
+
+The audio signal travels through the I2S bus to the MAX98357A Class D amplifier and the 3 W 4 ohm speaker. The same speaker path also plays pre-recorded audio such as alert tones, calming soundscapes, and adhkar (Islamic remembrance phrases). Because the amplifier is digital-input, the entire chain from speech synthesis to air pressure waves remains in the digital domain until the final output stage, preserving clarity.
+
+## Rover-Mounted OLED
+
+In addition to the speaker, SphereAI can display short text messages on the HollowRover's SSD1306 0.96 inch OLED screen. The screen is mounted on the rover chassis and shows notifications that complement or replace spoken output. Use cases include:
+
+- Financial alert summaries when a suspicious transaction is flagged
+- Medication reminder confirmations
+- Visual feedback during conversation for users who are deaf or hard of hearing
+- Status indicators when the speaker is muted or inappropriate
+
+The OLED is not a primary emotional interface, but it extends SphereAI's reach into contexts where sound is unavailable or insufficient.
+
+## Calming Audio and Adhkar Playback
+
+One of SphereAI's most distinctive outputs is context-triggered calming audio. When HollowCore detects a cortisol estimate above 18.0 or a galvanic skin response above 0.6, it publishes a `play_calming_audio` command via MQTT. SphereAI receives this command and can respond with:
+
+- Slow-tempo instrumental or nature soundscapes
+- Recorded adhkar appropriate to the user's spiritual practice
+- Verbal reassurance scripted to the emotional state
+
+Adhkar playback is particularly notable because it links biological stress detection to spiritual comfort, turning a sensor alarm into an act of care that respects the user's worldview. The specific adhkar texts and prayer-time computation are not specified in the source.
+
+<Note>
+  The rover speaker and HollowCore-controlled home speaker are not the same output path. The rover speaker moves with the robot; the home speaker is a fixed installation. SphereAI can route audio to either or both depending on the user's location and the nature of the response.
+</Note>
+
+## Why This Matters
+
+Output quality shapes whether the user perceives the system as a machine or as a presence. A harsh synthetic voice or a blaring alarm can increase stress rather than reduce it. SphereAI's design, with context-sensitive tone choices and multiple output modalities, aims to match the response to the user's need rather than to the engineer's convenience.
+
+For users with cognitive variability, a calm, predictable voice and a visible text backup together provide redundancy: if the words are missed, the screen catches them; if the screen is not noticed, the voice persists. This layered output strategy is consistent with LifeSphere's zero-interaction principle: the system adapts its communication to the user's ability, not the reverse.
+
+## How It Connects to the Rest of LifeSphere
+
+The output layer is the closing stage of the TriAgent loop. Inputs arrive from Vital32 biomarkers, are classified by SphereAI, and then flow back out through HollowCore commands, rover speaker audio, and OLED text. During a stress-spike scenario, the sequence may be:
+
+1. Vital32 reports elevated GSR and skin temperature.
+2. SphereAI classifies the state as stressed.
+3. HollowCore receives the state and issues `play_calming_audio`.
+4. SphereAI generates calming speech or adhkar and plays it through the speaker.
+5. HollowCore simultaneously dims lights and lowers AC temperature.
+6. The OLED shows a gentle text confirmation.
+
+This same pipeline handles companionship conversation, medication reminders, security alerts, and spiritual prompts. The output hardware does not change; only the content and tone do.
+
+## Limits
+
+The source does not specify which text-to-speech engine is used, its supported languages, or its voice gender and accent options. The OLED is small and monochrome, so it cannot display rich graphics or multiple lines of text comfortably. Audio output quality depends on speaker placement, room acoustics, and hearing ability, none of which the system can fully compensate for. Calming audio effectiveness is a design assumption, not a validated clinical outcome.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Voice Hardware" icon="microphone" href="/sphereai/hardware/voice-hardware">
+    The microphone and amplifier chain that feeds the input side of the same architecture.
+  </Card>
+
+  <Card title="Wake-Word Engine" icon="microphone-lines" href="/sphereai/hardware/wake-word-engine">
+    How the system decides when to begin listening for a conversation.
+  </Card>
+
+  <Card title="Adhkar and Stress Response" icon="mosque" href="/sphereai/islamic/adhkar">
+    How calming audio intersects with Islamic spiritual practice.
+  </Card>
+
+  <Card title="HollowCore Lighting and Climate" icon="temperature-half" href="/hollowcore/lighting-and-climate">
+    How physical environment changes accompany SphereAI's audio responses.
+  </Card>
+</CardGroup>

@@ -1,0 +1,60 @@
+---
+title: "Environmental and UV Sensing: Context for Vital32"
+sidebarTitle: "Environmental and UV"
+description: "Vital32 carries a BME688 environmental sensor and VEML6075 UV sensor to capture ambient context around the wearer, supplementing biological signals with environmental awareness."
+icon: "sun"
+---
+
+Vital32 includes two environmental sensors: a BME688 and a VEML6075. These do not measure the body directly. They measure the conditions around the body. Environmental context is essential because biological signals are meaningless without knowing the setting in which they were recorded. A skin temperature rise in a 35-degree Celsius room is different from the same rise in an air-conditioned space. Elevated heart rate during outdoor sun exposure carries different implications than the same rate in a dark bedroom.
+
+The BME688 detects VOCs (volatile organic compounds, airborne chemicals that off-gas from materials, cleaning products, and biological processes) and relative humidity. The VEML6075 measures UV irradiance, the intensity of ultraviolet light from the sun. Both sensors are sampled every 5 seconds, placing them in the slower cadence tier alongside bioimpedance and seizure model inputs.
+
+## What each sensor captures
+
+The BME688 is a multi-sensor package that combines a gas sensor with a humidity and temperature sensor. In Vital32, the source emphasizes VOC and humidity. VOC levels reflect indoor air quality: elevated readings may indicate poor ventilation, cleaning chemical exposure, or metabolic byproducts. Humidity affects thermal comfort, respiratory irritation, and the accuracy of other sensors such as galvanic skin response, which can drift with ambient moisture.
+
+The VEML6075 is a dedicated UV sensor. It detects UVA and UVB bands, the portions of sunlight that drive vitamin D synthesis and skin damage. For an elderly user, UV exposure correlates with outdoor activity, circadian entrainment, and the risk of sun-related conditions. The source does not describe specific UV thresholds or automated responses, but the data is available for longitudinal modeling.
+
+## How the data is used
+
+The source does not detail specific inference pipelines for environmental or UV data. What is clear is that these channels are part of the multi-sensor array and are read on the same 5-second schedule as bioimpedance. They likely contribute to:
+
+- **Anomaly detection**: Extreme VOC spikes or humidity excursions could flag environmental hazards such as gas leaks or flooding.
+- **Biological age and cortisol models**: Environmental stressors (heat, poor air quality) may modulate physiological baselines.
+- **SphereAI context**: Outdoor UV exposure could inform conversation prompts about hydration, sun protection, or activity encouragement.
+- **HollowCore climate**: Humidity readings could, in principle, adjust fan or air purifier behavior, though the source does not state this explicitly.
+
+## Why environmental sensing matters
+
+A wearable that only looks inward misses half the picture. The body is in continuous exchange with its environment. Heat stress, poor air quality, and excessive sun exposure are all common, preventable risks for elderly individuals. By capturing these factors on the same device that measures cardiac and neural signals, Vital32 enables context-aware inference. A heart rate spike during high VOC exposure and low humidity may indicate respiratory distress rather than cardiac strain. The system can learn these correlations because it sees both domains simultaneously.
+
+## How it connects to the rest of LifeSphere
+
+- **Shared state**: Environmental and UV data are not shown in the example state tree, but they are listed as components of the multi-sensor array and presumably feed into fused models.
+- **HollowCore**: Climate and air-quality automation could eventually respond to VOC and humidity, though current documented rules focus on biometric triggers.
+- **SphereAI**: Longitudinal environmental exposure may become part of emotional and cognitive baselines.
+- **Anomaly detector**: Environmental outliers add contextual features that reduce false positives in biological anomaly scoring.
+
+## Limits
+
+The source does not specify calibration procedures for the BME688 gas sensor, which in general requires baseline airing to establish a clean-air reference. Humidity accuracy and temperature cross-sensitivity are not discussed. The VEML6075 field of view, mounting orientation, and compensation for artificial UV sources are not described. There are no stated thresholds for VOC alerts, humidity comfort zones, or UV exposure limits. How these environmental channels explicitly enter the multi-timescale inference models is not detailed.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Sensor Array" icon="microchip" href="/vital32/components/sensor-array">
+    Full multi-sensor overview
+  </Card>
+
+  <Card title="Bioelectrical Impedance" icon="droplet" href="/vital32/components/bioimpedance">
+    Tissue hydration through impedance analysis
+  </Card>
+
+  <Card title="Anomaly Scoring" icon="scale-balanced" href="/vital32/predictions/anomaly-scoring">
+    Outlier detection across biological and environmental signals
+  </Card>
+
+  <Card title="HollowCore Overview" icon="layer-group" href="/hollowcore/overview">
+    How home automation responds to state changes
+  </Card>
+</CardGroup>

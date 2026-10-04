@@ -1,0 +1,116 @@
+---
+title: "Math: Barometric Floor Detection for Multi-Floor Homes"
+sidebarTitle: "Floor Detection"
+description: "Barometric pressure floor mapping, baseline storage, and the floor-selection formula that lets HollowRover know which level it is on in a multi-floor deployment."
+icon: "layer-group"
+---
+
+This page explains how HollowRover determines which floor it occupies when a home has multiple levels, using barometric pressure as a vertical context signal.
+
+## The floor discrimination formula
+
+Atmospheric pressure decreases with altitude. LifeSphere exploits this relationship by storing a calibrated pressure baseline for each registered floor. The rover computes a candidate floor index from the current pressure reading.
+
+$$
+z_{\text{floor}} = \text{floor}\left( \frac{P_0 - P_{\text{measured}}}{\Delta P_{\text{floor}}} \right)
+$$
+
+| Symbol | Meaning | Unit |
+| --- | --- | --- |
+| $$z_{\text{floor}}$$ | Integer floor index | dimensionless |
+| $$P_0$$ | Calibrated reference pressure at the ground floor (or reference floor) | hectopascals (hPa) or millibars |
+| $$P_{\text{measured}}$$ | Current barometric pressure measured by the rover | hPa |
+| $$\Delta P_{\text{floor}}$$ | Measured average pressure difference between adjacent registered floors | hPa |
+| $$\text{floor}(\cdot)$$ | Floor function, rounding down to the nearest integer | dimensionless |
+
+In practice, the rover does not rely solely on this discrete floor index. Instead, it compares the measured pressure against every stored floor baseline and selects the floor whose calibrated baseline is closest. This is more robust than assuming a fixed $$\Delta P_{\text{floor}}$$ across all floors, because buildings may have non-uniform floor heights or pressure gradients.
+
+## Baseline calibration
+
+During setup, each registered floor is associated with:
+
+- a barometric pressure baseline $$P_{\text{baseline, } i}$$ for floor $$i$$
+- three non-collinear UWB anchor positions for that floor
+- a separate SLAM occupancy grid map
+
+The BME688 environmental sensor on HollowRover serves as the barometric sensor. EntryGuard nodes also carry barometric sensors, so danger alerts include both a UWB zone reference and a floor pressure reference.
+
+## Selection by closest baseline
+
+In deployment, the rover searches over all registered floors:
+
+$$
+z_{\text{selected}} = \arg\min_{i} | P_{\text{measured}} - P_{\text{baseline, } i} |
+$$
+
+| Symbol | Meaning | Unit |
+| --- | --- | --- |
+| $$z_{\text{selected}}$$ | Index of the selected floor | dimensionless |
+| $$P_{\text{baseline, } i}$$ | Stored pressure baseline for floor $$i$$ | hPa |
+| $$\arg\min$$ | Argument (index) that minimizes the expression | dimensionless |
+
+After selecting the floor, the rover activates that floor's SLAM map and its corresponding three-anchor UWB set for horizontal positioning.
+
+## Worked example (illustrative)
+
+Consider a three-floor home with calibrated baselines.
+
+| Floor | Baseline pressure |
+| --- | --- |
+| Ground | 1013.25 hPa |
+| First | 1010.50 hPa |
+| Second | 1007.75 hPa |
+
+Suppose the rover measures $$P_{\text{measured}} = 1010.60$$ hPa.
+
+Compute absolute differences:
+
+| Floor | Difference (hPa) |
+| --- | --- |
+| Ground | 2.65 |
+| First | 0.10 |
+| Second | 2.85 |
+
+The illustrative closest baseline is First Floor (0.10 hPa difference), so $$z_{\text{selected}} = 1$$. The rover loads the First Floor map and begins UWB trilateration against that floor's three anchors.
+
+Suppose instead $$P_{\text{measured}} = 1008.00$$ hPa.
+
+| Floor | Difference (hPa) |
+| --- | --- |
+| Ground | 5.25 |
+| First | 2.50 |
+| Second | 0.25 |
+
+The illustrative selection is Second Floor.
+
+## Why this matters
+
+Autonomous navigation fails if the robot thinks it is on a different floor than it actually is. Barometric pressure resolves vertical position independently of UWB, which only gives horizontal position. Floor identity must be known before the correct SLAM map and anchor set can be loaded. This design allows the same rover to serve a multi-story home rather than being restricted to a single level. The pressure-based approach requires no additional infrastructure beyond the barometric sensor already present on the rover and EntryGuard nodes.
+
+## How it connects to the rest of LifeSphere
+
+Floor detection is the first step in HollowRover's multi-floor emergency response. When EntryGuard reports a fire, gas, or intrusion event, its alert payload contains the node identity, UWB zone reference, and floor pressure reference. HollowRover compares the pressure to its baselines, selects the correct floor's stored map, localizes against that floor's UWB anchors, and navigates to the EntryGuard zone. Without floor detection, the rover might attempt navigation on the wrong map, leading to localization failure or dangerous delays.
+
+## Limits
+
+Barometric pressure fluctuates with weather, HVAC system cycles, and building envelope conditions. The source does not describe automatic re-calibration to compensate for long-term atmospheric drift. Printed floor height is assumed uniform in the simple formula, but the closest-baseline method partially compensates for non-uniformity. An elevator ride produces a rapid pressure change that must be distinguished from a floor boundary; the source does not describe dwell-time or rate-of-change filtering for this case. Moving between floors requires an accessible path such as a lift, ramp, or manual relocation, because the rover is wheeled and does not climb stairs.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Math: Trilateration" icon="location-dot" href="/reference/math-trilateration">
+    UWB circle equations and 2D horizontal position solution.
+  </Card>
+
+  <Card title="HollowRover: Multi-Floor Maps" icon="layer-group" href="/hollowrover/navigation/multi-floor-maps">
+    Separate SLAM maps and localization references per floor.
+  </Card>
+
+  <Card title="HollowRover: UWB Positioning" icon="location-dot" href="/hollowrover/navigation/uwb-positioning">
+    Three-anchor positioning and integration with navigation.
+  </Card>
+
+  <Card title="EntryGuard: Floor-Aware Dispatch" icon="route" href="/entryguard/floor-aware-dispatch">
+    How alerts carry floor references for rover response.
+  </Card>
+</CardGroup>

@@ -1,0 +1,78 @@
+---
+title: "HollowRover Cortisol De-escalation and Stress Relief"
+description: "HollowRover joins SphereAI and HollowCore in a coordinated stress-relief response when Vital32 estimates cortisol above 18.0 ng/dL."
+sidebarTitle: "Cortisol De-escalation"
+icon: "wave-square"
+---
+
+When Vital32 estimates that the user's cortisol level has risen above 18.0, HollowRover receives the update through its Firebase subscription and initiates its stress-relief protocol. This event is not a sudden emergency like a fall or a seizure. It is a sustained biological state that calls for a gentler, coordinated ecosystem response. This page explains the cortisol estimator, the threshold, what the rover does, and how the subsystems work together to calm the user.
+
+## Why this matters
+
+Chronic stress accelerates physical and cognitive decline. Elevated cortisol is associated with impaired immune function, sleep disruption, hypertension, and emotional distress. For an elderly person living alone, stress may come from loneliness, worry, pain, or environmental discomfort. If the home can detect this state and respond automatically, it may reduce the cumulative health impact of prolonged stress without requiring the user to recognize or report their own condition.
+
+## How cortisol is estimated
+
+The `cortisol_est` field is updated every 15 minutes by a gradient boosting model with 200 trees. The model fuses four inputs: RMSSD (a measure of heart rate variability), GSR baseline (galvanic skin response, reflecting sympathetic nervous system activity), skin temperature, and sleep efficiency. In plain terms, the model looks at how the heart is beating, how much the skin is sweating, how warm the body surface is, and how well the person slept, then produces a single estimated cortisol value labeled in the source as "ng/dL est."
+
+This is an estimate, not a blood test. The relationship between wearable signals and blood cortisol is approximate and varies across individuals. The model learns the user's own baseline during the first 30 days, so it detects deviations from that person's normal state rather than comparing them to a generic population average.
+
+## The threshold and trigger
+
+When `cortisol_est` exceeds 18.0, HollowCore, SphereAI, and HollowRover all respond simultaneously. The rover's listener watches this field continuously. The crossing is detected via the same Firebase subscription used for all biomarker triggers, with the same target latency of approximately 150 ms.
+
+## What the rover does
+
+The source states that HollowRover initiates a "stress-relief protocol" and a "cortisol-spike de-escalation." It does not specify the exact physical actions the rover takes. From the hardware description, the rover is capable of the following, though the source does not confirm which are used during this protocol:
+
+- Playing audio through SphereAI's speaker system, which the rover hosts.
+- Moving to the user's location to provide a physical presence.
+- Handing water or a calming item with its manipulator arm.
+- Displaying a reassuring message on its OLED screen.
+
+Because the exact sequence is not specified, readers should treat the rover's role as an autonomous physical participant in a broader calming response whose precise steps remain a design goal.
+
+## How the subsystems coordinate
+
+The cortisol event is an example of LifeSphere acting as "a single organism sharing one biological state backbone." When the threshold is crossed:
+
+- **Vital32** continues to stream updated biomarkers so the ecosystem can track whether the state worsens or improves.
+- **HollowCore** dims the lights to a warm tone and lowers the AC temperature, both of which are intended to create a calming environment.
+- **SphereAI** adjusts its conversational tone to be softer and may play calming audio through the speaker it shares with the rover.
+- **HollowRover** initiates its stress-relief protocol, likely moving toward the user and contributing whatever physical or auditory comfort it can.
+
+All of this happens without the user pressing a button, speaking a command, or opening an app. The system responds to biology.
+
+## How it connects to the rest of LifeSphere
+
+Cortisol de-escalation demonstrates the multi-timescale inference architecture. The estimate is produced on the medium cycle of 15 minutes, meaning the system does not react to every transient heartbeat. It waits for a stable elevation in the estimated stress hormone before committing resources. This prevents false alarms and lets the response feel intentional rather than jittery.
+
+The coordination also shows why shared state matters. HollowCore does not need a separate cortisol sensor. It reads the same `cortisol_est` field that Vital32 writes. SphereAI does not need to ask the user how they feel. It reads the inferred emotional state and stress level from its own medium-cycle inference, but also benefits from the biomarker confirmation that cortisol provides.
+
+## Limits
+
+The exact actions of HollowRover during the stress-relief protocol are not specified. The source names the protocol but does not document its internal steps. The rover's participation should be understood as a design goal.
+
+The cortisol estimator itself is unvalidated. No accuracy metrics, correlation coefficients, or clinical comparisons are reported. The 18.0 threshold is a design parameter that would need individual calibration in a real deployment.
+
+Gradient boosting assumes that the relationships between RMSSD, GSR, skin temperature, sleep efficiency, and cortisol are stable over time. If the user's physiology changes due to medication, illness, or seasonal variation, the model may drift. The source does not describe a recalibration procedure.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Biomarker-Triggered Protocols" icon="heart-pulse" href="/hollowrover/protocols/biomarker-triggered">
+    The full trigger table and listener architecture.
+  </Card>
+
+  <Card title="Cortisol Estimator" icon="wave-square" href="/ai/cortisol-estimator">
+    How the 15-minute gradient boosting model produces the cortisol estimate.
+  </Card>
+
+  <Card title="HollowCore Lighting and Climate" icon="sun" href="/hollowcore/lighting-and-climate">
+    How the home environment responds to biomarkers including cortisol.
+  </Card>
+
+  <Card title="SphereAI Emotional States" icon="brain" href="/sphereai/understanding/emotional-states">
+    How SphereAI infers and responds to emotional and stress states with tone and audio.
+  </Card>
+</CardGroup>

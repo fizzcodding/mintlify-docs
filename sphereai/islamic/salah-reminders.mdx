@@ -1,0 +1,65 @@
+---
+title: "Salah Reminders: Supporting Daily Prayer Practice"
+sidebarTitle: "Salah Reminders"
+description: "LifeSphere offers respectful prayer-time reminders and Ramadan-aware scheduling to support the user's religious practice without imposing or surveilling."
+icon: "mosque"
+---
+
+Salah is the Islamic practice of performing ritual prayer at five prescribed times each day: Fajr (dawn), Dhuhr (midday), Asr (afternoon), Maghrib (sunset), and Isha (night). For observant Muslims, these prayers are not optional appointments but anchors of daily rhythm, spiritual grounding, and communal identity. LifeSphere recognizes this and includes salah reminders as a core part of SphereAI's caregiving behavior, not as an afterthought or a generic calendar alert.
+
+## How Salah Reminders Work in LifeSphere
+
+SphereAI calculates or receives the five daily prayer times and issues reminders through the home speaker, the rover speaker, or the OLED display, depending on the user's location and the time of day. The reminder is a gentle audio prompt, not an alarm. The tone and wording are shaped by the emotional state classifier: a user classified as stressed might hear a softer, more spacious reminder; a user in a calm state might receive a brief, straightforward prompt.
+
+During Ramadan, SphereAI's reminders are integrated into the fasting-aware schedule. HollowCore restructures medication and hydration protocols around the fasting interval, and prayer times anchor the day's rhythm. The source does not specify year-round integration of salah times with medication or hydration protocols outside of Ramadan mode.
+
+## Respectful Design Principles
+
+LifeSphere's approach to religious support follows three principles that distinguish it from a generic notification system:
+
+1. **Non-intrusive timing**: Reminders are issued at the beginning of each prayer window, not as deadlines. The user chooses when to pray within the window. The system does not escalate, repeat, or shame.
+2. **Tone adaptation**: The voice output is selected to match the spiritual context. Adhkar (remembrance phrases) may accompany the reminder, but they are not forced. The user or a caregiver can configure which spiritual content is offered.
+3. **Privacy preservation**: Prayer-time computation and reminder history remain local or within the encrypted Firebase shared state. No religious practice data is shared with external analytics or advertising services.
+
+## Connection to Emotional and Cognitive Care
+
+For elderly users living alone, the daily rhythm of salah can be a protective factor against both loneliness and cognitive drift. The regularity of the five prayers provides external structure when internal clocks weaken. The spiritual content offers meaning and continuity at life stages where social roles may have diminished. SphereAI's salah support is therefore not separate from its affective computing mission; it is part of it.
+
+When a user misses multiple prayers, the system does not scold. Instead, the pattern may gently raise the loneliness_index or trigger a compassionate check-in conversation, treated as a possible indicator of low mood or physical difficulty rather than religious failure.
+
+## Why This Matters
+
+In Bangladesh and many other majority-Muslim societies, religious practice is not a hobby or a weekend activity. It is woven into waking, eating, working, and resting. A caregiving system that ignores salah is a system that ignores a quarter of the user's day. By building prayer awareness into the biological state model, LifeSphere makes the home an active participant in spiritual life, not merely a neutral container for it.
+
+## How It Connects to the Rest of LifeSphere
+
+Salah reminders pull from and feed into multiple subsystems:
+
+- **SphereAI**: computes the reminder timing, selects tone and wording, and issues the audio output.
+- **HollowCore**: adjusts lighting and climate to support wudu (ritual ablution) and prayer space comfort; during Ramadan, restructures hydration and medication schedules around fasting.
+- **HollowRover**: may bring prayer accessories (prayer mat, water, medication) to the user's location if mobility is limited.
+- **Vital32**: biomarker patterns during and after prayer times contribute to the long-term circadian model and stress baseline.
+
+## Limits
+
+The source does not specify how prayer times are computed, whether by local astronomical calculation, an external API, or a manually configured timetable. The specific texts and melodies used for reminders and adhkar are not given. The degree of customization available to the user or caregiver is not described. As with all predictive and adaptive features, the spiritual support layer is a design goal and has not been validated in user studies.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Adhkar and Stress Response" icon="book" href="/sphereai/islamic/adhkar">
+    How Islamic remembrance phrases are triggered by biological stress signals.
+  </Card>
+
+  <Card title="Ramadan Mode" icon="moon" href="/sphereai/islamic/ramadan-mode">
+    How medication and hydration schedules adapt to fasting intervals.
+  </Card>
+
+  <Card title="SphereAI Overview" icon="brain" href="/sphereai/overview">
+    The TriAgent architecture that shapes every reminder's tone and timing.
+  </Card>
+
+  <Card title="Cultural and Islamic Design" icon="mosque" href="/design/cultural-and-islamic-design">
+    The broader design philosophy behind religious and cultural integration.
+  </Card>
+</CardGroup>

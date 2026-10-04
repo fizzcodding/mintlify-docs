@@ -1,0 +1,80 @@
+---
+title: "SphereAI Design Decisions: Why It Works the Way It Does"
+sidebarTitle: "Design Decisions"
+description: "The engineering and ethical choices behind SphereAI's three-agent fusion, local wake-word processing, spiritual integration, and the removal of the personality mirror."
+icon: "gears"
+---
+
+SphereAI is the product of deliberate choices about where to put intelligence, where to keep it local, how to weigh conflicting signals, and what not to build at all. This page collects the major design decisions that shape how SphereAI understands and responds to emotion.
+
+## Decision 1: Three Agents Instead of One
+
+SphereAI could have used a single end-to-end neural network that takes raw audio and biomarkers and outputs an emotional label. Instead, it splits the task into three interpretable agents: language, voice, and biology.
+
+**Rationale**: A monolithic model is opaque. If it classifies a user as stressed, no one can say why. By splitting the pipeline, SphereAI produces intermediate outputs (sentiment score, prosody vector, biomarker snapshot) that can be inspected, logged, and questioned. This matters for debugging, for clinical trust, and for the user's own understanding. It also allows the system to degrade gracefully: if the microphone fails, the biology agent still functions; if the wearable is charging, the voice agent still contributes.
+
+**Trade-off**: Three agents require more compute and more wiring than one model. The meta-classifier adds latency. The source does not quantify this latency, but the 15-minute update cycle suggests it is acceptable for the use case.
+
+## Decision 2: Context-Adaptive Weighting
+
+The meta-classifier does not use fixed weights. It selects a weight row based on the prior emotional state, so a stressed user gets more biology and less language, while a cognitive-concern state privileges language over voice.
+
+**Rationale**: People in different emotional modes are differently reliable across channels. A person in grief may say "I'm fine" while their voice trembles and their skin conductance spikes. Fixed weights would force the system to trust the words or the body uniformly, which is demonstrably wrong. Adaptive weighting lets SphereAI meet the user where they are, cognitively and emotionally.
+
+**Trade-off**: The weight table is small and hand-designed. It may not generalize across cultures, personality types, or clinical conditions. The source does not describe how the weights were chosen or whether they can be personalized over time.
+
+## Decision 3: Local Wake-Word on ESP32-S3
+
+The always-listening stage runs on a low-power ESP32-S3, not on the RDK X5 and not in the cloud.
+
+**Rationale**: Privacy and power. Continuous audio streaming to the cloud would be a surveillance risk and a battery drain. Running wake-word locally means the microphone is sensitive to the user's voice but deaf to everything else until the trigger is heard. The ESP32-S3's dedicated vector instructions make this feasible without a separate DSP chip.
+
+**Trade-off**: The ESP32-S3 cannot run Whisper or DistilBERT. A second hardware stage (the UART handoff to RDK X5) is required. This adds physical complexity: two boards, a serial line, and coordinated I2S bus management.
+
+## Decision 4: Spiritual Integration as First-Class Feature
+
+Salah reminders, adhkar, and Ramadan mode are not plugins or aftermarket settings. They are woven into the emotional classification, the home automation rules, and the medication scheduling.
+
+**Rationale**: In Bangladesh, religious practice is not a lifestyle add-on. It is a primary organizing principle of daily life, social identity, and emotional resilience. A system that treats it as optional would be ignoring a major protective factor and a major source of user trust. First-class integration means the system can make spiritually informed decisions, such as lowering the thermostat during prayer time or withholding water reminders during fasting.
+
+**Trade-off**: The system is optimized for Islamic practice. Users of other faiths or no faith would need equivalent but different integration, which is not described in the source.
+
+## Decision 5: Removal of the Personality Mirror
+
+SphereAI explicitly does not build a deep personality model of the user, even though early plans considered it.
+
+**Rationale**: Privacy, consent, and identity. A model dense enough to replicate a person is a model dense enough to violate them. The removal aligns with the principle that the system responds to biology, not extracts identity. It also prevents posthumous misuse and reduces the attractiveness of the system as a hacking target.
+
+**Trade-off**: The conversational experience may feel less "magically" personalized than competing systems that do build deep models. The user may need to state preferences more explicitly.
+
+## Decision 6: Cognitive Monitoring Through Speech
+
+Cognitive decline is tracked through unique word ratio, topic repetition, and semantic coherence in spoken conversation, not through structured tests or imaging.
+
+**Rationale**: Zero interaction. A structured cognitive test requires the user to stop what they are doing, understand instructions, and perform tasks. Speech-based monitoring happens during natural conversation. It is continuous, unobtrusive, and emotionally neutral.
+
+**Trade-off**: Speech patterns are noisy. Fatigue, medication, dental issues, and social context all affect vocabulary and coherence. The source does not quantify the signal-to-noise ratio or the false positive rate for cognitive alerts.
+
+## Why These Decisions Matter Together
+
+Each decision reinforces the others. Local wake-word processing protects the privacy that makes spiritual integration trustworthy. The three-agent architecture provides the transparency that makes adaptive weighting defensible. The removal of the personality mirror preserves the dignity that the zero-interaction principle promises. SphereAI is not a collection of features; it is a stance on what it means for a machine to care.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="TriAgent Overview" icon="brain" href="/sphereai/overview">
+    How the three-agent architecture operates in practice.
+  </Card>
+
+  <Card title="Ethics of Autonomy" icon="scale-balanced" href="/design/ethics-of-autonomy">
+    The ethical framework that informed the personality mirror removal and spiritual integration.
+  </Card>
+
+  <Card title="Privacy by Design" icon="shield-halved" href="/design/privacy-by-design">
+    How local processing and encrypted channels protect the user's voice and emotional data.
+  </Card>
+
+  <Card title="Limits and Ethics" icon="circle-question" href="/sphereai/limits-and-ethics">
+    Where SphereAI's design decisions reach their boundary.
+  </Card>
+</CardGroup>

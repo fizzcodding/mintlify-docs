@@ -1,0 +1,87 @@
+---
+title: "Tremor Detection: Motion Sensing for Involuntary Movement"
+sidebarTitle: "Tremor Detection"
+description: "How Vital32 approaches tremor detection with its MPU6050 motion sensor, what tremor means clinically, and where the current design stands regarding algorithms and thresholds."
+icon: "hand"
+---
+
+Vital32 lists tremor detection among the capabilities of its MPU6050 accelerometer and gyroscope. Understanding tremor is clinically important for elderly users, because persistent tremor can indicate Parkinsonian conditions, medication side effects, or neurological change. This page explains what tremor is, what a motion sensor can theoretically reveal, and exactly how much the current source material says about Vital32's implementation.
+
+## What tremor is
+
+A tremor is a rhythmic, involuntary oscillation of a body part. In general, tremors are categorized by when they occur:
+
+- **Resting tremor**: appears when the limb is fully supported and at rest; strongly associated with Parkinson's disease
+- **Action tremor**: appears during purposeful movement, such as reaching for a cup
+- **Postural tremor**: appears when holding a position against gravity, such as holding the arms outstretched
+
+Tremor frequency typically ranges from 4 to 12 Hz. The MPU6050 samples motion at 50 Hz, which is well above the Nyquist threshold needed to capture these frequencies. In principle, a 50 Hz stream contains enough information to detect and classify tremor bands.
+
+## What the MPU6050 measures
+
+The MPU6050 is a combined accelerometer and gyroscope. It reports linear acceleration along three axes and rotational velocity around three axes. For tremor, the gyroscope is particularly relevant because tremor is fundamentally rotational at the joint level, even if the hand translates in space.
+
+A motion-processing pipeline for tremor generally involves:
+
+1. **Filtering**: a band-pass filter isolates the 4 to 12 Hz band while removing gravity bias and high-frequency noise
+2. **Feature extraction**: root-mean-square amplitude, peak frequency via Fourier transform, or entropy of the signal
+3. **Thresholding or classification**: decide whether the extracted features cross a clinical or personalized boundary
+4. **Logging or alerting**: record the episode or notify a caregiver
+
+In general, wearable tremor detection is an active research area. Consumer devices can detect the presence of tremor, but distinguishing Parkinsonian tremor from essential tremor or simple fatigue requires more context than a wrist sensor alone can provide.
+
+## What the source says about Vital32's tremor detection
+
+The source explicitly lists the MPU6050 as handling tremor detection. However, it does not provide:
+
+- The specific tremor detection algorithm
+- Any numerical thresholds
+- Whether the system distinguishes resting from action tremor
+- How tremor episodes are reported in the shared biological state
+- Whether tremor data feeds any prediction model
+
+Because no further details are given, the following must be treated as honest unknowns rather than confirmed behaviors.
+
+## Why this still matters
+
+Even without a disclosed algorithm, the presence of tremor detection in the design signals an intent beyond simple fall monitoring. Repeated tremor episodes can indicate:
+
+- Medication timing issues (for example, missed doses of dopaminergic drugs)
+- Disease progression in known conditions
+- Adverse reactions to new prescriptions
+- General neurological decline that warrants clinical review
+
+If Vital32 does implement tremor logging in the future, the data could feed longitudinal anomaly detection. A gradual increase in tremor amplitude or frequency could raise the biological-age-clock deviation or trigger a soft anomaly alert, prompting SphereAI to initiate a gentle wellness conversation or HollowCore to remind a guardian.
+
+## How it connects to the rest of LifeSphere
+
+- The same MPU6050 handles **fall detection** and **sleep-state inference**, so tremor detection reuses hardware without adding cost or size.
+- **SphereAI** could, in principle, note tremor-linked vocal changes (for example, slower speech or word-finding difficulty) and adjust its interaction pace.
+- **Medication management** could cross-reference tremor episodes with dosing times; the source does not confirm this integration.
+
+## Limits
+
+- The source does not specify the tremor algorithm, threshold, or output field. This page describes what is theoretically possible with the hardware, not what is implemented.
+- No accuracy, sensitivity, or specificity figures exist for Vital32 tremor detection.
+- Wrist-worn tremor sensing misses tremor localized to the head, jaw, or legs.
+- Distinguishing pathological tremor from everyday vibration (for example, operating an appliance) is a known challenge in wearable design.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Motion" icon="person-falling" href="/vital32/components/motion">
+    How the MPU60050 serves fall, sleep, and tremor sensing
+  </Card>
+
+  <Card title="Fall Detection" icon="person-falling" href="/vital32/sensing/fall-detection">
+    The two-stage state machine that uses the same accelerometer
+  </Card>
+
+  <Card title="Design Decisions" icon="gears" href="/vital32/design-decisions">
+    Why the team chose this sensor layout and what trade-offs it implies
+  </Card>
+
+  <Card title="Limits and Ethics" icon="shield-halved" href="/vital32/limits-and-ethics">
+    Honest limits of the Vital32 subsystem, including unvalidated predictive goals
+  </Card>
+</CardGroup>

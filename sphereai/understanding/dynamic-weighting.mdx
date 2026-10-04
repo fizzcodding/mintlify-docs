@@ -1,0 +1,97 @@
+---
+title: "Dynamic Weighting: Context-Adaptive Trust"
+sidebarTitle: "Dynamic Weighting"
+description: "How SphereAI shifts trust between language, voice, and biology depending on the user's prior emotional state, with the full weight table and the reasoning behind each profile."
+icon: "layer-group"
+---
+
+SphereAI does not treat its three sensory streams equally at all times. The Dynamic Weighting system assigns different trust levels to language, voice, and biology based on the user's prior emotional state. A stressed elderly user may say "I'm fine" while their body screams otherwise. A withdrawn user may stop speaking entirely. Dynamic weighting ensures the most reliable signal gets the most influence.
+
+## The weight table
+
+Each emotional state has a weight triple (Language / Voice / Biology) that determines how the Meta-Classifier fuses the three agent scores. The weights for each state sum to 1.0 (or very close, accounting for rounding). Here is the full table, with the strongest signal highlighted for each state:
+
+| Prior State | Weights (Lang / Voice / Bio) | Strongest Signal |
+| --- | --- | --- |
+| Calm | 0.4 / 0.3 / 0.3 | Language (tied) |
+| Stressed | 0.2 / 0.3 / 0.5 | Biology |
+| Grief | 0.3 / 0.4 / 0.3 | Voice |
+| Isolated | 0.2 / 0.2 / 0.6 | Biology |
+| Cognitive | 0.5 / 0.3 / 0.2 | Language |
+| Unknown | 0.4 / 0.3 / 0.3 | Language (tied) |
+
+| Prior State | Weights (Lang / Voice / Bio) | Strongest Signal |
+| --- | --- | --- |
+| Calm | 0.4 / 0.3 / 0.3 | Language (tied) |
+| Stressed | 0.2 / 0.3 / 0.5 | Biology |
+| Grief | 0.3 / 0.4 / 0.3 | Voice |
+| Isolated | 0.2 / 0.2 / 0.6 | Biology |
+| Cognitive | 0.5 / 0.3 / 0.2 | Language |
+| Unknown | 0.4 / 0.3 / 0.3 | Language (tied) |
+
+When the prior state is unknown (for example, on system startup or after a long gap), the system defaults to the same weights as the calm state.
+
+## Why each state has its own profile
+
+<AccordionGroup>
+  <Accordion title="Calm:: balanced, slight language lead">
+    When the user is calm, all three signals are likely stable and available. Language gets a slight edge (0.4) because calm speech tends to be coherent, natural, and emotionally transparent. There is no reason to distrust words. Voice and biology share the remainder to catch early deviations before words become unreliable. This baseline profile assumes the user is communicative and physically stable.
+  </Accordion>
+
+  <Accordion title="Stressed:: biology dominates">
+    Stress often produces involuntary physiological changes faster than conscious awareness or verbal acknowledgment. A stressed user may deny feeling anxious or may not have the emotional vocabulary to express it. Elevated GSR, reduced HRV, and elevated estimated cortisol are harder to fake or suppress than words. Biology carries 0.5 weight here, with voice at 0.3 (stress changes vocal tension) and language at only 0.2 (people often underreport stress). This profile prioritizes the body's honest signal.
+  </Accordion>
+
+  <Accordion title="Grief:: voice leads">
+    Grief often manifests in the voice before it reaches words or biology. A grieving person may speak slowly, with sighs, silences, or a flat, hollow tone. The voice carries emotional nuance that formal language ("I'm okay") cannot capture, and biological signals during grief may overlap with normal post-illness recovery or medication effects. Voice gets 0.4 weight, language and biology 0.3 each. This profile listens to the pain in the sounds.
+  </Accordion>
+
+  <Accordion title="Isolated:: biology dominates strongly">
+    Social isolation is one of the most dangerous states in elderly care, and it is also the hardest to detect through words. An isolated user may stop speaking entirely. Voice features may flatten due to disuse, not just emotion. Biology becomes the only reliable channel: circadian rhythm disruption, chronic HRV depression, reduced GSR reactivity, and altered sleep architecture all signal withdrawal. Biology carries 0.6, the highest weight in any state. Language and voice share 0.2 each, reflecting that an isolated person may not be producing enough speech for those agents to contribute meaningfully.
+  </Accordion>
+
+  <Accordion title="Cognitive:: language leads strongly">
+    Cognitive decline primarily impairs language. The cognitive tracker monitors unique word ratio, topic repetition, and semantic coherence. These are fundamentally linguistic measurements. A cognitively declining user may still speak with normal vocal prosody and have stable vital signs, but their language drifts. Language carries 0.5, the highest language weight in any state. Voice gets 0.3 and biology only 0.2, because the core evidence for this state comes from how the user structures and varies their speech over time.
+  </Accordion>
+</AccordionGroup>
+
+## Why trust shifts: the general principle
+
+Dynamic weighting reflects a principle from sensor fusion and human-computer interaction: the reliability of a signal depends on the situation. A map is more useful when you are lost than when you are following a familiar road. A thermometer is more useful when you feel feverish than when you feel normal.
+
+In affective computing, this means that each emotional state has a "signature" in one or two modalities that is most resistant to noise and most specific to that state. Stress signatures appear strongly in GSR and cortisol proxies. Grief signatures appear in prosody. Isolation signatures appear in biological rhythms. Cognitive signatures appear in language structure. By weighting each state toward its most distinctive modality, SphereAI reduces the chance of false classification due to unrelated changes in the other streams.
+
+This approach also makes the system more robust to sensor failures. If the microphone is temporarily obstructed, the isolated-state profile still produces a result because biology dominates. If the user has a skin rash that disrupts GSR contact, the cognitive-state profile still produces a result because language dominates.
+
+## How it connects to the rest of LifeSphere
+
+The weights are fixed parameters in the SphereAI configuration, not learned at runtime. They reflect design decisions based on the author's understanding of emotional psychophysiology. The weights are applied during every medium-cycle update (15 minutes). The resulting emotional state is written to the shared Firebase state as `emotional_state`, alongside `stress_level`, `loneliness_index`, and `cognitive_score`.
+
+Other subsystems do not read the weights directly, but they feel their effects. When the isolated state is correctly detected because biology dominates, HollowRover may initiate a companionship protocol. When the cognitive state is detected because language dominates, the cognitive tracker may flag a deviation score above the 2-sigma threshold, triggering a guardian notification. The dynamic weights are invisible plumbing that shapes the whole system's behavior.
+
+## Limits
+
+- The source does not explain how the weights were chosen. They may be based on psychophysiology literature, design intuition, or iterative testing. The reasoning above is general background, not a claim about the author's specific methodology.
+- The weights are fixed, not adaptive over time. A user who consistently expresses stress through words rather than biology would still have their language score down-weighted to 0.2 in the stressed state. A truly personalized system might learn per-user weight profiles, but this is not described.
+- The source does not report any validation that these weights perform better than equal weighting in real users.
+- The weights sum to 1.0, but this only matters if the underlying scores are on comparable scales. If L, V, and B have different ranges or variances, the nominal weights may not produce the intended real influence. Normalization details are not specified.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Meta-Classifier" icon="brain" href="/sphereai/understanding/meta-classifier">
+    How the weighted scores combine into a final emotional state
+  </Card>
+
+  <Card title="Emotional States" icon="sun" href="/sphereai/understanding/emotional-states">
+    What each state means in the LifeSphere system
+  </Card>
+
+  <Card title="Biology Agent" icon="heart-pulse" href="/sphereai/understanding/biology-agent">
+    Why biology becomes the trusted signal during isolation
+  </Card>
+
+  <Card title="Cognitive Monitoring" icon="scale-balanced" href="/sphereai/understanding/cognitive-monitoring">
+    Why language dominates when tracking cognitive change
+  </Card>
+</CardGroup>

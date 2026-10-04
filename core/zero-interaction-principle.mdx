@@ -1,0 +1,102 @@
+---
+title: "The Zero-Interaction Principle: Technology That Responds to Biology"
+sidebarTitle: "Zero-Interaction Principle"
+description: "LifeSphere does not require the user to interact with technology. It requires technology to respond to the user's biology, transparently and without switches or commands."
+icon: "hand"
+---
+
+LifeSphere is built on a simple but radical premise: the people who need care most are often the least capable of managing complex devices. The zero-interaction principle means the system monitors, predicts, and responds without requiring the user to press buttons, remember passwords, navigate apps, or issue voice commands.
+
+## What zero interaction means in practice
+
+For an elderly person living alone, even a small friction can become an insurmountable barrier. Remembering to charge a wearable, tapping a touchscreen, or speaking a wake phrase assumes cognitive capacity, physical dexterity, and willingness to engage with machines that may not be present during illness, confusion, or distress. LifeSphere removes these assumptions entirely.
+
+The wearable biosensor band, Vital32, is worn once and then forgotten. It measures cardiac signals, motion, skin temperature, perspiration, and environmental exposure continuously. There are no menus to navigate, no alarms to silence, no data to interpret. The user does not interact with the band; the band interacts with the user's biology.
+
+When the system detects a fall, the HollowRover autonomous unit dispatches itself. It does not wait for a button press or a phone call. When SphereAI senses rising stress through vocal and biometric cues, it adjusts its conversational tone and triggers calming environmental changes through HollowCore without asking permission. When EntryGuard detects an intruder, the response pipeline starts immediately while simultaneously requesting human authorization for any action that could affect a person.
+
+This is not merely convenient automation. It is a design philosophy that treats dignity as a functional requirement rather than an afterthought.
+
+## Why existing devices violate this principle
+
+Current caregiving technology is fragmented into single-function devices that demand active engagement. A smartwatch requires the user to read notifications and interpret metrics. A medication app requires manual entry and confirmation. A home security system requires arming and disarming. A smart speaker requires clear voice commands in a specific format.
+
+Each of these devices collects data but does not act on it comprehensively. They live in isolation, creating what the project calls "silos": a smartwatch tracks heart rate, a smart speaker sets reminders, a security camera records video. None of them talk to each other, and all of them demand something from a user who may be forgetful, confused, physically limited, or simply exhausted.
+
+## How LifeSphere maintains zero interaction across subsystems
+
+The five subsystems work as a single synchronized intelligence to ensure the user never needs to initiate contact with technology.
+
+<CardGroup cols={2}>
+  <Card title="Vital32" icon="heart-pulse" href="/vital32/overview">
+    Worn continuously, it passively captures biometric signals and uploads them every 30 seconds. The user never charges it manually; the band is designed for minimal maintenance.
+  </Card>
+
+  <Card title="HollowRover" icon="robot" href="/hollowrover/overview">
+    Autonomous physical responder that dispatches itself when triggered by biomarkers. It navigates, retrieves medication, and provides presence without user command.
+  </Card>
+
+  <Card title="SphereAI" icon="brain" href="/sphereai/overview">
+    Listens and speaks naturally, but does not require wake phrases for urgent responses. Detects emotional and cognitive states from passive cues, not explicit input.
+  </Card>
+
+  <Card title="EntryGuard" icon="shield-halved" href="/entryguard/overview">
+    Perimeter security that arms and monitors continuously. No arming or disarming required from the resident.
+  </Card>
+
+  <Card title="HollowCore" icon="layer-group" href="/hollowcore/overview">
+    Home automation that adjusts lighting, temperature, and air quality based on biological state. No switches, apps, or voice commands required.
+  </Card>
+</CardGroup>
+
+## The boundary: when human authorization is required
+
+Zero interaction does not mean zero oversight. LifeSphere distinguishes between autonomous responses that affect only the user (adjusting a thermostat, playing calming audio, retrieving a dropped pill) and actions that could impact other people. Intruder deterrence, financial transaction authorization, and any defensive physical response require explicit human approval before execution. The system is designed to be autonomous in care, but accountable in consequence.
+
+For a deeper exploration of this boundary, see the human authorization framework.
+
+## Why this matters
+
+For a frail elderly person living alone, the difference between a system that demands interaction and one that provides it silently can be the difference between early intervention and a hospital admission. It can mean the difference between maintaining independence and moving to institutional care. The zero-interaction principle recognizes that the most vulnerable users deserve the most capable technology, not the most complicated.
+
+## How it connects to the rest of LifeSphere
+
+The zero-interaction principle is not a feature of any single subsystem. It is an architectural constraint that shapes every design decision across the ecosystem.
+
+<AccordionGroup>
+  <Accordion title="Shared biological state">
+    The real-time biological state backbone enables one subsystem to act on another's data without user mediation. See <a href="/core/shared-biological-state">Shared Biological State</a>.
+  </Accordion>
+
+  <Accordion title="Distributed intelligence">
+    Each node operates independently so that no central failure can break the monitoring chain. See <a href="/core/distributed-intelligence">Distributed Intelligence</a>.
+  </Accordion>
+
+  <Accordion title="Multi-timescale inference">
+    Predictions happen on timescales from seconds to days, all without user intervention. See <a href="/core/multi-timescale-inference">Multi-Timescale Inference</a>.
+  </Accordion>
+</AccordionGroup>
+
+## Limits
+
+Zero interaction relies on continuous power and connectivity. During extended outages, Vital32 can buffer 24 hours of data on its SD card and HollowRover can become a local Wi-Fi hotspot, but some predictive capabilities may degrade. The system also assumes the user is willing to wear the Vital32 band; adherence cannot be enforced without violating the principle itself.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Why LifeSphere Exists" icon="heart-pulse" href="/start/why-lifesphere-exists">
+    The caregiving gap that motivated the project.
+  </Card>
+
+  <Card title="Shared Biological State" icon="layer-group" href="/core/shared-biological-state">
+    How data flows between subsystems without user action.
+  </Card>
+
+  <Card title="Distributed Intelligence" icon="brain" href="/core/distributed-intelligence">
+    Why no single failure can stop the ecosystem.
+  </Card>
+
+  <Card title="Mandatory Human Authorization" icon="lock" href="/core/human-authorization">
+    The boundary between autonomous care and human-gated action.
+  </Card>
+</CardGroup>

@@ -1,0 +1,80 @@
+---
+title: "LifeSphere Gear Reduction: Torque and Step Resolution"
+sidebarTitle: "Gear Reduction"
+description: "A 100-tooth ring gear gives LifeSphere's dispenser 5:1 reduction, converting 50 motor steps into one precise 18-degree slot advance with higher torque."
+icon: "gears"
+---
+
+The NEMA17 stepper motor inside the LifeSphere dispenser does not turn the medication carousel directly. Instead, it drives a smaller pinion gear meshed with a 100-tooth ring gear attached to the carousel disc. This 5:1 gear reduction is the mechanical transformer that converts fast, low-torque rotation at the motor into slow, high-torque rotation at the carousel. It also subdivides each motor revolution into finer angular increments at the output. This page explains what reduction means mechanically, how the numbers line up, and why it matters for reliability.
+
+## What gear reduction does
+
+In general, a gear reduction is a mechanical ratio that trades rotational speed for torque and precision. When a small gear drives a larger gear, the larger gear turns more slowly but with greater force. This is useful whenever a load is heavy, whenever friction must be overcome, or whenever small, accurate movements are needed. Printers, CNC machines, telescope mounts, and robotic joints all use reduction stages for the same fundamental reasons: the motor can be optimized for speed and efficiency, while the reduction stage tailors the output to the task.
+
+In the LifeSphere dispenser, the load is a carousel partially filled with medication. Even light pills add mass at a radius, creating rotational inertia. The reduction stage lets a compact NEMA17 motor start and stop the carousel smoothly without stalling.
+
+## The math
+
+The ring gear has 100 teeth. The driving pinion has 20 teeth by implication, because the stated ratio is 5:1. This means the motor must complete five full revolutions for the carousel to complete one:
+
+$$
+\text{Gear ratio} = \frac{100 \text{ teeth}}{20 \text{ teeth}} = 5 : 1
+$$
+
+A standard NEMA17 stepper motor in full-step mode completes 200 steps per revolution. With the 5:1 reduction, one carousel revolution therefore requires:
+
+$$
+200 \text{ steps/rev} \times 5 = 1000 \text{ steps per carousel revolution}
+$$
+
+Because the carousel has 20 slots, the steps per slot are:
+
+$$
+\frac{1000 \text{ steps}}{20 \text{ slots}} = 50 \text{ steps per slot}
+$$
+
+This is the consistency check mentioned in the design documents: 50 steps per slot, 20 slots, 1000 steps per revolution, and a 200-step motor with 5:1 reduction all align. The arithmetic is self-consistent.
+
+## Why the numbers matter
+
+**Torque multiplication.** A 5:1 reduction multiplies the motor's available torque by approximately the same factor (minus friction losses). The NEMA17 can therefore handle a carousel that would otherwise require a much larger, heavier motor. Inside the HollowRover chassis, every gram and cubic centimeter counts, so this efficiency gain is meaningful.
+
+**Positional resolution.** Without reduction, a single step of the motor would move the carousel by 1.8 degrees, which is one-tenth of a slot width. While that might sound fine, with load variations and ringing the motor could overshoot and land between slots. With reduction, each motor step corresponds to only 0.36 degrees at the carousel. The controller can issue 50 fine steps to traverse one slot, giving it many opportunities to decelerate, settle, and verify position against the encoder before declaring the slot aligned.
+
+**Load independence.** A direct-drive motor must be sized for the worst-case load. With reduction, the same motor can tolerate a wider range of loading conditions because the mechanical advantage adapts the output to the resistance. This is especially useful in a dispenser that may be fully loaded one week and half-empty the next.
+
+## How it connects to the rest of LifeSphere
+
+The gear reduction sits at the mechanical center of three control loops:
+
+- **The stepper driver (TMC2209)** sends step pulses to the motor. The pulse count is derived from the 50-steps-per-slot constant, which only makes sense because the 5:1 reduction exists.
+- **The AS5600 encoder** reads the actual carousel angle. It sees the reduced, slower motion, making its measurements more stable and easier to compare against quantized slot boundaries.
+- **HollowRover's schedule engine** commands slot indexes. It never deals in motor steps; the translation from "slot 7" to "350 steps forward" happens in the low-level firmware, using the reduction ratio as the conversion constant.
+
+## Honest unknowns and trade-offs
+
+The source does not state why a 100-tooth ring gear was chosen over other ratios, nor whether the pinion is also 3D-printed or machined. It does not specify the material of the ring gear or the expected wear life after thousands of dispensing cycles. In general, higher reduction ratios increase backlash, which is the small lost motion when reversing direction. The source does not mention backlash compensation, so it is unclear whether the firmware accounts for it when it commands a short reverse move. Microstepping settings for the TMC2209 are also not specified, so the exact step resolution at the driver level is unknown.
+
+## Limits
+
+Gear trains add mechanical complexity. If a tooth chips or foreign debris enters the gear mesh, the carousel can jam. The system relies on the encoder to detect a failure to reach the target angle, but it does not specify what recovery action is taken when such a fault occurs. Regular inspection during refill cycles is the practical safeguard.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="The 20-Slot Carousel" icon="circle-notch" href="/medication/carousel">
+    The 18-degree geometry that gives every medication a fixed mechanical address.
+  </Card>
+
+  <Card title="Closed-Loop Encoder Feedback" icon="wave-square" href="/medication/encoder-feedback">
+    How the AS5600 verifies that the carousel has truly reached the expected slot angle.
+  </Card>
+
+  <Card title="Stepper Driver Choice" icon="microchip" href="/medication/stepper-driver">
+    General traits of modern stepper drivers and why they suit quiet, precise dispensing.
+  </Card>
+
+  <Card title="Dispenser Mechanism Overview" icon="pills" href="/medication/dispenser-overview">
+    The full dose-to-delivery sequence, placing the gear reduction in context.
+  </Card>
+</CardGroup>

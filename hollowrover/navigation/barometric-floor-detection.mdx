@@ -1,0 +1,64 @@
+---
+title: "Barometric Floor Detection: Pressure-Based Vertical Context"
+sidebarTitle: "Barometric Floor Detection"
+description: "HollowRover uses barometric pressure baselines to identify which floor it is on before activating that floor's map and UWB anchor set."
+icon: "temperature-half"
+---
+
+HollowRover determines its vertical floor context by comparing the current barometric pressure to a calibrated baseline for each registered floor, selecting the closest match before loading that floor's SLAM map and three-anchor UWB geometry.
+
+## Why barometric pressure for floors
+
+Barometric pressure decreases predictably with altitude. In a multi-story building, each floor sits at a slightly different elevation, and that elevation produces a slightly different ambient air pressure. While UWB radio can measure horizontal distance with centimeter precision, its vertical axis is not reliable enough to distinguish floors unambiguously. Barometric sensing fills that gap.
+
+In general, consumer-grade barometric sensors can resolve pressure differences equivalent to less than one floor of height. By calibrating a reference pressure per floor during setup, the rover can later compare its live reading to those references and decide which floor it occupies.
+
+## The floor detection formula
+
+During setup, each floor stores a calibrated reference pressure (P_0) and the measured average pressure difference between adjacent floors, (\\Delta P\_{floor}). When the rover samples the current pressure (P\_{measured}), the floor index is estimated as:
+
+$$
+z_{floor} = \text{floor}\left(\frac{P_0 - P_{measured}}{\Delta P_{floor}}\right)
+$$
+
+In deployment, the rover does not rely on the raw formula alone. It compares (P\_{measured}) against every registered floor's calibrated baseline and selects the floor whose baseline is closest to the current reading. This avoids error propagation from a single global reference.
+
+## Plain-language interpretation
+
+Think of barometric pressure like altitude on a hiking trail. If you know the air pressure at sea level and you know how much pressure drops per 100 meters, you can estimate your elevation. In a building, the rover records the pressure on the ground floor, the first floor, and any additional floors. Later, it simply checks which stored pressure is nearest to what it currently senses. That tells it which floor map and which three UWB anchors to use.
+
+## Why this matters
+
+A rover that guesses its floor incorrectly might load the wrong map. It would then try to match LiDAR scans against a geometry that does not exist on its actual floor, causing localization to fail. It might also use anchor coordinates from another floor, producing a completely wrong position solution. Barometric detection prevents these errors before navigation begins.
+
+## How it connects to the rest of LifeSphere
+
+The BME688 sensor on the rover measures both pressure and volatile organic compounds. Its pressure channel is used solely for floor discrimination. After floor selection, the UWB tag performs horizontal trilateration against that floor's three anchors, and SLAM Toolbox loads that floor's lifelong map. See [UWB Positioning](/hollowrover/navigation/uwb-positioning) and [Multi-Floor Map Switching](/hollowrover/navigation/multi-floor-maps).
+
+EntryGuard nodes also carry barometric sensors. When a node reports danger, its alert payload includes a floor pressure reference. The rover uses that reference as an independent confirmation of the target floor, loads the corresponding map, and navigates to the alerting node's UWB zone.
+
+## Limits
+
+Barometric pressure changes with weather. A passing storm can shift absolute pressure by more than the difference between two floors. The source does not specify how often baselines are recalibrated or whether weather drift is automatically compensated. Rapid altitude changes, such as in a fast elevator, may also produce transient errors.
+
+The rover cannot climb stairs. Even with correct floor detection, moving between floors requires an accessible path such as a lift, ramp, or manual relocation. Future work includes legged locomotion for true multi-floor autonomy.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="UWB Positioning" icon="location-dot" href="/hollowrover/navigation/uwb-positioning">
+    True 2D trilateration with three anchors per floor for horizontal localization.
+  </Card>
+
+  <Card title="Multi-Floor Map Switching" icon="layer-group" href="/hollowrover/navigation/multi-floor-maps">
+    How the rover pairs per-floor maps, anchors, and pressure baselines for seamless switching.
+  </Card>
+
+  <Card title="BLE Person-Finding" icon="bluetooth" href="/hollowrover/navigation/ble-person-finding">
+    Coarse search using BLE signal strength when the user leaves UWB coverage.
+  </Card>
+
+  <Card title="Mapping and SLAM" icon="map" href="/hollowrover/navigation/mapping-and-slam">
+    Building and updating the 2D occupancy grids loaded after floor detection.
+  </Card>
+</CardGroup>

@@ -1,0 +1,71 @@
+---
+title: "HollowRover Power and Backup: Always On"
+sidebarTitle: "Power and Backup"
+description: "HollowRover carries a 5000 mAh LiPo battery, a local hotspot, and 24 hours of SD card buffering so caregiving continues even during power and network outages."
+icon: "battery-full"
+---
+
+HollowRover is designed to keep working when the utilities fail. Its power subsystem includes a substantial lithium-polymer battery, local data storage, and the ability to create its own Wi-Fi network so that other subsystems can stay connected even if the home router goes down.
+
+## Main battery
+
+The rover is powered by an 11.1 V 3S 5000 mAh LiPo battery with an XT60 connector. "3S" means three lithium-polymer cells in series, producing a nominal voltage of 11.1 volts. "5000 mAh" is the charge capacity: at a constant discharge of 5 amperes, the battery would deliver power for one hour. In practice, the rover's duty cycle (periods of movement, idle listening, charging) means the effective runtime depends heavily on activity level.
+
+The source also describes this same battery as a backup power source. This dual description suggests the battery is the sole on-board power reservoir, not a secondary unit kept in reserve. Whether labeled main or backup, it is the energy store that keeps the rover alive when wall power is unavailable.
+
+## Outage resilience
+
+When the home loses electricity, the rover automatically switches to battery power. This is not a graceful shutdown strategy; it is a continue-operating strategy. The rover maintains all critical functions:
+
+- **Vital data buffering:** the rover stores the last 24 hours of vital data from Vital32 on an SD card. If the Firebase cloud link is down, this local record prevents data loss and enables later synchronization.
+- **Local MQTT broker:** the Mosquitto MQTT broker runs on the RDK X5. It does not need the internet to function; it routes commands between local nodes on the same network segment.
+- **Firebase listener caching:** the rover keeps a local cache of recent shared-state values so it can still evaluate trigger conditions (e.g., anomaly_score thresholds) without real-time cloud access.
+
+## Local Wi-Fi hotspot
+
+During a Wi-Fi outage, HollowRover becomes a local Wi-Fi hotspot. This is critical for Vital32 continuity. The wearable normally uploads biometrics to Firebase over the home Wi-Fi. If the home router fails, the rover broadcasts its own network, and Vital32 reconnects to it. Biometric data then flows from the wearable to the rover over the local hotspot, and from the rover into its 24-hour SD card buffer.
+
+This fallback preserves the most important function of the ecosystem, continuous health monitoring, even when every upstream internet link is severed. The guardian may not receive real-time alerts until GSM or internet service returns, but the data is not lost.
+
+## Why this matters
+
+In Bangladesh and many other regions, power outages are common. A caregiving system that ceases to function when the lights go out is a caregiving system that fails its users during storms, grid maintenance, or infrastructure gaps. HollowRover's power resilience is therefore not an accessory feature; it is a core requirement for reliable autonomous care.
+
+The 24-hour buffering window also matters for pattern-based AI. The multi-timescale inference models (daily biological age, circadian rhythm, cognitive drift) depend on uninterrupted data streams. A six-hour gap during an outage could introduce artifacts that the anomaly detector misinterprets. Local buffering preserves data continuity.
+
+## How it connects to the rest of LifeSphere
+
+Every subsystem benefits from the rover's power resilience:
+
+- **Vital32:** continues transmitting biometrics to the rover's hotspot.
+- **HollowCore:** relay modules controlled by MQTT can still respond to local commands from the rover even without cloud access.
+- **SphereAI:** voice wake-word detection runs locally on the ESP32-S3; full conversation may be limited if Whisper cloud access is unavailable, but the rover can still play pre-stored calming audio or alarm sounds.
+- **EntryGuard:** intrusion and hazard detection continues locally, and alerts can queue for later transmission via GSM fallback.
+
+## GSM fallback
+
+The source mentions a SIM800L GSM module as the fallback communication channel during Wi-Fi outages. GSM (Global System for Mobile Communications) is the standard for 2G cellular voice and data. The SIM800L can send SMS or basic data packets over mobile networks when Wi-Fi is unavailable. The source does not specify activation triggers, message formats, or carrier requirements, but the presence of the module indicates a design intent to maintain outbound alerting even in multi-layer network failures.
+
+## Limits
+
+The source does not specify battery runtime under full active load (all motors moving, NPU inferring, audio playing). In general, a 5000 mAh LiPo driving four motors, a main computer, and multiple sensors may see runtime measured in tens of minutes rather than hours during intensive protocols. The source also does not state how the rover decides when to return to its charging dock, whether it has an autonomous docking capability, or whether charging resumes automatically when wall power returns.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Compute and NPU" icon="microchip" href="/hollowrover/components/compute-and-npu">
+    The main computer that draws the bulk of battery power.
+  </Card>
+
+  <Card title="Fault Tolerance" icon="shield-halved" href="/core/fault-tolerance">
+    System-wide resilience strategies across all five nodes.
+  </Card>
+
+  <Card title="Communication Channels" icon="wifi" href="/core/communication-channels">
+    How MQTT, Firebase, and GSM layers interact during outages.
+  </Card>
+
+  <Card title="Navigation" icon="location-dot" href="/hollowrover/navigation/mapping-and-slam">
+    Why SLAM maps must remain available during power transitions.
+  </Card>
+</CardGroup>

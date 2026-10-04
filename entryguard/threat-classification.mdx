@@ -1,0 +1,75 @@
+---
+title: "EntryGuard Threat Classification: What the System Knows and Infers"
+sidebarTitle: "Threat Classification"
+description: "EntryGuard classifies threats by type, sensor value, face match result, and system mode, fusing these signals into alerts that trigger rover protocols and guardian notifications."
+icon: "circle-question"
+---
+
+Threat classification is the layer that turns raw sensor readings into named, actionable events. EntryGuard does not simply forward numbers; it interprets signals in context, weighing what the sensors report against what the system knows about the home, its residents, and its current operating mode.
+
+## Known Signals
+
+The classification pipeline works with a fixed set of inputs. Each input comes from a different part of the system and contributes a different kind of evidence.
+
+| Signal Source | What It Provides | Role in Classification |
+| --- | --- | --- |
+| PIR motion | Warm-body movement detection | Primary trigger for intrusion, gated by mode |
+| Ultrasonic distance | Distance to nearest object | Confirms proximity of a physical presence |
+| Flame sensor | Infrared flame signature | Direct evidence of fire |
+| Gas sensor | Combustible gas concentration | Direct evidence of gas hazard |
+| Face recognition | Registered or unregistered identity | Converts a motion event into a person-type event |
+| System mode | ACTIVE or PASSIVE | Determines whether motion constitutes an intrusion |
+
+## Alert Types
+
+From these inputs, EntryGuard produces three fundamental alert types:
+
+- **Motion alert** - Triggered when PIR detects movement and ultrasonic confirms proximity, but only when `entryguard.mode` is ACTIVE. If face recognition is enabled at the chokepoint, the alert is further enriched with a registered or unregistered classification.
+- **Fire alert** - Triggered when the flame sensor reading crosses its threshold. Always active, regardless of mode.
+- **Gas alert** - Triggered when the gas sensor reading crosses its threshold. Always active, regardless of mode.
+
+## Face Match Result
+
+Face recognition adds a critical dimension to threat classification. A motion alert accompanied by a "registered" face match is likely normal household activity. The same motion alert with an "unregistered" face match becomes a higher-priority security event. This distinction determines whether the rover deploys its passive barrier, whether lights are activated, and whether the guardian receives an immediate push notification with live video.
+
+## Mode as Context
+
+The system mode is not a sensor reading; it is a state variable set by the broader LifeSphere intelligence. When the mode is ACTIVE, the home is considered in a protected state, and motion at an entry point is treated as suspicious. When the mode is PASSIVE, motion is monitored but not alerted as intrusion. This contextual gating reduces false positives and prevents alarm fatigue.
+
+## What Is Not Known
+
+The source lists threat classification as part of the EntryGuard AI stack but does not specify the algorithmic method used to fuse the above signals into a final threat score. The classification may be rule-based, threshold-based, or model-based; the exact implementation is not detailed. What is known is that the output drives three simultaneous responses for unregistered intrusions: arm blocks pathway, audible alarm sounds, and push notification with live camera feed is sent to the guardian's phone.
+
+## Why This Matters
+
+Classification is the bridge between sensing and response. A system that reports "sensor value 437" is useless to a guardian. A system that reports "unregistered person detected at front door, ground floor, 9:14 p.m." gives the guardian everything needed to make an immediate decision. EntryGuard's classification layer exists to produce that distilled, human-readable output.
+
+## How It Connects to the Rest of LifeSphere
+
+- **HollowRover** receives the classified alert and selects the appropriate protocol: fall response, seizure cushioning, security patrol, or passive barrier deployment.
+- **HollowCore** reads `entryguard.intruder_detected` and may toggle lights or other relays in response to the eventlights or other relays in response to the eventlights or other relays in response to the event.
+- **SphereAI** uses the threat type to choose its verbal response: calming reassurance for a fire alert, challenge phrase for an intruder, or silent mode during a gas event to avoid sparks.
+
+## Limits
+
+The source does not specify the classification algorithm, the confidence scoring, or any multi-factor threat severity scale. Fire and gas thresholds are environment-dependent and not given numerically. Face recognition accuracy varies with lighting and angle. The system does not perform behavioral threat analysis; it classifies based on presence and identity, not on actions.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Intrusion Detection" icon="user-secret" href="/entryguard/intrusion-detection">
+    How motion and distance signals become intrusion alerts.
+  </Card>
+
+  <Card title="Face Recognition" icon="eye" href="/entryguard/face-recognition">
+    The InsightFace pipeline that enriches alerts with identity data.
+  </Card>
+
+  <Card title="Fire and Gas" icon="fire" href="/entryguard/fire-and-gas">
+    How environmental sensor readings become named alerts.
+  </Card>
+
+  <Card title="Floor-Aware Dispatch" icon="layer-group" href="/entryguard/floor-aware-dispatch">
+    How classified alerts carry location data for rover response.
+  </Card>
+</CardGroup>

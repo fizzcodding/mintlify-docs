@@ -1,0 +1,86 @@
+---
+title: "SphereAI Meta-Classifier: Three-Stream Fusion"
+sidebarTitle: "Meta-Classifier"
+description: "How SphereAI fuses language, voice, and biology streams into a single emotional state through a weighted meta-classifier, with an illustrative worked example."
+icon: "brain"
+---
+
+The Meta-Classifier is the decision core of SphereAI. It takes three input scores (Language L, Voice V, and Biology B), applies context-dependent weights, and produces a single emotional state category plus supporting metrics.
+
+## How the fusion works
+
+The Meta-Classifier uses a dynamic linear weighted sum. Each stream receives a weight that depends on the prior emotional state. The formula is:
+
+$$S = w_{\text{lang}} \cdot L + w_{\text{voice}} \cdot V + w_{\text{bio}} \cdot B$$
+
+For every possible emotional state (calm, stressed, grief, isolated, cognitive), the system computes one such score S. The state with the highest score wins and becomes the new emotional_state. This winner-take-all approach is simple, fast, and interpretable, which matters when SphereAI must update its understanding within the 15-minute medium inference cycle.
+
+The scores L, V, and B are normalized or calibrated such that they can be meaningfully combined. The source does not describe the exact normalization method. In general, multi-modal fusion systems require that each stream's output be scaled to comparable ranges before weighting.
+
+## Worked example (illustrative)
+
+The following example uses made-up agent scores to show how the math works. These scores are not from any real user or deployment:
+
+Suppose the prior emotional state is "stressed." The weights for the stressed state are (language 0.2, voice 0.3, biology 0.5). The three agents report:
+
+| Stream | Score (weight) | Contribution |
+| --- | --- | --- |
+| Language (L) | 0.40 (weight 0.2) | 0.080 |
+| Voice (V) | 0.70 (weight 0.3) | 0.210 |
+| Biology (B) | 0.85 (weight 0.5) | 0.425 |
+
+The stressed state score S is: $$S_{\text{stressed}} = 0.080 + 0.210 + 0.425 = 0.715$$
+
+Now compute scores for the other states using their own weights from the dynamic weighting table. For this example, assume the other agents produce:
+
+- For "calm" weights (0.4/0.3/0.3): L = 0.40, V = 0.70, B = 0.85 $$S_{\text{calm}} = 0.4(0.40) + 0.3(0.70) + 0.3(0.85) = 0.160 + 0.210 + 0.255 = 0.625$$
+- For "grief" weights (0.3/0.4/0.3): L = 0.40, V = 0.70, B = 0.85 $$S_{\text{grief}} = 0.3(0.40) + 0.4(0.70) + 0.3(0.85) = 0.120 + 0.280 + 0.255 = 0.655$$
+- For "isolated" weights (0.2/0.2/0.6): L = 0.40, V = 0.70, B = 0.85 $$S_{\text{isolated}} = 0.2(0.40) + 0.2(0.70) + 0.6(0.85) = 0.080 + 0.140 + 0.510 = 0.730$$
+- For "cognitive" weights (0.5/0.3/0.2): L = 0.40, V = 0.70, B = 0.85 $$S_{\text{cognitive}} = 0.5(0.40) + 0.3(0.70) + 0.2(0.85) = 0.200 + 0.210 + 0.170 = 0.580$$
+
+Comparing the scores: isolated (0.730) > stressed (0.715) > grief (0.655) > calm (0.625) > cognitive (0.580). The new emotional state becomes "isolated." Notice that despite biology being a strong signal across the board, the state with the highest biology weight produces the highest score because biology dominates the isolated-state computation. This illustrates how the weights shape the outcome.
+
+If the prior state had instead been "cognitive," the language weight would be 0.5 and the biology weight only 0.2, reflecting the system's design preference for verbal indicators (vocabulary, repetition, coherence) when evaluating cognitive change.
+
+## Why this matters
+
+No single sensing modality is sufficient for emotional understanding in elderly care. A user might be too withdrawn to speak (language fails). A user might have a respiratory infection that changes vocal quality without emotional cause (voice fails). A user might have taken medication that elevates heart rate and GSR without emotional arousal (biology fails). The Meta-Classifier mitigates these individual weaknesses by combining all three.
+
+The dynamic weighting adds another layer of robustness. Instead of treating all modalities equally all the time, the system shifts trust based on context. This reflects a general principle in affective computing: the reliability of a signal depends on the user's current state. A person in deep grief may communicate less verbally, so biology and voice should carry more weight. A person experiencing cognitive change may still speak coherently on familiar topics but show semantic drift, so language should lead.
+
+## How it connects to the rest of LifeSphere
+
+The output of the Meta-Classifier is written to the shared Firebase state. The fields include `emotional_state` (a string like "calm" or "stressed"), `stress_level`, `loneliness_index`, and `cognitive_score`. Other subsystems subscribe to these fields and respond autonomously.
+
+HollowCore reads `emotional_state` and `cortisol_est` to adjust lighting and climate. If the state is "grief" or cortisol_est exceeds 18.0, warm dim lighting and lower AC temperature are triggered to create a calming physical environment.
+
+HollowRover reads the state to select among its protocols. A "stressed" state triggers the cortisol-spike de-escalation protocol. An "isolated" state may trigger the companionship protocol where the rover approaches and SphereAI initiates conversation.
+
+SphereAI itself uses the new state to adjust its own behavior in the next interaction. The emotional state influences tone selection, topic choices, and whether to play adhkar (Islamic remembrance phrases) for spiritual comfort. The system creates a closed loop: the user's biology and behavior produce signals, the Meta-Classifier interprets them, and the ecosystem adapts.
+
+## Limits
+
+- The source does not describe how the raw agent scores L, V, and B are normalized before fusion. Without knowing the scale and distribution of each score, the choice of weights carries implicit assumptions that could skew results.
+- The linear weighted sum, while interpretable, cannot capture non-linear interactions between modalities. In general, real emotion is non-linear: biology and voice together may mean something different than their weighted average would suggest.
+- The winner-take-all threshold is crisp (one state per cycle). In reality, a person might experience a blend of grief and stress simultaneously. The source does not describe any multi-label or uncertainty representation.
+- No accuracy, confusion matrix, or inter-rater agreement data is reported for the Meta-Classifier itself.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Dynamic Weighting" icon="layer-group" href="/sphereai/understanding/dynamic-weighting">
+    The full weight table and why each state has its own trust profile
+  </Card>
+
+  <Card title="Language Agent" icon="message" href="/sphereai/understanding/language-agent">
+    How words are converted to sentiment scores for fusion
+  </Card>
+
+  <Card title="Voice Agent" icon="wave-square" href="/sphereai/understanding/voice-agent">
+    How vocal prosody becomes the acoustic score V
+  </Card>
+
+  <Card title="Biology Agent" icon="heart-pulse" href="/sphereai/understanding/biology-agent">
+    How vital signs become the biological score B
+  </Card>
+</CardGroup>

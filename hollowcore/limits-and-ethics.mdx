@@ -1,0 +1,78 @@
+---
+title: "HollowCore Limits and Ethical Considerations"
+sidebarTitle: "Limits and Ethics"
+description: "Honest boundaries on banking API integration, fingerprint hardware, door-lock autonomy, and the ethical trade-offs of automated home control for vulnerable users."
+icon: "shield-halved"
+---
+
+HollowCore automates critical home functions including lighting, climate, security locks, and financial protection. This level of autonomy for vulnerable elderly users raises important limitations and ethical questions that the source does not fully resolve. This page documents what is known, what is unknown, and what deployers should consider.
+
+## Banking and Financial Integration Limits
+
+HollowCore integrates with banking and subscription services through secure APIs, but the source does not name specific API providers, describe authentication flows, or specify data retention policies. The integration assumes third-party services remain available and that the user or guardian can grant API access. If a bank changes its API, discontinues service, or requires re-authentication, financial monitoring may stop without warning.
+
+The Isolation Forest model learns from transaction history, but the source does not specify minimum history requirements for reliable baseline learning. Early deployment, with limited transaction data, may produce more false positives or missed anomalies than later operation.
+
+Thresholds for what constitutes "high-risk" requiring biometric authorization are not defined. Without clear criteria, the system may either over-burden users with authorization requests or under-protect against significant fraud.
+
+## Fingerprint Hardware Not Specified
+
+Biometric transaction authorization requires three factors: facial recognition, fingerprint scan, and Vital32 proximity confirmation. The fingerprint hardware is referenced but not specified in the source. The sensor type, enrollment procedure, false acceptance rate, false rejection rate, and behavior with aging or damaged skin are all unknown.
+
+This gap has practical implications. Fingerprint sensors vary widely in reliability. Optical sensors may struggle with dry skin. Capacitive sensors may fail with moisture. Without knowing the hardware, deployers cannot assess accessibility for users with arthritis, dermatological conditions, or reduced finger dexterity.
+
+## Door Lock During Sleep: Autonomy and Safety
+
+When Vital32 detects sleep through HRV and accelerometer immobility, HollowCore automatically engages the main door lock solenoid. The source specifies no override mechanism. If the user wakes during the night and needs to leave due to fire, medical emergency, or personal choice, there is no published path for egress.
+
+This raises serious ethical concerns for cognitively declining adults. Automatic locking could inadvertently trap a confused or frightened resident inside. Fire codes in most jurisdictions require free egress from residential buildings. Whether the solenoid lock meets these codes, whether it fails open or fails locked during power loss, and whether there is an interior manual release are all unspecified.
+
+The source does not address these concerns. Any real deployment would need to resolve them through hardware selection, firmware logic, or manual override design before automatic locking can be ethically implemented.
+
+## Automatic Climate and Lighting Control
+
+HollowCore adjusts AC temperature and lighting based on cortisol, skin temperature, and sleep state without user confirmation. While generally beneficial, this removes environmental control from the resident. An individual may prefer cooler temperatures than the system provides, or may find automatic dimming disorienting.
+
+The source does not describe user preference learning, override switches, or manual set-point adjustment. A fully autonomous system that never asks may preserve zero-interaction benefits but at the cost of personal agency. Striking the right balance between care and control is an unresolved design challenge.
+
+## Medication Schedule Authority
+
+HollowCore coordinates medication schedules from prescription OCR and manual touchscreen entry. Once confirmed, schedules become authoritative for HollowRover's autonomous dispenser. The source does not describe error correction workflows, guardian approval requirements for schedule changes, or what happens if OCR misreads a prescription.
+
+Medication errors can be life-threatening. Without explicit human review gates or easy modification paths, an automated schedule risks rigidly enforcing an incorrect regimen.
+
+## Data Privacy and Financial Sensitivity
+
+HollowCore handles two especially sensitive data categories: biometric health signals and financial transaction records. The source states that all data uses TLS encryption in transit and that face profiles remain local. However, it does not specify encryption at rest for Firebase storage, access control granularity beyond authentication, or compliance with financial data regulations.
+
+Banking transaction data, even when used only for anomaly detection, could reveal sensitive patterns: medical expenses, religious donations, family support payments. The source does not describe whether transaction data is stored, for how long, or who can access it beyond the authorized user and guardian.
+
+## Acknowledged Inconsistencies
+
+The source document is not fully consistent on some hardware details, so this site uses generic wording for them. Relay specifications, fingerprint sensor identity, and door lock mechanism type are among the unspecified elements.
+
+## Why Honesty About Limits Matters
+
+LifeSphere's predictive claims, including immune activation detection and early cognitive decline identification, are design goals, not validated results. Similarly, HollowCore's automation promises assume infrastructure, hardware, and ethical questions that the research document does not answer. Being transparent about these gaps allows deployers, researchers, and ethicists to address them before vulnerable users depend on the system.
+
+The core principle remains: LifeSphere does not require the user to interact with technology. It requires technology to respond to the user's biology. But that response must be safe, overrideable, and transparently limited.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Sleep Protocol" icon="moon" href="/hollowcore/sleep-protocol">
+    How sleep detection triggers automatic door locking and lighting changes.
+  </Card>
+
+  <Card title="Transaction Authorization" icon="lock" href="/hollowcore/transaction-authorization">
+    Three-factor biometric authorization and its hardware dependencies.
+  </Card>
+
+  <Card title="Design Philosophy" icon="book" href="/design/design-philosophy">
+    LifeSphere's core principles of zero-interaction and biology-responsive care.
+  </Card>
+
+  <Card title="Ethics of Autonomy" icon="scale-balanced" href="/design/ethics-of-autonomy">
+    Broader ethical framework for automated care decisions affecting vulnerable users.
+  </Card>
+</CardGroup>

@@ -1,0 +1,247 @@
+---
+title: "Math and Signal Processing: RMSSD, LF/HF, Fall Detection"
+sidebarTitle: "Signal Processing"
+description: "Mathematical definitions of RMSSD, LF/HF ratio, fall magnitude, cortisol estimation, Ackermann steering, fusion scoring, and dispenser step arithmetic used across LifeSphere subsystems."
+icon: "wave-square"
+---
+
+This page collects the equations that translate raw sensor readings into the clinical, navigational, and affective quantities that drive LifeSphere decisions.
+
+## RMSSD: Root Mean Square of Successive Differences
+
+RMSSD measures how much the interval between heartbeats varies from beat to beat. A higher value generally indicates stronger parasympathetic (rest-and-digest) influence on the heart.
+
+$$
+\text{RMSSD} = \sqrt{ \frac{1}{N-1} \sum_{i=1}^{N-1} (RR_{i+1} - RR_i)^2 }
+$$
+
+In plain language: take every pair of neighboring heartbeat intervals, find their difference, square each difference, average those squares, then take the square root. Vital32 computes this over a 2-minute rolling window.
+
+| Symbol | Meaning | Unit |
+| --- | --- | --- |
+| $$RR_i$$ | Interval between heartbeats $$i$$ and $$i+1$$ | milliseconds (ms) |
+| $$N$$ | Number of RR intervals in the window | dimensionless |
+| RMSSD | Root mean square of successive differences | ms |
+
+### Worked example (illustrative)
+
+Suppose a 2-minute window contains five RR intervals: 800, 820, 780, 790, 810 ms.
+
+| Step | Calculation | Result |
+| --- | --- | --- |
+| Differences | (820-800), (780-820), (790-780), (810-790) | 20, -40, 10, 20 ms |
+| Squared | 400, 1600, 100, 400 | n/a |
+| Sum of squares | 400 + 1600 + 100 + 400 | 2500 |
+| Divide by $$N-1=4$$ | 2500 / 4 | 625 |
+| Square root | $$\sqrt{625}$$ | **25 ms** |
+
+The illustrative RMSSD is 25 ms. The source does not specify population norms for this subsystem.
+
+## LF/HF Ratio: Frequency-Domain HRV
+
+Low-frequency (LF) and high-frequency (HF) power in the heart-rate spectrum reveal how sympathetic and parasympathetic branches of the autonomic nervous system modulate the heart.
+
+$$
+\frac{LF}{HF} = \frac{P_{LF}[0.04 \text{ to } 0.15 \text{ Hz}]}{P_{HF}[0.15 \text{ to } 0.40 \text{ Hz}]}
+$$
+
+Vital32 computes Welch power spectral density on the RR series over a 256-sample window, then integrates power in the LF and HF bands. The ratio rises when stress or exertion increases sympathetic drive.
+
+| Symbol | Meaning | Unit |
+| --- | --- | --- |
+| $$P_{LF}$$ | Power in 0.04 to 0.15 Hz band | ms squared (variance-like) |
+| $$P_{HF}$$ | Power in 0.15 to 0.40 Hz band | ms squared |
+| LF/HF | Ratio of low-frequency to high-frequency power | dimensionless |
+
+### Worked example (illustrative)
+
+Suppose Welch PSD integration yields $$P_{LF} = 1200$$ and $$P_{HF} = 600$$.
+
+$$
+\frac{LF}{HF} = \frac{1200}{600} = 2.0
+$$
+
+An illustrative ratio of 2.0 suggests relatively elevated sympathetic tone compared to a lower ratio that would indicate more parasympathetic dominance. HollowCore can react to sustained elevation by adjusting lighting or temperature.
+
+## Fall Magnitude
+
+Fall detection on Vital32 uses a two-stage test on the accelerometer magnitude.
+
+$$
+|a| = \sqrt{a_x^2 + a_y^2 + a_z^2}
+$$
+
+| Symbol | Meaning | Unit |
+| --- | --- | --- |
+| $$a_x, a_y, a_z$$ | Acceleration along body axes | g (standard gravity) |
+| $$\|a\|$$ | Acceleration magnitude | g |
+
+### Detection stages
+
+<Steps>
+  <Step title="Freefall">
+    Magnitude drops below **0.4 g**: the body is accelerating downward with little support.
+  </Step>
+  <Step title="Impact">
+    Within **500 ms** of freefall, magnitude exceeds **2.5 g**: the body has struck a surface.
+  </Step>
+  <Step title="Immobility confirmation">
+    After impact, magnitude stays below about **1.1 g** (resting near 1 g of gravity) for **3 seconds**: the person is not moving.
+  </Step>
+</Steps>
+
+### Worked example (illustrative)
+
+At a sample moment, $$a_x = 0.1$$, $$a_y = 0.2$$, $$a_z = 0.3$$.
+
+$$
+|a| = \sqrt{0.1^2 + 0.2^2 + 0.3^2} = \sqrt{0.01 + 0.04 + 0.09} = \sqrt{0.14} \approx 0.37 \text{ g}
+$$
+
+An illustrative magnitude of 0.37 g is below the 0.4 g freefall threshold, so this sample would flag freefall if sustained.
+
+## Cortisol Estimation Function
+
+The cortisol estimator uses a gradient-boosting model with 200 trees. Its functional form is:
+
+$$
+C_{est} = f(\text{RMSSD}, \text{GSR}_{\text{baseline}}, T_{\text{skin}}, \text{sleep}_{\text{efficiency}})
+$$
+
+| Symbol | Meaning | Unit |
+| --- | --- | --- |
+| $$C_{est}$$ | Estimated cortisol | ng/dL est. |
+| RMSSD | Beat-to-beat variability | ms |
+| GSR$$_{\text{baseline}}$$ | Baseline galvanic skin response | microsiemens or normalized |
+| $$T_{\text{skin}}$$ | Skin temperature | degrees Celsius |
+| sleep$$_{\text{efficiency}}$$ | Ratio of time asleep to time in bed | proportion (0 to 1) |
+| $$f(\cdot)$$ | Gradient Boosting model | n/a |
+
+The output is labeled "ng/dL est." in the source to emphasize that it is an estimate, not a blood test. HollowCore triggers de-escalation lighting and audio when $$C_{est} > 18.0$$.
+
+### Worked example (illustrative)
+
+The model is not expressible as a simple formula. For illustration only, suppose the trained model produces:
+
+| Input | Value |
+| --- | --- |
+| RMSSD | 30 ms |
+| GSR baseline | 0.5 |
+| Skin temp | 35.8 C |
+| Sleep efficiency | 0.75 |
+
+An illustrative output might be $$C_{est} = 16.2$$, below the HollowCore threshold, so no lighting change occurs.
+
+## Ackermann Steering Inequality
+
+HollowRover uses Ackermann geometry so the inner wheel turns more sharply than the outer wheel during a turn. This minimizes tire scrub and enables precise path following for SLAM navigation.
+
+$$
+\delta_i > \delta_o
+$$
+
+| Symbol | Meaning | Unit |
+| --- | --- | --- |
+| $$\delta_i$$ | Steering angle of inner wheel | degrees |
+| $$\delta_o$$ | Steering angle of outer wheel | degrees |
+
+In general, Ackermann steering links the front wheels through a trapezoid-shaped tie-rod arrangement so that both wheels point to the center of the turn radius. HollowRover achieves this with two MG995 servos actuating machined steering knuckles at each corner.
+
+## TriAgent Fusion Score
+
+SphereAI combines three agent streams into one emotional state score.
+
+$$
+S(\text{state}) = w_L \cdot L + w_V \cdot V + w_B \cdot B
+$$
+
+| Symbol | Meaning | Unit |
+| --- | --- | --- |
+| $$S$$ | Fused score for a candidate emotional state | dimensionless |
+| $$w_L$$ | Weight for language agent | dimensionless (0 to 1) |
+| $$w_V$$ | Weight for voice agent | dimensionless (0 to 1) |
+| $$w_B$$ | Weight for biology agent | dimensionless (0 to 1) |
+| $$L$$ | Language agent score | dimensionless |
+| $$V$$ | Voice agent score | dimensionless |
+| $$B$$ | Biology agent score | dimensionless |
+
+The weights adapt by prior emotional state. For example, when the prior state is stressed, weights are 0.2 / 0.3 / 0.5, raising the influence of biomarkers. The state with the highest $$S$$ becomes the declared emotional state.
+
+### Worked example (illustrative)
+
+Prior state: stressed. Weights: $$w_L = 0.2$$, $$w_V = 0.3$$, $$w_B = 0.5$$.
+
+| Agent | Score |
+| --- | --- |
+| Language ($$L$$) | 0.4 |
+| Voice ($$V$$) | 0.6 |
+| Biology ($$B$$) | 0.8 |
+
+$$
+S = (0.2)(0.4) + (0.3)(0.6) + (0.5)(0.8) = 0.08 + 0.18 + 0.40 = 0.66
+$$
+
+The illustrative fused score is 0.66 for this candidate state; SphereAI repeats this for every candidate state and selects the highest.
+
+## Dispenser Steps-Per-Slot Check
+
+The medication dispenser carousel has 20 slots. Steps per slot are derived from the gear reduction and motor properties.
+
+$$
+\text{Steps per slot} = \frac{200 \times 5}{20} = 50
+$$
+
+| Symbol | Meaning | Unit |
+| --- | --- | --- |
+| 200 | Standard full-step count per NEMA17 motor revolution | steps |
+| 5 | Gear reduction ratio (100-tooth ring gear to 20-tooth pinion) | dimensionless |
+| 20 | Number of carousel slots | slots |
+| 50 | Resulting steps per slot | steps/slot |
+
+Each slot therefore spans $$360 / 20 = 18$$ degrees of carousel rotation. The AS5600 magnetic encoder provides closed-loop position feedback, and the TMC2209 stepper driver controls the NEMA17 motor.
+
+### Worked example (illustrative)
+
+To move from slot 3 to slot 7:
+
+$$
+\Delta \text{slots} = 7 - 3 = 4
+$$
+
+$$
+\text{Steps} = 4 \times 50 = 200 \text{ steps}
+$$
+
+The illustrative move requires 200 steps. The source does not specify microstepping configuration, so this calculation uses full-step arithmetic. Quiet operation and current control are commonly cited traits of TMC2209-class drivers, though the source does not state why this specific driver was selected.
+
+## Why this matters
+
+Every equation above bridges raw physical measurement to a care decision. RMSSD and LF/HF turn ECG and PPG waveforms into nervous-system state. Fall magnitude turns acceleration into an emergency dispatch. Cortisol estimation turns multiple biomarkers into a stress indicator that lights up a room. Ackermann geometry lets a robot navigate precisely enough to reach a fallen person. Fusion scoring lets SphereAI decide whether someone is grieving, isolated, or calm. The dispenser arithmetic ensures the right medication slot aligns with the release shutter. Without these transformations, sensors would remain silent numbers.
+
+## How it connects to the rest of LifeSphere
+
+RMSSD and LF/HF feed into the Isolation Forest anomaly detector, the pre-seizure LSTM, and the cortisol estimator. Fall magnitude directly triggers the HollowRover fall-response protocol via the shared biological state. Ackermann steering enables the autonomous navigation that brings HollowRover to emergencies. Fusion scores from SphereAI write to `sphereai/emotional_state` and `sphereai/stress_level`, which HollowCore reads to adjust lighting, audio, and climate. Dispenser step counts are computed locally on the Manipulator controller ESP32, keeping medication timing independent of cloud latency.
+
+## Limits
+
+The source does not specify population reference ranges for RMSSD or LF/HF, so all thresholds are personal-baseline relative. The cortisol estimator is an estimate, not a validated blood-test replacement, and its training data are not specified. The fall detection algorithm uses fixed thresholds; the source does not describe adaptive calibration for individual gait patterns. The fusion weights are fixed by state category, not learned online during deployment. The dispenser arithmetic assumes full stepping; if microstepping is used, the step count scales proportionally and the source does not state the configuration.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Math: Anomaly Score" icon="calculator" href="/reference/math-anomaly-score">
+    Isolation Forest anomaly scoring formulas and thresholds.
+  </Card>
+
+  <Card title="Math: Trilateration" icon="location-dot" href="/reference/math-trilateration">
+    UWB circle equations and 2D position solution.
+  </Card>
+
+  <Card title="Vital32: Sensing Cadence" icon="heart-pulse" href="/vital32/sensing/sensing-cadence">
+    When each sensor and algorithm runs across short, medium, and long cycles.
+  </Card>
+
+  <Card title="Medication: Gear Reduction" icon="gears" href="/medication/gear-reduction">
+    How the 5:1 ring-gear reduction works in the dispenser.
+  </Card>
+</CardGroup>

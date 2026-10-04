@@ -1,0 +1,91 @@
+---
+title: "HollowRover Security Response and Passive Barrier Protocol"
+description: "HollowRover patrols autonomously, responds to EntryGuard floor-aware alerts, and deploys a passive barrier at chokepoints with mandatory human authorization for escalation."
+sidebarTitle: "Security Response"
+icon: "shield-halved"
+---
+
+HollowRover protects the home through autonomous patrol, floor-aware dispatch to EntryGuard alerts, and a passive physical barrier at monitored chokepoints. The security response protocol is deliberately constrained: the rover never contacts a person, never makes an autonomous decision to strike or restrain, and never escalates beyond alerting and blocking without explicit human authorization. This page explains patrol behavior, EntryGuard integration, the chokepoint barrier, and the three simultaneous responses that occur when an unregistered individual is detected.
+
+## Why this matters
+
+Elderly people living alone are vulnerable to intrusions, falls, fires, and gas leaks. A security system that only records video or sends a text message leaves the user physically exposed. HollowRover adds a mobile physical responder that can move to the location of danger, block access to sensitive areas, and notify the guardian with live video. Because the user may be asleep, confused, or unable to operate a phone, the rover must act without waiting for manual input.
+
+## Autonomous patrol
+
+HollowRover is capable of autonomous security patrol. During a patrol, the rover navigates using SLAM Toolbox in lifelong mapping mode, building and maintaining a 2D occupancy grid from its STL-19P time-of-flight LiDAR. Nav2 plans paths at 20 Hz with a maximum forward speed of 0.3 m/s and a safety inflation radius of 0.35 meters around obstacles. The rover covers registered floors by selecting the correct map and anchor set after barometric floor identification.
+
+During patrol, the rover uses its perception array to detect anomalies: its SC230AI stereo depth camera provides visual sensing, its 32x24 MLX90640 thermal camera may assist in detecting body heat, and its ultrasonic sensors provide close-range obstacle coverage. The source does not specify the patrol cadence, route selection algorithm, or whether patrol is continuous or scheduled.
+
+## EntryGuard floor-aware dispatch
+
+EntryGuard nodes are installed at protected entry points. Each node carries an ESP32, motion sensor, ultrasonic distance sensor, fire sensor, gas sensor, UWB module, and barometric pressure sensor. When a node detects motion, fire, or gas, it publishes an alert containing the alert type, a value, node identity, UWB zone reference, and floor pressure reference.
+
+HollowRover subscribes to these alerts. Upon receiving one:
+
+1. It reads the floor pressure reference from the alert payload.
+2. It compares the reference to its stored per-floor barometric baselines to confirm the target floor.
+3. It loads that floor's SLAM map and UWB anchor set.
+4. It localizes against the UWB anchors and navigates to the EntryGuard zone.
+
+This floor-aware dispatch ensures that the rover does not waste time on the wrong floor when a multi-floor home has an active alert.
+
+## Chokepoint barrier
+
+The rover's 6-DOF arm serves a dual purpose. In security mode, it acts as a passive physical barrier at monitored chokepoints, such as hallways leading to valuables or sensitive rooms. The arm swings to block the pathway when the following trigger pipeline completes:
+
+1. The TF-Luna single-point time-of-flight sensor at the chokepoint detects a presence.
+2. The camera feed is routed into the face recognition pipeline.
+3. If the face is unmatched against the stored profiles of registered occupants, the barrier response triggers.
+
+The arm remains stowed below the LiDAR scan plane during navigation. It rises only when the rover is stationary in security-response mode. Navigation and defense states are mutually exclusive, so the rover never tries to drive with the arm extended.
+
+## The three simultaneous responses
+
+When an unregistered individual is detected at a chokepoint, HollowRover initiates exactly three responses at the same time:
+
+1. **Passive barrier**: the arm swings to block the pathway. It does not touch, grasp, or strike the person. It is a physical obstruction only.
+2. **Audible alarm**: the rover sounds an alarm through its speaker system.
+3. **Push notification**: an instant notification is sent to the guardian's phone, including a live camera feed from the rover.
+
+Any escalation beyond these three responses requires explicit human authorization. The rover will not autonomously pursue, spray water at, or physically engage the intruder.
+
+## Face recognition and local privacy
+
+The face recognition system is a FastAPI service using InsightFace with the buffalo_sc model pack and MediaPipe, running on ONNX Runtime. It streams annotated video as MJPEG. Face profiles are stored locally on HollowRover and are never transmitted to external servers. This protects the user's biometric privacy while still allowing the system to distinguish family members from strangers.
+
+Face recognition also provides one factor in HollowCore's transaction authorization system. The camera used for this may be shared between EntryGuard and HollowRover contexts, though the source does not specify exact camera assignments per location.
+
+## How it connects to the rest of LifeSphere
+
+Security response is a distributed protocol. EntryGuard detects. HollowRover moves and blocks. SphereAI may issue verbal warnings or calming instructions if a registered occupant is startled. Vital32 continues to monitor the user's stress biomarkers, so if the security event causes a cortisol spike, the ecosystem can respond with de-escalation in parallel.
+
+The shared state makes this coordination possible. EntryGuard writes `entryguard.intruder_detected` and `entryguard.mode`. HollowRover reads these fields. HollowCore listens for door-lock commands. All nodes act in parallel on the same event.
+
+## Limits
+
+The source does not specify the patrol schedule, route algorithm, or whether patrol is active continuously or only in certain modes. The thermal camera is mentioned as part of the sensor array, but its specific role in security response is not described.
+
+The chokepoint barrier is effective only if the rover is already positioned near the chokepoint or can reach it quickly. In a large home, travel time may limit the barrier's timeliness. The source does not state how many chokepoints can be monitored simultaneously.
+
+The face recognition model is running on ONNX Runtime, but the source does not report accuracy figures or false-positive rates. An unmatched face is the barrier trigger, so a false positive could block a legitimate visitor. The system mitigates this by requiring human authorization for any escalation, but the initial barrier response itself is automatic.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="EntryGuard Overview" icon="shield-halved" href="/entryguard/overview">
+    How EntryGuard nodes detect motion, fire, and gas at protected entry points.
+  </Card>
+
+  <Card title="Face Recognition" icon="eye" href="/entryguard/face-recognition">
+    How InsightFace distinguishes registered occupants from unregistered people.
+  </Card>
+
+  <Card title="Passive Barrier" icon="hand" href="/hollowrover/arm/passive-barrier">
+    Why the robotic arm is designed as a non-contact obstruction only.
+  </Card>
+
+  <Card title="Biomarker-Triggered Protocols" icon="heart-pulse" href="/hollowrover/protocols/biomarker-triggered">
+    The listener architecture that lets HollowRover respond to shared-state triggers.
+  </Card>
+</CardGroup>

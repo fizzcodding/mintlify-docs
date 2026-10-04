@@ -1,0 +1,70 @@
+---
+title: "Wheel Stress Testing: Validating Strength for Caregiving Loads"
+sidebarTitle: "Stress Testing"
+description: "HollowRover wheels were stress tested and flex slightly under heavy pressure while holding their shape. Learn why structural integrity matters for a caregiving robot."
+icon: "shield-halved"
+---
+
+HollowRover wheels were stress tested to validate their ability to carry the rover's operational load. The source document reports that the wheels flex slightly under heavy pressure but hold, confirming that the final iterated design can support the robot's weight and payload without catastrophic failure.
+
+## What the Source Reports
+
+The source states that the wheels were stress tested. The reported outcome is specific: the wheels flex slightly under heavy pressure but hold their shape. This places the wheels in the elastic deformation regime, where they bend a small amount under load and then return to their original shape when the load is removed.
+
+The source does not describe the test protocol, the specific loads applied, the number of load cycles, the duration of testing, or the acceptance criteria. It also does not define "heavy pressure" numerically. Because the source document is a technical summary rather than a full test report, these details are not part of the documented design.
+
+## Why Elastic Deformation Matters
+
+Elastic deformation is the desirable operating regime for a load-bearing structure. When a material deforms elastically, it stores the energy of deformation and releases it when the load is removed, returning to its original geometry. Once the load exceeds the elastic limit, the material enters plastic deformation, where it bends permanently and does not fully recover. Beyond the plastic limit, fracture occurs.
+
+The statement that the wheels flex slightly but hold suggests the design includes a margin of safety between normal operating load and the elastic limit. The spokes are intended to absorb thresholds and small bumps by flexing within their elastic range, rather than by remaining perfectly rigid.
+
+## Why Structural Integrity Matters for Caregiving
+
+A wheel failure on a caregiving robot is a mission-critical failure. The wheel is the interface between the robot and the floor. If a wheel cracks or deforms during normal operation, the rover may lose odometry accuracy, suffer vibration that disturbs the medication dispenser, or become immobile entirely. Because the source does not specify test details, the stress-test result should be understood as a design checkpoint rather than as independently verified certification data.
+
+The wheel's structural integrity supports multiple subsystems simultaneously. A damaged or deformed wheel produces inconsistent encoder readings, which introduce errors into the SLAM pose estimate. Vibration from a wobbling wheel could disturb the alignment of the medication carousel or the arm kinematics. Perhaps most importantly, a robot with visible mechanical damage may lose user trust regardless of whether its electronics remain functional.
+
+## What Remains Unknown
+
+The following details are absent from the source:
+
+- Whether testing was static (gradually increasing load until failure) or cyclic (repeated loading to simulate rolling).
+- Whether the testing included threshold-impact simulation.
+- The exact load at which flex becomes non-recoverable.
+- Whether testing was performed on a single wheel or on a complete four-wheel rover.
+- How temperature and humidity during testing compared to typical indoor conditions in Bangladesh.
+
+These omissions are common in technical summaries, but they mean that the validation data cannot be independently verified or compared to standards.
+
+## General Background on Stress Testing Printed Parts
+
+In general, 3D-printed parts have anisotropic mechanical properties that make stress testing especially important. The layer-by-layer deposition process creates interfaces between filament strands that are weaker than the material itself. A part loaded perpendicular to its layer lines may delaminate at loads far below the material's bulk strength. For this reason, stress testing of printed wheels typically includes tests in multiple orientations and under cyclic loading to reveal fatigue behavior that static tests might miss.
+
+## Why This Matters
+
+For a caregiver evaluating LifeSphere, the stress test result provides some assurance that the wheels will not fail during normal operation. The "slight flex" behavior also indicates that the wheels are not over-rigid: they absorb some shock, reducing vibration transmission to sensitive components. The combination of strength and compliance is exactly what the iterative design process aimed to achieve.
+
+## Limits
+
+The source document does not specify test loads, test duration, failure modes observed, or safety margins. The phrase "heavy pressure" is qualitative, not quantitative. Whether the wheels were tested under the full load of the dispenser filled with medication and water is not stated. Long-term creep behavior, where plastic slowly deforms under sustained load, is not addressed. Environmental effects such as humidity, which can weaken PLA+ layer adhesion, are not discussed.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Wheel Design Overview" icon="truck" href="/hollowrover/wheels/overview">
+    How the wheel assembly works and why each part matters.
+  </Card>
+
+  <Card title="S-Curve Spokes" icon="wave-square" href="/hollowrover/wheels/s-curve-spokes">
+    How spoke geometry contributes to controlled flex and load distribution.
+  </Card>
+
+  <Card title="Eight Iterations" icon="rotate" href="/hollowrover/wheels/eight-iterations">
+    How repeated prototyping refined strength as well as geometry.
+  </Card>
+
+  <Card title="Fall Response Protocol" icon="person-falling" href="/hollowrover/protocols/fall-response">
+    Why wheel reliability is mission-critical when responding to detected falls.
+  </Card>
+</CardGroup>

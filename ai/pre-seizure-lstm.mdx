@@ -1,0 +1,102 @@
+---
+title: "Pre-Seizure LSTM: Early Warning from Temporal Patterns"
+description: "LifeSphere's pre-seizure model uses stacked LSTM layers on rolling windows of wearable biomarkers to estimate seizure probability, with a protocol triggered at 0.85."
+sidebarTitle: "Pre-Seizure LSTM"
+icon: "heart-pulse"
+---
+
+The pre-seizure LSTM estimates the probability that a user will experience a seizure within the next 30 minutes, based on patterns in recent biometric data.
+
+<Warning>
+  This model is a design goal, not a validated clinical tool. It is trained on public EEG (electroencephalography, brain electrical activity) datasets, not on the actual signals from the Vital32 wearable. The gap between EEG data and wrist-worn cardiac and motion sensors is acknowledged in the source document but not resolved. No accuracy figures exist.
+</Warning>
+
+## What It Answers
+
+The model answers: "Given the recent history of this user's heart rhythm, motion, and temperature, does the temporal pattern suggest seizure onset within the next 30 minutes?" The output is a probability from 0 to 1. When that probability exceeds 0.85, LifeSphere triggers its seizure protocol, which includes HollowRover deploying cushioning and alerting a guardian.
+
+## Architecture in Plain Language
+
+An LSTM (Long Short-Term Memory) network is a type of recurrent neural network that processes sequences. Unlike a simple classifier that looks at one moment, an LSTM remembers information across time. It has internal "memory cells" that decide what to keep, what to forget, and what to output at each step. This makes it suitable for biological signals, where the order and trend of readings matter as much as the values themselves.
+
+The model processes input in 5-minute rolling windows. Each window contains 300 time steps, with 5 features per step.
+
+### Layer-by-Layer Description
+
+| Layer | Units / Type | What It Does |
+| --- | --- | --- |
+| Input | 300 x 5 | A 5-minute history of HRV, accelerometer motion, and skin temperature features |
+| LSTM 1 | 64 units | First memory layer; learns short-term patterns, such as recent HRV oscillations or motion bursts |
+| LSTM 2 | 32 units | Second memory layer; learns longer-term dependencies across the 5-minute window |
+| Dropout | Rate 0.3 | Randomly disables 30% of connections during training to prevent the model from memorizing exact sequences instead of learning general patterns |
+| Dense 1 | 16 units, ReLU | Compresses the learned representation into a smaller feature vector |
+| Dense 2 | 1 unit, sigmoid | Outputs a probability between 0 and 1 |
+
+The sigmoid output means the model never says "seizure will happen." It says "the estimated probability is 0.87." The system then decides what to do with that number.
+
+## Inputs and Features
+
+The model consumes three feature types from Vital32:
+
+- **HRV features**: RMSSD (root mean square of successive differences between RR intervals) and LF/HF ratio over recent windows
+- **Accelerometer motion**: Motion intensity and pattern descriptors from the MPU6050
+- **Skin temperature**: Trend and deviation from personal baseline
+
+These are not the signals a neurologist would use. Clinical seizure prediction often relies on intracranial or scalp EEG. The wearable provides only indirect proxies. The source document notes that this is a known limitation.
+
+## Training Data
+
+The model is trained offline on two public datasets:
+
+- **CHB-MIT Scalp EEG Dataset**: Scalp EEG recordings from pediatric subjects with epilepsy
+- **Epilepsy iEEG Prediction dataset**: Intracranial EEG recordings for seizure prediction
+
+Both datasets contain brain electrical signals. The Vital32 wearable does not record brain electrical signals. This means the model has learned patterns in EEG data and is being asked to recognize analogous patterns in cardiac and motion data. The source document states this gap is not addressed.
+
+## Trigger and Protocol
+
+| Probability | Action |
+| --- | --- |
+| 0.0 to 0.85 | Monitoring only; no physical action |
+| \> 0.85 | `seizure_prob` written to shared state; HollowRover seizure protocol activated |
+
+The internal steps of the seizure protocol, such as what "cushioning" physically consists of, are not specified in the source.
+
+## Why This Matters
+
+For an elderly person living alone, a seizure can mean hours on a hard floor before help arrives. Even a probabilistic early warning gives the system time to soften the environment, summon the rover, and notify a guardian. The 30-minute design goal is ambitious: it would allow intervention before loss of consciousness, not after.
+
+## How It Connects to the Rest of LifeSphere
+
+- **Vital32** provides the HRV, motion, and temperature features every 5 seconds
+- **HollowRover** subscribes to `seizure_prob` and activates its cushioning protocol above 0.85
+- **SphereAI** may shift to calming conversation if the probability trends upward
+- **Guardian notification** is sent automatically via the shared state
+
+## Limits
+
+- The EEG-to-wearable gap is the most serious limitation; the model may not generalize to its actual inputs
+- No accuracy, sensitivity, or specificity results are reported
+- The 30-minute prediction horizon and 0.85 threshold are design choices, not clinically validated parameters
+- False positives could cause unnecessary rover deployment and guardian anxiety
+- Real-world validation studies in Bangladesh are future work
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="AI Overview" icon="brain" href="/ai/overview">
+    All six models and inference timescales.
+  </Card>
+
+  <Card title="Isolation Forest" icon="magnifying-glass-chart" href="/ai/isolation-forest">
+    The real-time anomaly detector that runs alongside the LSTM.
+  </Card>
+
+  <Card title="Thresholds and Alerts" icon="bell" href="/ai/thresholds-and-alerts">
+    How system-wide thresholds are set and when they trigger physical response.
+  </Card>
+
+  <Card title="Honest Limits" icon="triangle-exclamation" href="/status/honest-limits">
+    What the project openly acknowledges it has not yet achieved.
+  </Card>
+</CardGroup>

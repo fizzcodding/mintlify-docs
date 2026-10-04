@@ -1,0 +1,72 @@
+---
+title: "Review and Confirmation: The Human-in-the-Loop Safety Step"
+sidebarTitle: "Review and Confirmation"
+description: "Before any medication schedule goes live, LifeSphere shows every extracted field for human editing and confirmation. Learn why this step is mandatory and how manual entry works."
+icon: "clipboard-check"
+---
+
+No automated pipeline, however sophisticated, should have the final word on a medication schedule that affects a person's health. LifeSphere enforces a mandatory review and confirmation step between extraction and scheduling. Every field the language model infers is displayed in the companion mobile app as an editable entry. The user or a trusted family member can correct errors, add missing details, or reject the extraction entirely and enter the schedule by hand. This page explains what the review screen contains, why it is non-optional, and when manual entry is the better path.
+
+## What the review screen shows
+
+After the LLM extracts structured data from the OCR text, the app presents a form pre-filled with the following fields:
+
+- Medicine name
+- Dosage amount and unit
+- Frequency (e.g., once daily, twice daily)
+- Duration of the course
+- Special instructions (e.g., with food, before sleep)
+
+Each field can be tapped and edited. If a prescription contains multiple medications, each drug appears as a separate card in the same review screen. The source does not describe the exact visual layout, but the functional requirement is clear: the human sees what the machine inferred and decides whether to accept, modify, or discard it.
+
+## Why confirmation is mandatory
+
+Medication errors are a leading cause of preventable harm in home care. A language model can misread "5 mg" as "50 mg," confuse two drugs with similar names, or miss a critical instruction like "do not combine with alcohol." By requiring a human confirmation, LifeSphere introduces a safety barrier between inference and action. The system does not write anything to Firebase, and the dispenser does not rotate a single step, until the user presses confirm.
+
+This design aligns with the LifeSphere principle that the most vulnerable users should not need to interact with technology, but it does not mean technology should act without oversight on matters of physical safety. The review step is brief for a correct extraction and invaluable for a mistaken one.
+
+## Manual entry as a first-class alternative
+
+The source explicitly states that manual entry remains available. This is not a hidden debug option. It is a primary path for several common situations:
+
+- The prescription is damaged, stained, or photographed poorly.
+- The handwriting is too stylized for OCR or the LLM to parse.
+- The user prefers not to photograph a sensitive document.
+- A caregiver already knows the schedule and wants to enter it directly.
+
+Manual entry writes to the same Firebase path as the automated flow. Once saved, HollowRover treats the schedule identically, whether it came from a photo or from typed input.
+
+## How it connects to the rest of LifeSphere
+
+Confirmed schedules are written to `lifesphere/hollowcore/med_schedule` in Firebase. HollowRover subscribes to this path and updates its local dispenser memory. If the user later edits or deletes a schedule from the app, the change propagates through the same channel.
+
+The review step also creates an implicit audit log. Because Firebase timestamps writes, a guardian can see when a schedule was added and whether it was entered manually or through the prescription pipeline. This is not described as an explicit feature in the source, but the shared-state architecture makes it possible.
+
+Vital32 does not directly interact with the review screen, yet its data matters afterward. If the wearable later detects a cortisol spike or a low SpO2 reading, HollowCore or SphereAI may suppress or rephrase a medication reminder to avoid adding stress during a physiological event. The schedule is fixed at confirmation, but its delivery expression remains adaptive.
+
+## Limits
+
+- The source does not state whether multiple reviewers can collaborate on the same schedule, or whether confirmation requires a PIN or biometric check.
+- There is no described mechanism for mid-course prescription changes. If a doctor extends a course or swaps a drug, the user must repeat the full flow.
+- The app does not appear to support as-needed (PRN) dosing in the review screen, though this may fall under "special instructions."
+- No versioning or rollback of schedules is described.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Prescription Reading" icon="file-lines" href="/medication/prescription-reading">
+    Preprocessing and OCR that produce the raw text for LLM extraction.
+  </Card>
+
+  <Card title="LLM Extraction" icon="brain" href="/medication/llm-extraction">
+    How the language model turns raw OCR into structured, editable fields.
+  </Card>
+
+  <Card title="Medication Overview" icon="pills" href="/medication/overview">
+    The full pipeline from capture to autonomous dose delivery.
+  </Card>
+
+  <Card title="Touchscreen Fallback" icon="hand" href="/medication/touchscreen-fallback">
+    Entering schedules directly on the dispenser touchscreen without a phone.
+  </Card>
+</CardGroup>

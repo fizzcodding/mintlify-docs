@@ -1,0 +1,85 @@
+---
+title: "Status and Roadmap"
+description: "What is built, what is designed, and what remains future work for the LifeSphere caregiving ecosystem, including the unresolved night-vision component and planned studies."
+sidebarTitle: "Status"
+icon: "road"
+---
+
+LifeSphere exists at the intersection of completed hardware builds, detailed system designs, and carefully scoped future work. This page separates what has been constructed from what remains on the drawing board.
+
+<Tabs>
+  <Tab title="Built">
+    The author states that the following core elements have been completed:
+
+    - All subsystem architectures designed and documented.
+    - Biosensor integration methods developed for the multi-sensor wearable.
+    - Biomedical datasets sourced and curated for model training.
+    - Trimodal emotional classifier pipeline developed, combining language, voice, and biomarker streams with context-adaptive weights.
+    - Machine learning models built and trained, including anomaly detection, pre-seizure LSTM, cortisol estimation, biological age clock, and cognitive tracker.
+    - LSTM data pipelines prepared.
+    - Infrastructure architected, including the Firebase Realtime Database layer and cross-subsystem data pipeline.
+    - Autonomous agent systems developed.
+    - Computer vision programmed, including face recognition pipeline and prescription OCR processing.
+    - All PCB layouts designed, including the custom 2-layer medication dispenser board designed in EasyEDA Pro.
+    - Robotics kinematics and manipulation engineered, including the 6-degree-of-freedom arm and the Ackermann steering drivetrain.
+    - Wheel design iterated 8 or more times, stress tested, and optimized for cost.
+    - Medication dispensing and dosage mechanisms rigorously tested and validated according to the author.
+    - Documentation web platform designed and launched.
+
+    This represents substantial engineering effort across biosensing, robotics, machine learning, software infrastructure, hardware design, and documentation.
+  </Tab>
+  <Tab title="Designed">
+    Several subsystems and components are architecturally complete but not confirmed as fully built or tested in integrated form:
+
+    - The full five-subsystem integration with live shared-state synchronization across Vital32, HollowRover, SphereAI, EntryGuard, and HollowCore.
+    - The multi-floor deployment architecture with barometric floor discrimination and per-floor UWB anchor maps.
+    - The complete financial automation pipeline, including banking API integration and biometric transaction authorization.
+    - The Islamic integration features, including salah reminders, adhkar playback triggers, and Ramadan mode restructuring.
+    - The GSM fallback communication path via SIM800L module during Wi-Fi outages.
+    - The water spray module integrated into the rover manipulator.
+    - The BLE RSSI person-finding fallback navigation.
+
+    These are well-specified in the source document with clear component choices and data flows, but the document does not confirm that every integration path has been physically validated.
+  </Tab>
+  <Tab title="Future work">
+    The source document explicitly identifies the following directions for future development:
+
+    - **Longitudinal user studies** to validate predictive model accuracy in real deployment. This is the most critical gap: no accuracy metrics, AUC values, or clinical outcomes have been reported.
+    - **Additional sensor modalities** in the biological state model, expanding beyond the current multi-sensor array.
+    - **Legged locomotion** for multi-floor navigation, replacing the wheeled chassis that cannot climb stairs.
+    - **Night-vision IR fill light** for the SC230AI stereo depth camera. This component is specifically noted as unresolved in the source document.
+    - Continued refinement of the emotional classifier weights and cognitive monitoring thresholds based on real user data.
+    - Expansion of the prescription OCR pipeline to handle additional languages beyond English.
+    - Validation of the immune activation detection and early cognitive decline claims against clinical ground truth.
+
+    These items are not failures but acknowledged next steps in a research and development trajectory.
+  </Tab>
+</Tabs>
+
+## What unbuilt means
+
+A designed-but-not-built component is not a flaw in documentation. It is an honest boundary. The source document is a technical research and build record, not a product launch announcement. Distinguishing built from designed from future allows readers to evaluate the project at the appropriate level of confidence. A PCB layout in EasyEDA Pro is a real design artifact. An untested multi-subsystem integration is a real risk. Both deserve accurate reporting.
+
+## Limits
+
+The author conducted all work described. No team is listed beyond the sole engineer and researcher. This is a remarkable scope for one person, but it also means that independent verification of build claims has not been performed. The documentation reflects the author's account of the project's state.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Honest Limits" icon="circle-exclamation" href="/status/honest-limits">
+    Read the candid assessment of current constraints and design boundaries.
+  </Card>
+
+  <Card title="Unvalidated Claims" icon="triangle-exclamation" href="/status/unvalidated-claims">
+    See which predictive capabilities are goals and which are proven.
+  </Card>
+
+  <Card title="System Architecture" icon="sitemap" href="/core/system-architecture">
+    Understand how the built and designed pieces fit together.
+  </Card>
+
+  <Card title="The Hypothesis" icon="flask" href="/start/hypothesis">
+    Review the core research claim and what would be needed to test it.
+  </Card>
+</CardGroup>

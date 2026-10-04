@@ -1,0 +1,75 @@
+---
+title: "Loneliness Index: Measuring Social Withdrawal"
+sidebarTitle: "Loneliness Index"
+description: "How SphereAI measures loneliness through the loneliness_index field, its connection to the isolated emotional state, and the honest limits of what the system can know."
+icon: "person-falling"
+---
+
+The loneliness index is one of three continuous scalar outputs produced by SphereAI alongside the discrete emotional state. It represents the system's estimate of how socially withdrawn or isolated the user has become. An example value from the shared state is 0.15 on a 0 to 1 scale.
+
+## What the loneliness index is
+
+Loneliness in elderly people is not just sadness; it is a sustained absence of meaningful social connection that correlates with increased mortality, accelerated cognitive decline, depression, and reduced immune function. For someone living alone in Bangladesh while family members work full-time, loneliness can be a silent, creeping condition that goes unnoticed until it manifests in physical or mental health crises.
+
+The loneliness_index is SphereAI's attempt to quantify this condition using available data. Like `stress_level` and `cognitive_score`, it is a continuous output between 0 and 1. Lower values suggest the user is socially connected and engaged. Higher values suggest increasing isolation. The source does not specify the exact mathematical formula or model architecture that produces this value.
+
+## What feeds into the loneliness index
+
+The source does not describe a dedicated model or explicit input features for the loneliness_index. However, the system architecture and the isolated emotional state provide clues about which signals likely inform it:
+
+- **Biological signals from Vital32**: Reduced HRV variability, altered GSR reactivity patterns, disrupted sleep architecture, and reduced circadian rhythm amplitude all correlate with social withdrawal. When the Biology Agent dominates the isolated-state classification (weight 0.6), these biological patterns are the primary evidence.
+- **Interaction frequency and quality**: The amount of speech directed at SphereAI, the length of conversations, and the user's responsiveness to proactive companionship attempts all provide behavioral evidence of engagement or withdrawal.
+- **BLE proximity events**: The BLE RSSI person-finding system tracks where the user is in the home. Reduced movement across rooms, prolonged absence from common areas, or persistent presence in a single location may signal withdrawal.
+- **UWB position history**: Movement patterns over days and weeks reveal whether the user continues normal home activities or becomes sedentary.
+
+The loneliness_index likely combines these signals through an ensemble or weighted heuristic. The fact that the isolated state profile gives biology the highest weight (0.6) suggests the biology-to-loneliness mapping is considered particularly reliable.
+
+## The connection to the isolated emotional state
+
+The isolated state and the loneliness_index are closely related but not identical. The isolated state is a discrete classification produced every 15 minutes by the Meta-Classifier. The loneliness_index is a continuous value that may reflect a longer-term trend. A user could have a transiently high loneliness_index during a quiet weekend without being classified as isolated, or could be classified as isolated during a brief interaction gap while their long-term loneliness_index remains moderate.
+
+When the isolated state is active, the system responds with specific protocols. SphereAI may initiate companionship conversation. HollowRover may approach the user physically. HollowCore may brighten lighting slightly to create a more welcoming environment. The loneliness_index, being continuous, enables more nuanced responses: a slow rise might trigger gentle prompts, while a sharp spike might trigger urgent guardian notification.
+
+## Why this matters
+
+Social isolation is one of the most serious and least visible problems facing elderly people living alone. A fall is dramatic and immediate. A missed medication is measurable. Loneliness is quiet, cumulative, and often invisible to family members who visit only occasionally. By attempting to measure and track loneliness continuously, SphereAI addresses a dimension of care that most single-function devices ignore entirely.
+
+The zero-interaction design principle is especially relevant here. A lonely user may not reach out to family, may not answer phone calls, and may not even speak to SphereAI unless prompted. The system must therefore infer loneliness from passive signals: how the body behaves, how much the person moves, how their biological rhythms change. This is one of the deepest expressions of the LifeSphere principle: the user does not need to tell the system they are lonely. The system must learn to know.
+
+## How it connects to the rest of LifeSphere
+
+The `loneliness_index` field is written to the shared Firebase state alongside `emotional_state`, `stress_level`, and `cognitive_score`. Other subsystems subscribe to these values and adapt:
+
+- **SphereAI**: Adjusts conversational tone and frequency. Higher loneliness may trigger more frequent, warmer interactions or spiritual comfort (adhkar).
+- **HollowRover**: May initiate the companionship protocol or person-finding behavior. Physical presence affects loneliness in ways purely digital interaction cannot.
+- **HollowCore**: Lighting, temperature, and ambient sound may be tuned to create a less empty-feeling environment.
+- **Medication system**: Elevated loneliness correlates with medication non-adherence. The adherence entropy tracker may be cross-referenced to identify if loneliness is reducing the user's ability or motivation to follow their schedule.
+
+## Limits
+
+- **Computation unspecified**: The source does not describe how the loneliness_index is calculated. The input features, model architecture, update frequency, and normalization method are all undocumented. This is the most honest limit on this page.
+- **No validation**: There is no reported correlation of the loneliness_index against validated loneliness scales such as the UCLA Loneliness Scale or De Jong Gierveld Loneliness Scale.
+- **Inferential distance**: Loneliness is a subjective psychological state. The system can measure its correlates (silence, reduced movement, biological flattening) but cannot directly measure the feeling itself. Two users with identical behavioral signatures may experience loneliness very differently.
+- **Cultural specificity**: The concept and expression of loneliness vary across cultures. The source does not describe whether the loneliness_index is calibrated for Bangladeshi cultural contexts, where family structure, religious community, and social expectations around aging differ from Western norms.
+- **False negatives**: A user who is loud, active, and biologically reactive might score a low loneliness_index while still feeling deeply lonely. Behavioral and biological metrics capture withdrawal, not existential isolation.
+- **No longitudinal data**: As with all predictive claims in LifeSphere, the effectiveness of loneliness detection in real deployment is unvalidated. Longitudinal user studies are future work.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Emotional States" icon="sun" href="/sphereai/understanding/emotional-states">
+    How the isolated state relates to the loneliness index
+  </Card>
+
+  <Card title="Dynamic Weighting" icon="layer-group" href="/sphereai/understanding/dynamic-weighting">
+    Why biology dominates when detecting isolation
+  </Card>
+
+  <Card title="Biology Agent" icon="heart-pulse" href="/sphereai/understanding/biology-agent">
+    How vital signs inform the loneliness signal
+  </Card>
+
+  <Card title="Adherence Entropy" icon="book" href="/medication/adherence-entropy">
+    How medication consistency correlates with emotional and social state
+  </Card>
+</CardGroup>

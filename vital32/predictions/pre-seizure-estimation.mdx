@@ -1,0 +1,78 @@
+---
+title: "Pre-Seizure Estimation: LSTM-Based Early Warning Design"
+sidebarTitle: "Pre-Seizure Estimation"
+description: "Vital32's pre-seizure model uses LSTM sequential modeling to estimate seizure probability from cardiac and motion features, with a design goal of 30 minutes before onset."
+icon: "wave-square"
+---
+
+Vital32 estimates the probability of an impending seizure from continuous cardiac and motion patterns, aiming to alert the ecosystem roughly 30 minutes before clinical onset so HollowRover can pre-position cushioning and a guardian can be notified.
+
+This page explains what the model receives, how it is structured, what datasets informed its design, why it remains unvalidated on real wearable data, and how the prediction flows through the rest of LifeSphere.
+
+## What the model receives
+
+The pre-seizure model ingests five features computed from Vital32's sensor streams over a rolling five-minute window. The window is represented as 300 time steps, each carrying five values derived from the following sources:
+
+- Heart rate variability metrics, including RMSSD and the LF/HF ratio, which capture autonomic nervous system balance
+- Accelerometer motion features, summarizing movement intensity and pattern
+- Skin temperature, reflecting thermoregulatory changes that may precede seizure activity
+
+The system derives heart rhythm and variability from its cardiac signals, but the source does not specify exactly which preprocessing steps produce the five-dimensional feature vector fed into the LSTM.
+
+## Model architecture
+
+The pipeline uses a Long Short-Term Memory network, a type of recurrent neural network designed to learn patterns across time. In general, LSTM cells maintain internal state gates that allow them to remember relevant information over long sequences and forget irrelevant details, which makes them suitable for physiological signals that evolve gradually.
+
+The architecture described in the source has two LSTM layers, the first with 64 units and the second with 32 units. A dropout rate of 0.3 is applied between layers to reduce overfitting during training. After the recurrent layers, a fully connected Dense layer with 16 units and ReLU activation processes the extracted temporal features. The final output is a single sigmoid neuron that produces a seizure probability between 0 and 1.
+
+The output is stored in the shared biological state as `seizure_prob` under `lifesphere/vital32/seizure_prob`. When this value exceeds 0.85, HollowRover executes the seizure protocol, which includes pre-positioning cushioning near the user and alerting guardians. The internal physical details of the cushioning deployment are not specified.
+
+## Training data
+
+The model was trained on publicly available seizure datasets, specifically the CHB-MIT Scalp EEG Dataset and the Epilepsy iEEG Prediction dataset. These are recordings of brain electrical activity collected during monitored epilepsy episodes. The source does not describe how features extracted from EEG waveforms were mapped onto the HRV, motion, and temperature inputs that Vital32 actually measures, or whether the model was retrained after this domain shift.
+
+This is a significant open question. The wearable does not record brain signals. It records peripheral biometrics. The mapping from central nervous system seizure dynamics to wrist-mounted cardiac and thermal signatures is theoretically plausible through autonomic pathways, but the source explicitly notes that the model is unvalidated on real wearable data.
+
+## Validation status
+
+No accuracy, sensitivity, specificity, or AUC results are reported for the pre-seizure model. The 30-minute pre-onset goal and the 0.85 threshold are design parameters, not clinically validated cutoffs. Real-world validation would require longitudinal studies in which Vital32 is worn during actual seizures and the predictions are compared against confirmed onset times.
+
+The source lists additional sensor modalities and longitudinal user studies as future work, implying that the current model is a proof-of-concept architecture awaiting real-world testing.
+
+## How it connects to the rest of LifeSphere
+
+The `seizure_prob` field is part of the same shared state that carries `anomaly_score`, `fall_detected`, and `cortisol_est`. When the probability crosses 0.85, the following sequence is designed to occur:
+
+- HollowRover loads the floor map matching the user's current barometric pressure and UWB zone
+- The rover navigates to the user's location
+- A cushioning protocol is prepared, the physical form of which is unspecified
+- SphereAI may enter a monitoring posture, ready to provide post-event calm if needed
+- A guardian receives a push notification with the probability value and location context
+
+This integration shows how a single numeric field can coordinate navigation, physical manipulation, emotional support, and human outreach simultaneously.
+
+## Limits
+
+Because the model was trained on EEG data and deployed on cardiac and motion inputs, its behavior on real wearable streams is unknown. It may produce false positives during benign events that share autonomic signatures, such as intense dreams, dehydration, or emotional distress. It may also miss seizures that do not produce the expected peripheral biomarker changes.
+
+The 0.85 threshold is not adjustable in the source. It is a single hard cutoff, which means the system may not offer graded warnings between normal and emergency levels.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Pre-Seizure LSTM Deep Dive" icon="brain" href="/ai/pre-seizure-lstm">
+    Explore the full model architecture, training pipeline, and mathematical details.
+  </Card>
+
+  <Card title="Anomaly Scoring" icon="chart-line" href="/vital32/predictions/anomaly-scoring">
+    See how general anomaly detection complements seizure-specific prediction.
+  </Card>
+
+  <Card title="HollowRover Protocols" icon="robot" href="/hollowrover/protocols/pre-seizure-cushioning">
+    Learn how the rover responds when seizure probability exceeds the emergency threshold.
+  </Card>
+
+  <Card title="Heart Rate Variability" icon="heart-pulse" href="/vital32/sensing/heart-rate-variability">
+    Understand how RMSSD and LF/HF are computed from cardiac signals.
+  </Card>
+</CardGroup>

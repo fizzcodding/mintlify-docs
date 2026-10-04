@@ -1,0 +1,111 @@
+---
+title: "Deployment Scope and Multi-Floor Operation"
+sidebarTitle: "Deployment Scope"
+description: "LifeSphere supports multi-floor homes using barometric pressure for floor identification and UWB anchor sets per floor, with the rover navigating via stored maps and lift or ramp access between levels."
+icon: "layer-group"
+---
+
+LifeSphere is designed for real homes, not idealized single-floor apartments. Many elderly users live in multi-story houses, particularly in Bangladesh where multi-generational family homes with staircases are common. The system supports multi-floor deployment through a combination of barometric pressure sensing, per-floor UWB anchor sets, and stored SLAM maps. The rover can operate on any registered floor, but it does not climb stairs.
+
+## Floor registration
+
+Each floor in the deployment is registered with three components:
+
+1. **Three fixed UWB anchors** at known, non-collinear positions for 2D horizontal positioning
+2. **A barometric pressure baseline** calibrated for that floor's altitude
+3. **A separate SLAM occupancy grid map** built and stored for that floor's layout
+
+UWB anchors (DWM1000 modules in the DW1000 family) provide precise horizontal positioning to within 10 centimeters. However, UWB alone cannot reliably determine which floor a signal is on, particularly in concrete structures where multipath reflections confuse vertical discrimination.
+
+## Barometric floor identification
+
+Barometric pressure decreases predictably with altitude. Each registered floor stores a calibrated pressure baseline. When HollowRover needs to determine its current floor, it compares its onboard barometric reading (from a BME688 sensor) against the stored baselines for all registered floors. It selects the floor whose baseline is closest to the current reading.
+
+This floor identity is confirmed before any navigation begins. The rover does not guess. Once the floor is identified, the rover loads that floor's stored SLAM map and activates that floor's three-anchor UWB set for horizontal localization. The separation of vertical and horizontal positioning (barometric for floor, UWB for position) is a key architectural decision.
+
+The floor discrimination formula uses a calibrated reference pressure `P0` and a measured pressure difference between adjacent floors `DeltaP_floor`:
+
+$$z_{floor} = \text{floor}\left(\frac{P_0 - P_{measured}}{\Delta P_{floor}}\right)$$
+
+In deployment, the rover selects the floor whose calibrated baseline is closest to the measured pressure rather than computing a raw altitude, which improves robustness to weather-driven pressure changes.
+
+## EntryGuard floor awareness
+
+EntryGuard nodes also carry UWB modules and barometric pressure sensors. When an intrusion, fire, gas, or other danger event occurs, the alert payload includes both a UWB zone reference (horizontal position) and a floor pressure reference. This gives HollowRover an independent target-floor confirmation.
+
+Upon receiving an EntryGuard alert, the rover:
+
+1. Reads the pressure reference in the alert payload
+2. Selects the matching floor's stored map and UWB anchor set
+3. Localizes itself against that floor's anchors
+4. Plans and executes a navigation path to the EntryGuard zone
+
+## Multi-floor navigation maps
+
+Each floor has its own SLAM occupancy grid maintained by SLAM Toolbox in lifelong mapping mode. The rover does not attempt to merge maps across floors because the geometry is discontinuous. Instead, it stores separate maps and switches between them based on the barometric floor identification.
+
+Navigation parameters such as controller frequency (20.0 Hz), maximum forward speed (0.3 m/s), and safety inflation radius (0.35 m) apply uniformly across all floors. The rover treats each floor as an independent navigation domain.
+
+## The stair limitation
+
+HollowRover is a wheeled platform. It does not climb stairs. Moving between floors requires an accessible path such as a lift, a ramp, or manual relocation by a caregiver.
+
+This is a documented limitation, not a temporary constraint. The rover's Ackermann steering, rocker suspension, and wheel design are optimized for flat and mildly uneven surfaces such as door thresholds, floor transitions, and small obstacles. Vertical climbing is outside its mechanical envelope.
+
+The source identifies legged locomotion as future work that could address multi-floor navigation without lifts or ramps. No timeline or design specifics are given.
+
+## BLE person-finding across floors
+
+When the user is outside UWB coverage or in an unmapped area, HollowRover uses BLE RSSI (Bluetooth Low Energy received signal strength indication) for person-finding. The rover measures signal strength from the Vital32 wearable's BLE beacon, rotates in place to sample RSSI at multiple headings, estimates the strongest direction, and navigates toward it.
+
+BLE person-finding is coarser than UWB trilateration but has significantly longer range. It serves as a fallback search mode and returns to UWB precision once the user is back within anchor coverage. This capability is particularly useful when the user moves between floors through areas not covered by UWB anchors, such as stairwells.
+
+## Why this matters
+
+A caregiving system restricted to a single floor would leave users vulnerable on the levels where they actually spend their time, including bedrooms on upper floors and kitchens on ground floors. Multi-floor support ensures that fall response, medication delivery, and security patrol cover the entire living space.
+
+The design also acknowledges architectural reality. Many homes in Bangladesh and similar regions were not built with accessibility lifts or smart-home wiring. By using wireless UWB anchors, barometric sensing, and stored maps, LifeSphere adapts to existing structures rather than requiring structural renovation.
+
+## How it connects to the rest of LifeSphere
+
+<AccordionGroup>
+  <Accordion title="UWB positioning">
+    The trilateration math and anchor geometry are detailed in <a href="/hollowrover/navigation/uwb-positioning">UWB Positioning</a>.
+  </Accordion>
+
+  <Accordion title="Barometric floor detection">
+    The pressure-sensing algorithm is covered in <a href="/hollowrover/navigation/barometric-floor-detection">Barometric Floor Detection</a>.
+  </Accordion>
+
+  <Accordion title="SLAM and mapping">
+    How occupancy grids are built and maintained is explained in <a href="/hollowrover/navigation/mapping-and-slam">Mapping and SLAM</a>.
+  </Accordion>
+
+  <Accordion title="BLE person-finding">
+    The RSSI-based search fallback is described in <a href="/hollowrover/navigation/ble-person-finding">BLE Person-Finding</a>.
+  </Accordion>
+</AccordionGroup>
+
+## Limits
+
+The stair limitation means that homes without lifts or ramps require caregiver intervention to move the rover between floors. Barometric pressure varies with weather, so floor baselines may need periodic recalibration. The source does not specify how many floors can be registered or how the system handles floors with very similar pressures, such as split-level homes. UWB anchor positions must be measured precisely during setup; inaccurate anchor coordinates degrade positioning accuracy.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="UWB Positioning" icon="location-dot" href="/hollowrover/navigation/uwb-positioning">
+    Three-anchor trilateration and 2D positioning.
+  </Card>
+
+  <Card title="Barometric Floor Detection" icon="temperature-half" href="/hollowrover/navigation/barometric-floor-detection">
+    Pressure-based floor identification.
+  </Card>
+
+  <Card title="Multi-Floor Maps" icon="layer-group" href="/hollowrover/navigation/multi-floor-maps">
+    Per-floor SLAM occupancy grids.
+  </Card>
+
+  <Card title="BLE Person-Finding" icon="bluetooth" href="/hollowrover/navigation/ble-person-finding">
+    Fallback search when UWB is unavailable.
+  </Card>
+</CardGroup>

@@ -1,0 +1,83 @@
+---
+title: "Vital32 Anomaly Scoring: Personal Baseline Detection"
+sidebarTitle: "Anomaly Scoring"
+description: "How Vital32 uses a personal 30-day baseline and Isolation Forest to compute anomaly scores that trigger soft alerts or emergency protocols across LifeSphere."
+icon: "chart-line"
+---
+
+Vital32 generates a real-time anomaly score by comparing your current biometrics against your own healthy baseline, not a generic population average, so the system learns what is normal for your body before it can recognize what is not.
+
+This page explains how the anomaly scoring pipeline turns raw sensor readings into the `anomaly_score` field, what the 0.7 and 0.9 thresholds mean for you, and how those scores connect to the rest of the LifeSphere ecosystem.
+
+## How the baseline is built
+
+During the first 30 days of normal use, Vital32 records your biometric patterns across all of its sensors. This period establishes your personal baseline: a set of feature vectors that represent your typical heart rhythm, skin temperature, galvanic skin response, environmental exposure, and motion profiles. The system does not compare you to population statistics. It learns your own rhythms, your own circadian variations, and your own activity patterns. This is the foundation of the multi-timescale AI described in the architecture documentation.
+
+Because the baseline is personal, two people with very different normal heart rates or skin temperatures will not trigger false alerts simply because they deviate from a national average. The baseline also adapts over time through a 30-day rolling window, so gradual seasonal or lifestyle shifts do not permanently bias the model.
+
+## The Isolation Forest model
+
+The anomaly detector is an Isolation Forest trained offline on your first 30 days of data. In general, an Isolation Forest isolates observations by randomly selecting a feature and a split value repeatedly. Anomalies are easier to isolate because they differ from the majority, so they end up closer to the root of the tree on average. The model uses 100 trees with a contamination parameter of 0.05, which means it assumes roughly 5 percent of the baseline data may already contain mild anomalies.
+
+The output is a normalized anomaly score between 0 and 1. Higher scores indicate stronger deviation from your personal baseline. The score does not diagnose a specific condition. It signals that your combined biometric pattern looks unusual compared to your own history, which alerts other subsystems to attend more closely or prepare a response.
+
+The anomaly scoring runs every 30 seconds as part of Vital32's short inference cycle, alongside the normalized biometric feature vector extraction that feeds it.
+
+## What the thresholds mean
+
+The system uses two thresholds to decide how to respond:
+
+| Score range | Response | What happens |
+| --- | --- | --- |
+| 0.0 to 0.7 | Normal monitoring | Vital32 continues recording; no cross-subsystem action |
+| 0.7 to 0.9 | Soft alert | Internal flag raised; SphereAI may increase emotional monitoring sensitivity; HollowCore may pre-adjust environmental settings |
+| Above 0.9 | Emergency protocol | HollowRover dispatches to your location; guardian receives push notification; all subsystems shift to emergency posture |
+
+The soft alert threshold at 0.7 gives the ecosystem a chance to de-escalate a situation before it becomes critical. For example, if your anomaly score rises due to a transient stressor, SphereAI might initiate calming conversation or HollowCore might dim the lights. The emergency threshold at 0.9 is hard-wired to the rover because at that level the system treats the deviation as potentially life-threatening.
+
+The source does not specify exactly how the soft alert propagates through Firebase or whether intermediate scores modulate non-emergency behaviors continuously.
+
+## Why this matters
+
+Population thresholds fail elderly users because "normal" for a 70-year-old may be flagged as abnormal by a model trained on 30-year-olds. A personal baseline respects your individual physiology. It also means the system improves with time: the longer you wear Vital32, the more precisely it learns your patterns and the fewer false disruptions you experience.
+
+For family members and caregivers, the anomaly score provides a single interpretable number that reflects overall biometric stability rather than requiring them to monitor a dozen separate readings.
+
+## How it connects to the rest of LifeSphere
+
+The `anomaly_score` field lives in the shared biological state tree under `lifesphere/vital32/anomaly_score`. Every subsystem reads this value through Firebase Realtime Database listeners. When the score crosses a threshold, the following chain reactions occur:
+
+- **HollowRover** subscribes directly to `anomaly_score` and dispatches when it exceeds 0.9.
+- **SphereAI** uses the score as one contextual input to adjust its conversational tone and monitoring cadence.
+- **HollowCore** may correlate the score with `cortisol_est` or `gsr` to decide whether to change lighting, temperature, or air purification.
+- **EntryGuard** does not act on anomaly scores directly, but in a multi-floor deployment the rover's dispatch to your location combines the biometric emergency with your UWB-derived position.
+
+This is the core of LifeSphere's claim to be a single organism: your wrist-mounted biosensor speaks, and the room, the companion, and the rover all listen.
+
+## Limits
+
+The anomaly detector assumes your first 30 days represent a healthy period. If you begin wearing Vital32 during an illness or immediately after a hospital discharge, the baseline will be skewed and sensitivity reduced. The source does not describe a mechanism to reset or relearn the baseline later.
+
+The model output is a score, not a diagnosis. A high score could indicate dehydration, infection onset, emotional distress, a sensor fault, or genuine cardiac instability. Vital32 separately validates sensor readings against physical plausibility bounds to filter hardware faults, but the anomaly score itself does not distinguish biological causes.
+
+No accuracy figures, false-positive rates, or clinical validation results are reported. The anomaly detector is part of a research system, not a certified medical device.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Isolation Forest Deep Dive" icon="brain" href="/ai/isolation-forest">
+    Learn how the Isolation Forest model is trained, its mathematical formulation, and how it fits into the broader AI stack.
+  </Card>
+
+  <Card title="Pre-Seizure Estimation" icon="wave-square" href="/vital32/predictions/pre-seizure-estimation">
+    Understand how Vital32 uses LSTM sequential modeling to estimate seizure probability before onset.
+  </Card>
+
+  <Card title="Cortisol Estimation" icon="droplet" href="/vital32/predictions/cortisol-estimation">
+    Explore how inferred stress chemistry feeds into environmental and emotional responses.
+  </Card>
+
+  <Card title="Multi-Timescale Inference" icon="layer-group" href="/core/multi-timescale-inference">
+    See how anomaly scoring fits alongside 15-minute and 24-hour inference cycles.
+  </Card>
+</CardGroup>

@@ -1,0 +1,67 @@
+---
+title: "HollowRover Arm: Overview of Joints and Roles"
+sidebarTitle: "Arm Overview"
+description: "Explore HollowRover's 6-DOF robotic arm: six joints, servo types, and how each contributes to caregiving assist and passive security barrier duties."
+icon: "robot"
+---
+
+HollowRover carries a 6-DOF robotic arm whose joints span from base to gripper, each driven by a servo motor chosen for torque, precision, or compact size depending on where it sits in the kinematic chain. This page maps every joint to its hardware and its role in the two arm modes: caregiving assist and passive barrier.
+
+What 6-DOF means: six degrees of freedom, the number of independent ways a rigid body can move in three-dimensional space. For a robotic arm, each joint adds one degree (rotation or linear motion), so six joints let the gripper reach any position within the workspace and point in any direction. Fewer joints would limit reachability or orientation at the target.
+
+## Joint table
+
+The arm uses MG996R metal-gear servos for the five main joints and an MG90S micro servo for the gripper. Metal gears withstand higher loads and shocks than plastic ones, which matters when the arm carries a water container or blocks a corridor repeatedly.
+
+| Joint | Servo | Role |
+| --- | --- | --- |
+| 1 Base rotation | MG996R | Spins the entire arm around the vertical axis to aim at the user or chokepoint |
+| 2 Shoulder | MG996R | Lifts the upper arm up and down, setting vertical reach height |
+| 3 Elbow | MG996R | Bends the forearm relative to the upper arm, extending or retracting the gripper |
+| 4 Wrist pitch | MG996R | Tilts the gripper up or down so objects stay level during handoff |
+| 5 Wrist roll | MG996R | Rotates the gripper around the forearm axis to orient items for the user |
+| 6 Gripper | MG90S | Opens and closes to grasp objects such as medication strips or a water cup |
+
+## Why the base needs rotational freedom
+
+The rover body can turn in place, but doing so disturbs SLAM localization and risks bumping nearby obstacles. By keeping the rover stationary and rotating only the arm base, the system maintains map confidence while still aiming precisely at a seated user or a hallway target. This separation between body pose and end-effector pose is a standard principle in mobile manipulation: the platform handles coarse global positioning, the arm handles fine local positioning.
+
+## Shoulder, elbow, and workspace reach
+
+Together, joints 2 and 3 define how far forward and how high the gripper can go. Because these joints support the entire downstream mass (wrist + payload), they use the highest-torque servos in the arm. The shoulder sets the gross elevation; the elbow fine-tunes extension. In caregiving mode, the combination brings medication to lap or chest height without requiring the elderly user to bend or stretch. In barrier mode, the elbow lifts the arm into the path clearance zone at about waist to chest height, a position that naturally discourages passage without requiring force.
+
+## Two wrist joints for orientation control
+
+Joint 4 (wrist pitch) tilts the gripper so a cup of water stays horizontal while the shoulder and elbow move through arbitrary arcs. Joint 5 (wrist roll) rotates the gripper so labels face the user or so the gripper aligns with narrow gaps when retrieving dropped objects. Without both, the arm would have to reposition the entire rover body just to keep a payload upright, which is slow and risky near furniture.
+
+## Why the gripper uses a smaller servo
+
+The gripper does not need to lift the arm's own weight; it only needs to squeeze with enough force to hold a typical object (a blister pack, a remote, a filled cup) without crushing it. The MG90S is smaller and draws less current, which reduces overall arm power consumption and leaves more electrical headroom for the four larger servos during high-torque maneuvers.
+
+## How it connects to the rest of LifeSphere
+
+The arm receives commands from the Manipulator controller, an ESP32 WROOM-32 dedicated to servo timing and the TF-Luna ToF sensor. That controller communicates with the RDK X5 over a serial bridge, so SphereAI or autonomous protocols can request an arm action without blocking SLAM or navigation on the main CPU. When Vital32 posts `fall_detected true` to Firebase, the rover's autonomous fall protocol dispatches the arm to bring water or medication. When EntryGuard flags an unregistered face, the barrier protocol raises the arm, activates the alarm, and sends a push notification with a live camera feed to the guardian.
+
+## Limits
+
+The source does not specify maximum payload mass, reach distance, or joint speed. In general, hobby-class metal-gear servos with 10 to 15 kg-cm torque can lift a few hundred grams at full extension, but performance degrades with battery voltage droop and mechanical backlash in 3D-printed linkages. The arm cannot apply sustained force without overheating servos, which is one reason the passive barrier mode is strictly non-contact. The source also does not state whether the arm has positional feedback beyond open-loop servo commands; without encoders, repeatability depends on mechanical consistency and power supply stability.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Caregiving Assist" icon="hand" href="/hollowrover/arm/caregiving-assist">
+    How the arm retrieves objects, hands medication and water to the user, and reduces physical strain.
+  </Card>
+
+  <Card title="Passive Barrier" icon="shield-halved" href="/hollowrover/arm/passive-barrier">
+    The arm's security role: blocking chokepoints without ever contacting a person.
+  </Card>
+
+  <Card title="Trigger Pipeline" icon="route" href="/hollowrover/arm/trigger-pipeline">
+    TF-Luna detection, camera capture, and InsightFace recognition that precedes any barrier response.
+  </Card>
+
+  <Card title="Safety Rules" icon="scale-balanced" href="/hollowrover/arm/safety-rules">
+    Mandatory constraints: no contact, no autonomous defensive decisions, and required human authorization for escalation.
+  </Card>
+</CardGroup>

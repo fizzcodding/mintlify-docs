@@ -1,0 +1,107 @@
+---
+title: "Trigger-to-Response Reference: Every Automation in LifeSphere"
+sidebarTitle: "Trigger-to-Response"
+description: "A complete reference of every trigger condition across LifeSphere subsystems and the physical or digital response each one initiates, organized by subsystem."
+icon: "route"
+---
+
+LifeSphere's power lies in its ability to turn biometric signals, environmental readings, and security events into coordinated physical and digital responses without requiring the user to press a button or speak a command. This page catalogs every trigger and its downstream action.
+
+## Vital32 triggers
+
+| Trigger | Response | Subsystem |
+| --- | --- | --- |
+| Freefall then impact followed by 3 seconds of near-zero movement | fall_detected flag set; rover fall protocol dispatched | Vital32 publishes; HollowRover responds |
+| Anomaly score exceeds 0.7 | Soft alert generated for caregiver review | AI layer |
+| Anomaly score exceeds 0.9 | Emergency protocol dispatch | AI layer; HollowRover may respond |
+| Seizure probability exceeds 0.85 | Seizure protocol triggered; rover prepares cushioning deployment | Vital32 publishes; HollowRover responds |
+| GSR exceeds 0.6 | HollowCore publishes play_calming_audio to SphereAI speaker | Vital32 publishes; HollowCore and SphereAI respond |
+| SpO2 drops below 94.0 | Air purifier relay activated through MQTT | Vital32 publishes; HollowCore responds |
+| Sleep detected via HRV plus accelerometer immobility | Lights off; main door locked | Vital32 publishes; HollowCore responds |
+| Skin temperature below 35.5 degrees Celsius | AC thermostat raised | Vital32 publishes; HollowCore responds |
+| Cortisol estimate exceeds 18.0 | Warm dim lighting plus lower AC temperature to calm user | Vital32 publishes; HollowCore responds |
+
+## HollowRover triggers
+
+| Trigger | Response | Subsystem |
+| --- | --- | --- |
+| fall_detected flag becomes true | Fall protocol: rover navigates to user location using UWB and BLE person-finding | HollowRover |
+| anomaly_score exceeds 0.9 | Emergency protocol: rover dispatched to user with alert to guardian | HollowRover |
+| seizure_prob exceeds 0.85 | Seizure protocol: cushioning deployment prepared; alert sent to guardian | HollowRover |
+| EntryGuard alert with UWB zone and floor reference received | Rover selects corresponding floor's SLAM map, localizes against UWB anchors, navigates to zone | HollowRover |
+| Medication schedule time reached in Firebase med_schedule | Autonomous medication delivery: carousel rotates to correct slot, shutter opens, arm hands dose and water to user | HollowRover |
+| Cortisol spike flagged in shared state | Stress-relief protocol: calming audio and de-escalation behavior | HollowRover and SphereAI |
+| BLE RSSI from wearable detected outside UWB coverage | Rover rotates sampling RSSI at multiple headings, estimates strongest direction, navigates toward user | HollowRover |
+
+## SphereAI triggers
+
+| Trigger | Response | Subsystem |
+| --- | --- | --- |
+| Wake word detected by ESP32-S3 local engine | UART signal to RDK X5; full Whisper speech-to-text and DistilBERT sentiment analysis activated | SphereAI |
+| Emotional state classified as stressed with elevated biomarkers | Tone adjustment to calmer register; SphereAI coordinates with HollowCore and HollowRover for de-escalation | SphereAI, HollowCore, HollowRover |
+| Cognitive score drift detected via CUSUM threshold | Longitudinal alert for caregiver review; increased companionship interaction frequency | SphereAI |
+| Loneliness index elevated | Verbal companionship and proactive conversation initiated | SphereAI |
+| Salah prayer time reached | Prayer reminder delivered through speaker | SphereAI |
+| Emotional stress detected during Ramadan | Medication and hydration protocols restructured around fasting intervals via shared state | SphereAI, HollowCore, HollowRover |
+
+## EntryGuard triggers
+
+| Trigger | Response | Subsystem |
+| --- | --- | --- |
+| PIR motion detected while system mode is ACTIVE | Motion alert with distance and node ID pushed to shared state; rover patrol or guardian notification initiated | EntryGuard; HollowRover or guardian responds |
+| Fire sensor reading above threshold | Fire alert plus local buzzer; alert includes UWB zone reference and floor pressure reference for rover dispatch | EntryGuard; HollowRover responds |
+| Gas sensor reading above threshold | Gas alert plus local buzzer; same floor-aware dispatch reference provided | EntryGuard; HollowRover responds |
+| TF-Luna detects presence at monitored chokepoint and face recognition returns unmatched face | Passive barrier response: arm blocks pathway, audible alarm, instant push notification with live camera feed to guardian phone; human authorization required for any escalation | EntryGuard and HollowRover |
+
+## HollowCore triggers
+
+| Trigger | Response | Subsystem |
+| --- | --- | --- |
+| cortisol_est exceeds 18.0 in shared state | Warm dim lighting activated; AC temperature lowered to calm user via MQTT relay commands | HollowCore |
+| gsr exceeds 0.6 in shared state | MQTT publish play_calming_audio to SphereAI speaker | HollowCore and SphereAI |
+| spo2 below 94.0 in shared state | Air purifier relay turned on | HollowCore |
+| Sleep state confirmed by Vital32 | Light relays off; main door lock solenoid engaged | HollowCore |
+| skin_temp below 35.5 in shared state | AC thermostat raised to warm environment | HollowCore |
+| Unrecognized, out-of-pattern, or suspicious transaction detected by Isolation Forest | Smart notification via LifeSphere app and rover OLED; one-tap freeze card or dispute offered | HollowCore |
+| New high-risk transaction or subscription attempted | Biometric transaction authorization: facial recognition plus fingerprint plus Vital32 proximity confirmation required | HollowCore, EntryGuard, Vital32 |
+
+## Medication triggers
+
+| Trigger | Response | Subsystem |
+| --- | --- | --- |
+| Prescription photographed and processed in companion app | OCR plus LLM extraction of medicine name, dosage, frequency, duration, and instructions; user reviews and confirms | Medication subsystem |
+| User or caregiver enters schedule via dispenser touchscreen | Manual schedule written to Firebase dispenser_manual and synced to rover | Medication subsystem, HollowRover |
+| Scheduled dose time reached in med_schedule or dispenser_manual | Reminder delivered; HollowRover executes autonomous delivery on confirmed schedule | Medication subsystem, HollowRover |
+| High adherence entropy detected over monitoring window | Irregular adherence flagged for caregiver attention; no specific automated response defined | Medication subsystem |
+
+## Why this matters
+
+Understanding triggers and responses helps families, caregivers, and administrators see how LifeSphere converts silent biological and environmental changes into timely physical support. The system is designed to disappear into the background of daily life: the user never issues commands, yet lights dim when stress rises, a rover arrives after a fall, and an air filter starts when oxygen saturation drops.
+
+## How it connects to the rest of LifeSphere
+
+Every trigger in the table above flows through the shared biological state in Firebase. Vital32 writes biometric flags; HollowRover subscribes and acts; SphereAI reads emotional context to modulate its own responses; EntryGuard pushes alert payloads with UWB zone and floor references; HollowCore translates state changes into MQTT relay commands. The two-channel communication model, cloud plus local MQTT, ensures that urgent triggers reach actuators even if internet latency fluctuates.
+
+## Limits
+
+The specific internal steps of many protocols are not documented. For example, exactly what cushioning deployment entails during the seizure protocol, or the exact de-escalation steps in a stress-relief protocol, are not specified in the source. Thresholds for fire and gas alerts are described as existing but no numerical values are given. Human authorization is required before any defensive action beyond the passive barrier, but the exact authorization mechanism is not detailed.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Subsystem Comparison" icon="layer-group" href="/reference/subsystem-comparison">
+    How the five subsystems differ in hardware, AI, and actuation roles.
+  </Card>
+
+  <Card title="Shared State Fields" icon="database" href="/reference/state-field-dictionary">
+    Every field path and MQTT topic in the biological state backbone.
+  </Card>
+
+  <Card title="Glossary" icon="book" href="/reference/glossary">
+    Definitions for terms like CUSUM, RMSSD, and passive barrier.
+  </Card>
+
+  <Card title="Scenarios" icon="person-falling" href="/scenarios/fall">
+    Walkthroughs of how multiple triggers combine in real situations.
+  </Card>
+</CardGroup>

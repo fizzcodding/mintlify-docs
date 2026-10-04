@@ -1,0 +1,82 @@
+---
+title: "HollowRover Limits and Ethics: Honest Boundaries"
+sidebarTitle: "Limits and Ethics"
+description: "Honest boundaries for HollowRover: stairs, night vision gaps, protocol internals, BLE coarseness, passive barrier rules, human authorization, and local face storage."
+icon: "scale-balanced"
+---
+
+HollowRover is designed to provide physical caregiving assistance, but every autonomous system has boundaries. This page states the known limits and ethical safeguards honestly and directly.
+
+## Multi-floor movement and stairs
+
+The rover is wheeled and does not climb stairs. It can operate on multiple floors, but only if each floor is registered with its own map, anchors, and barometric baseline, and only if an accessible path exists between floors. Acceptable paths include a lift, a ramp, or manual relocation by a caregiver.
+
+The source does not describe autonomous lift entry or exit. Until that capability exists, inter-floor transitions require human assistance or building infrastructure. Future work includes legged locomotion for true stair-climbing autonomy.
+
+## Night vision still unresolved
+
+The SC230AI stereo depth camera provides front-facing vision, but effective night operation requires an infrared fill light to illuminate scenes without disturbing a sleeping user. The source explicitly notes that this IR fill light is still unresolved. Without it, low-light face recognition, obstacle detection via stereo depth, and security monitoring may be degraded or unavailable in darkness.
+
+## Protocol internals are unspecified
+
+The source lists the protocols the rover can execute: fall response, pre-seizure cushioning, cortisol-spike de-escalation, medication delivery, security patrol, and passive barrier deterrence. However, the detailed internal steps of these protocols, such as what physical cushioning looks like, how the arm positions itself during a seizure response, or the exact audio and movement sequence during stress de-escalation, are not specified.
+
+This means the descriptions in the documentation reflect the intended triggers and outcomes, not a validated, repeatable procedure that has been tested with users. The source states that dispensing and dosage mechanisms were rigorously tested, but other protocols are not described at that level.
+
+## BLE person-finding is coarse
+
+When the user leaves UWB coverage, the rover falls back to BLE RSSI sampling. This method is significantly coarser than UWB trilateration. BLE signal strength varies with body orientation, wall materials, and interference from other 2.4 GHz devices. The rover can estimate a general direction, not a precise position. Search success depends on environmental conditions and is not guaranteed.
+
+## Passive barrier only
+
+The robotic arm is configured as a passive barrier for security deterrence. It swings to block a pathway when face recognition flags an unregistered individual at a monitored chokepoint. It does not grasp, strike, restrain, or make contact with any person. The system initiates no autonomous defensive decision beyond blocking, sounding an audible alarm, and pushing a notification with a live camera feed to the guardian's phone.
+
+Any escalation beyond these three simultaneous responses requires explicit human authorization. This rule exists to prevent an autonomous robot from harming an intruder, a visitor, or a confused occupant.
+
+## Human authorization for escalation
+
+Intruder response has a mandatory human authorization step before any defensive action beyond the passive barrier. The system alerts a human guardian and awaits confirmation. There is no autonomous pursuit, no autonomous physical intervention, and no automated lockdown that traps a person inside.
+
+This principle extends to other contexts: the rover acts on biomarker triggers for known protocols, but any novel or escalated response requires human judgment.
+
+## Face data stored locally
+
+Face recognition profile data is stored locally on HollowRover and never transmitted to external servers. This limits exposure if cloud accounts are compromised and respects the privacy of registered occupants. Biometric data between subsystems and Firebase uses TLS encryption in transit.
+
+The face recognition service runs on the rover itself using InsightFace, MediaPipe, and ONNX Runtime. The profiles remain under physical control of the deployment site.
+
+## Sensor readings validated before inference
+
+Sensor readings are checked against physical plausibility bounds before entering any AI inference pipeline. This filtering step distinguishes hardware faults, such as a disconnected temperature probe or a transient communication error, from genuine biological anomalies. A faulty sensor should not trigger an emergency protocol.
+
+## Generic wording for some hardware details
+
+The source document is not fully consistent on some hardware details, so this site uses generic wording for them. For example, motor driver stages, IMU specifics, and some sensor bus arrangements are described in general terms rather than by exact part numbers or configurations. This avoids propagating contradictions into the documentation.
+
+## Why this matters
+
+Autonomous caregiving robots operate in homes with vulnerable people. Overstating capabilities or hiding limits could lead to unsafe deployments, misplaced trust, or abandonment of the user. By stating limits plainly, the documentation supports informed decisions by caregivers, family members, and future researchers.
+
+## How it connects to the rest of LifeSphere
+
+Vital32 has its own limits on the [Vital32 Limits and Ethics](/vital32/limits-and-ethics) page. SphereAI, EntryGuard, and HollowCore each have similar transparency pages. The system-wide boundary statement lives on [Honest Limits](/status/honest-limits). Predictive claims across all subsystems are identified as design goals on [Unvalidated Claims](/status/unvalidated-claims).
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Honest Limits" icon="scale-balanced" href="/status/honest-limits">
+    System-wide summary of known boundaries, from stairs to night vision to BLE coverage.
+  </Card>
+
+  <Card title="Unvalidated Claims" icon="circle-question" href="/status/unvalidated-claims">
+    Which predictive capabilities are design goals rather than validated results.
+  </Card>
+
+  <Card title="Vital32 Limits and Ethics" icon="heart-pulse" href="/vital32/limits-and-ethics">
+    Biosensor boundaries, plausibility filtering, and wearable-specific safeguards.
+  </Card>
+
+  <Card title="Safety Principles" icon="shield-halved" href="/design/safety-principles">
+    Core safety rules that govern every subsystem, including human authorization and passive barriers.
+  </Card>
+</CardGroup>

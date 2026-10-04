@@ -1,0 +1,61 @@
+---
+title: "Vital32 Sensor Array: Continuous Multi-Signal Capture"
+sidebarTitle: "Sensor Array"
+description: "A multi-sensor array on the Vital32 wearable captures cardiac, motion, thermal, neural, hydration, and environmental signals for autonomous caregiving inference."
+icon: "microchip"
+---
+
+The Vital32 sensor array is a distributed set of transducers that convert physical and chemical phenomena into electrical signals. An ESP32 WROOM-32 microcontroller coordinates reads across shared buses, schedules them to avoid contention, and forwards the data to local signal processing and cloud inference. Together these sensors form the biological input surface of the LifeSphere ecosystem.
+
+The array is not a single module. It is a deliberately heterogeneous collection. Cardiac, neural, thermal, mechanical, and environmental channels are sampled at different cadences and fused into a unified state representation. The principle is that no one modality can distinguish a genuine biological shift from noise, context, or sensor artifact. Cross-modal fusion is what makes the system robust enough to act without human confirmation.
+
+## Sensor roles
+
+| Sensor | Measures | Helps With |
+| --- | --- | --- |
+| PPG pulse oximetry | Blood volume changes, pulse rate, oxygen saturation | Acute cardiac anomaly, SpO2 thresholds |
+| ECG waveform | Electrical depolarization of the heart | Heart rhythm, HRV, arrhythmia risk |
+| Accelerometer + gyroscope | Linear acceleration and angular velocity | Fall detection, tremor, sleep immobility |
+| Infrared thermometer | Skin surface temperature | Fever, hypothermia, cortisol estimation input |
+| Galvanic skin response | Electrical conductance of the skin | Sympathetic arousal, stress, emotional state |
+| Bioelectrical impedance | Tissue resistivity and reactance | Hydration status, tissue composition |
+| Environmental VOC + humidity | Airborne chemicals and moisture | Indoor air quality, respiratory context |
+| UV sensor | Ultraviolet irradiance | Sun exposure, vitamin D context, outdoor activity |
+
+The ECG acquisition is a real part of the array. The source does not name the specific acquisition chip, so documentation refers to it generically as the ECG signal path. It contributes to heart rhythm and variability analysis alongside the PPG channel.
+
+## Scheduling and bus sharing
+
+All sensors share a bus. The firmware spreads reads across time to avoid electrical contention, which occurs when multiple devices try to drive the same communication lines simultaneously. Motion is sampled at 50 Hz (every 20 milliseconds) because fall dynamics happen in sub-second windows. Pulse, temperature, GSR, HRV, and OLED updates occur each second. Environmental, UV, bioimpedance, and the seizure model run every 5 seconds. Biological age estimation and Firebase upload happen every 30 seconds. This layered cadence balances responsiveness with power draw.
+
+## Why this matters
+
+A single-function wearable can miss context. A pulse oximeter sees a drop in SpO2 but cannot tell whether the user is lying down, walking, or in a room with poor ventilation. Vital32's array correlates SpO2 with accelerometer posture, environmental VOC, skin temperature, and GSR. The resulting inference is richer and less prone to false alarm. Shared scheduling also keeps the 1000 mAh LiPo battery small and wearable rather than bulky.
+
+## How it connects to the rest of LifeSphere
+
+Every sensor channel ends in a field in the shared biological state tree. HollowCore subscribes to `spo2` and `skin_temp`. SphereAI subscribes to `gsr` and `cortisol_est`. HollowRover subscribes to `fall_detected`. EntryGuard uses the wearable's BLE beacon for coarse proximity. Without this array, the rest of the ecosystem would be blind to the user's condition.
+
+## Limits
+
+The source does not specify individual sensor accuracy, calibration requirements, or failure modes. The system includes plausibility filtering to reject physically impossible readings, but the exact bounds are not stated. Environmental and UV data are captured; how they enter specific inference models is not detailed beyond general fusion. Battery life under continuous multi-sensor operation is not quantified.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Pulse and SpO2" icon="lungs" href="/vital32/components/pulse-and-spo2">
+    PPG and ECG cardiac signal capture
+  </Card>
+
+  <Card title="Motion" icon="person-falling" href="/vital32/components/motion">
+    Accelerometer-based fall and tremor sensing
+  </Card>
+
+  <Card title="Temperature" icon="temperature-half" href="/vital32/components/temperature">
+    Non-contact skin temperature and climate linkage
+  </Card>
+
+  <Card title="Galvanic Skin Response" icon="droplet" href="/vital32/components/galvanic-skin-response">
+    Sympathetic nervous system arousal tracking
+  </Card>
+</CardGroup>

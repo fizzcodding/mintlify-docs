@@ -1,0 +1,91 @@
+---
+title: "AI Limits: Accuracy, Validation, and Honest Gaps"
+sidebarTitle: "Limits"
+description: "Every LifeSphere AI model has documented limits. No reported accuracy, unvalidated predictive claims, dataset gaps, and outputs that are estimates rather than diagnoses."
+icon: "circle-question"
+---
+
+LifeSphere's artificial intelligence layer represents ambitious design goals for predictive healthcare in the home, but the gap between design and validation is substantial. This page states every known limitation of the AI models honestly, including unvalidated claims, unspecified training data, and the difference between a sensor estimate and a clinical diagnosis.
+
+## No reported accuracy anywhere
+
+The source does not report accuracy metrics, AUC values, sensitivity, specificity, or any other performance measure for any AI model in the system. Not for the Isolation Forest anomaly detector. Not for the pre-seizure LSTM. Not for the emotional classifier, the cortisol estimator, the biological age clock, or the cognitive tracker. This absence is significant because performance claims are the standard by which healthcare-adjacent AI is judged by clinicians, regulators, and caregivers.
+
+Without reported metrics, users and guardians cannot know the false positive rate: how often the system cries wolf and desensitizes families to alerts. They cannot know the false negative rate: how often genuine emergencies pass undetected. The design philosophy of learning personal baselines rather than population norms is sound, but its effectiveness in this implementation is unquantified.
+
+## Predictive claims are design goals, not validated results
+
+Several predictive capabilities are described as design goals rather than achieved outcomes:
+
+- Immune activation detection 24 to 48 hours before symptom onset
+- Pre-seizure probability estimation 30 minutes before onset
+- Early cognitive decline detection via speech pattern drift
+- Biological age tracking through multi-sensor fusion
+
+None of these have been validated on the target population of elderly individuals living alone in Bangladesh or elsewhere. Longitudinal user studies to measure whether these predictions translate into real clinical benefit are explicitly listed as future work.
+
+The pre-seizure LSTM illustrates the validation gap concretely. It was trained on EEG datasets (CHB-MIT scalp EEG and Epilepsy iEEG from PhysioNet) but is intended to run on wrist-worn sensors that measure heart rate variability, motion, and skin temperature. Brain electrical signals and peripheral physiological signals are fundamentally different domains. The source explicitly states that this gap is not addressed in the documentation and that the model is unvalidated on real wearable data.
+
+## Dataset gaps and undocumented training
+
+Training data transparency is uneven across the system. The anomaly detector and financial anomaly detector both learn from personal user data, which is a strength for personalization. The seizure model names public datasets but suffers from the domain mismatch described above. However, several models lack any documented training source:
+
+- The emotional classifier names no labeled emotional speech dataset
+- The cortisol estimator names no training data at all
+- The biological age clock names no training data at all
+- The cognitive tracker establishes a personal baseline but does not specify the required duration
+
+In general, machine learning models are only as trustworthy as the data they learn from. A model trained on young, healthy populations may systematically misread elderly physiology. A model trained in one cultural context may misinterpret emotional expressions from another. Without documentation of training data provenance, these risks cannot be assessed.
+
+## Estimates are not diagnoses
+
+Every AI output in LifeSphere is an estimate derived from consumer-grade sensors, not a clinical measurement. This distinction matters for how guardians and users interpret results:
+
+- Anomaly scores reflect statistical deviance from a personal baseline, not medically defined pathology
+- Cortisol estimates are algorithmic predictions from heart rate variability, galvanic skin response, skin temperature, and sleep efficiency, not blood or saliva assays
+- Biological age is a model output, not a validated biomarker of aging such as DNA methylation clocks
+- Seizure probability is a design goal based on indirect peripheral signals, not EEG monitoring
+- Cognitive drift is a statistical signal from automated speech transcription, not a neuropsychological battery
+
+Treating these outputs as diagnostic would be a category error. They are early warning signals, conversation starters, and prompts for professional evaluation. They are not replacements for clinicians, laboratories, or hospital-grade monitoring.
+
+## Generic wording for unresolved deployment details
+
+The source document is not fully consistent on some hardware and deployment details, so this site uses generic wording for them. For example, the source does not specify whether models run on the wearable, on HollowRover's dedicated NPU, on a cloud instance, or distributed across multiple nodes. It does not state the model serialization format, update mechanism, or versioning strategy. The Isolation Forest, LSTM, and other models are described as trained offline, but the runtime environment is not documented.
+
+## What the limits mean for users
+
+These limits do not mean LifeSphere has no value. The system still provides continuous monitoring, fall detection with defined accelerometer thresholds, environmental automation, medication reminders, and a conversational agent. But the predictive layer, the part that distinguishes LifeSphere from simpler alert systems, should be understood as experimental.
+
+Families using the system should maintain existing healthcare relationships. The AI outputs are best used to enrich conversations with doctors, not to replace them. A rising anomaly score, a biological age drift, or a cognitive tracker alert should prompt a call to a clinician, not a conclusion about diagnosis or prognosis.
+
+## How the architecture mitigates uncertainty
+
+LifeSphere's design includes structural safeguards that buffer AI uncertainty:
+
+- Distributed intelligence means no single model failure disables the entire system
+- Human-in-the-loop requirements for defensive actions prevent autonomous escalation based on unvalidated threat classification
+- Plausibility filtering validates sensor readings against physical bounds before they enter inference, filtering hardware faults from biological signals
+- Independent watchdog timers trigger reconnection and guardian notification when nodes go silent
+
+These architectural choices reflect an honest engagement with the limits of the AI layer. The system does not trust its own predictions unconditionally.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Training Data" icon="book" href="/ai/training-data">
+    What is known and unknown about each model's training source
+  </Card>
+
+  <Card title="Honest Limits" icon="scale-balanced" href="/status/honest-limits">
+    System-wide gaps between design goals and validated performance
+  </Card>
+
+  <Card title="Thresholds and Alerts" icon="scale-balanced" href="/ai/thresholds-and-alerts">
+    Every numeric threshold and what it triggers, treated as design parameters
+  </Card>
+
+  <Card title="Status and Roadmap" icon="route" href="/status/status-and-roadmap">
+    What is built, what is planned, and what remains to be validated
+  </Card>
+</CardGroup>

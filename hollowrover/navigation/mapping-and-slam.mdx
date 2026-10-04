@@ -1,0 +1,64 @@
+---
+title: "Mapping and SLAM: How HollowRover Builds Its Maps"
+sidebarTitle: "Mapping and SLAM"
+description: "Learn how HollowRover uses SLAM Toolbox and a ToF LiDAR to build and update 2D occupancy maps for autonomous navigation floors."
+icon: "map"
+---
+
+HollowRover creates and maintains its own floor maps using simultaneous localization and mapping (SLAM), a robotics technique that builds a map of unknown surroundings while tracking the robot's position within it.
+
+## What SLAM means in plain language
+
+SLAM stands for simultaneous localization and mapping. Localization means "know where you are." Mapping means "know what the room looks like." In traditional approaches these are done separately, but SLAM does both at the same time. As the rover moves through a space, it compares each new sensor scan against the growing map to refine both its position and the map geometry.
+
+In general, SLAM works by matching features between consecutive sensor frames. If the robot sees a wall edge or doorway in one scan and then sees the same feature again after moving, it can estimate how far it traveled and correct drift from wheel encoders.
+
+## The sensor that feeds the map
+
+The rover carries an STL-19P time-of-flight (ToF) LiDAR. Time-of-flight means the sensor emits pulses of light and measures how long the reflection takes to return, converting that delay into distance. This gives consistent accuracy across range compared some other ranging methods, and it samples at a high rate that can support fast odometry correction.
+
+The LiDAR sits in a fixed position on the rover body, spinning or scanning horizontally to produce a 360-degree or wide field-of-view distance profile of the room.
+
+## SLAM Toolbox and lifelong mapping
+
+LifeSphere uses SLAM Toolbox, a widely adopted ROS2 package for 2D LiDAR-based SLAM. SLAM Toolbox operates in lifelong mapping mode for the rover. Lifelong mapping means the map can be updated over time as furniture moves, doors open or close, or new objects appear. The map is not frozen after the first scan. This matters for home environments where layouts change daily.
+
+The package builds a 2D occupancy grid. An occupancy grid is a flat image-like map where each cell is labeled free, occupied, or unknown. White cells are open space, black cells are obstacles, and gray cells have not been observed. The rover uses this grid for collision checking and route planning.
+
+## Why this matters
+
+A caregiver cannot pre-map every home in advance. SLAM lets HollowRover adapt to the specific apartment it serves, learning doorways, furniture edges, and open corridors without manual surveying. Because the map lives on the rover and updates continuously, the system stays accurate even when family members rearrange a living room or close a hallway door.
+
+## How it connects to the rest of LifeSphere
+
+The occupancy grid produced by SLAM is consumed directly by Nav2, the navigation stack described on the [Path Planning and Safety](/hollowrover/navigation/path-planning) page. Without an accurate grid, path planning would suggest routes through walls or missing doorways.
+
+Multi-floor support depends on per-floor maps. Each registered floor stores its own SLAM map, paired with that floor's anchor geometry and barometric baseline. When the rover determines which floor it is on, it loads the correct map before planning any route. You can read more about that switching logic on [Multi-Floor Map Switching](/hollowrover/navigation/multi-floor-maps).
+
+The EntryGuard nodes also carry barometric and UWB references, so danger alerts carry a floor identity. The rover selects the matching floor map, localizes against that floor's anchors, and navigates to the alerting zone.
+
+## Limits
+
+The map is two-dimensional. The rover cannot represent obstacles above or below the LiDAR scan plane, such as a low coffee table with thin legs or an overhanging shelf. The source does not specify how stair edges are represented in the occupancy grid; this is an area where future work may be needed.
+
+Night vision still relies on an unresolved infrared fill light for the stereo depth camera, but the LiDAR itself does not depend on visible light and continues to map in darkness.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Path Planning and Safety" icon="route" href="/hollowrover/navigation/path-planning">
+    How Nav2 uses the SLAM map to plan safe routes at 0.3 m/s with ultrasonic backups.
+  </Card>
+
+  <Card title="UWB Positioning" icon="location-dot" href="/hollowrover/navigation/uwb-positioning">
+    Three-anchor true 2D trilateration within 10 cm for precise floor-level localization.
+  </Card>
+
+  <Card title="Barometric Floor Detection" icon="temperature-half" href="/hollowrover/navigation/barometric-floor-detection">
+    Barometric pressure baselines identify which floor the rover is on before loading a map.
+  </Card>
+
+  <Card title="Multi-Floor Map Switching" icon="layer-group" href="/hollowrover/navigation/multi-floor-maps">
+    How the rover switches between floor maps, anchors, and pressure baselines on demand.
+  </Card>
+</CardGroup>

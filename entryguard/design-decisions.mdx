@@ -1,0 +1,69 @@
+---
+title: "EntryGuard Design Decisions: Why the Architecture Works This Way"
+sidebarTitle: "Design Decisions"
+description: "EntryGuard's choices of low-cost sensors, mode gating, always-on environmental monitoring, and local face profiles reflect a design philosophy of accessible, privacy-first autonomous security."
+icon: "gears"
+---
+
+Every subsystem in LifeSphere is the result of deliberate trade-offs between cost, reliability, privacy, and ease of deployment. EntryGuard's architecture reflects a set of core design decisions that prioritize autonomous operation, local data control, and accessibility for homes that may lack professional installation support.
+
+## Low-Cost, Widely Available Sensors
+
+EntryGuard uses the HC-SR501 PIR, HC-SR04 ultrasonic, KY-026 flame sensor, and MQ-2 gas sensor. These are among the most common modules in the maker and IoT ecosystems. The decision to use them rather than specialized industrial sensors was driven by accessibility. A caregiver or local technician can replace a failed HC-SR04 in minutes without importing a proprietary part. This reduces maintenance downtime and keeps the system viable in regions with limited supply chains.
+
+The trade-off is sensitivity to environment. The MQ-2 responds to humidity and temperature variations. The KY-026 can trigger near hot lamps. The source does not specify exact thresholds for these sensors. A threshold that works in a dry, ventilated home may be wrong for a humid, enclosed apartment.
+
+## Mode Gating for Intrusion, Not for Environment
+
+Motion alerts are gated by `entryguard.mode`. Fire and gas alerts are not. This asymmetry is intentional. Intrusion is context-dependent: a family member walking to the kitchen at night is not a threat. Fire and gas are context-independent: a gas leak at 3 a.m. is as dangerous as one at 3 p.m. The mode gate prevents alarm fatigue from motion while ensuring that environmental hazards are always caught.
+
+## Local Face Profile Storage
+
+Face recognition templates are stored locally on HollowRover and never transmitted to external servers. This decision prioritizes privacy and resilience. In a cloud-based system, a provider outage or data breach could disable recognition or expose biometric data. In LifeSphere, recognition continues during internet outages, and the resident retains physical custody of their biometric information.
+
+The trade-off is storage and compute limits. The number of registered profiles is bounded by the rover's local storage capacity, and recognition speed depends on the local hardware. The design accepts these limits to keep biometric data under the resident's roof.
+
+## UWB Plus Barometric for 3D Location
+
+Using UWB for horizontal position and barometric pressure for vertical floor is a hybrid approach. Pure UWB could theoretically resolve height, but in practice, height resolution is poorer than horizontal resolution in budget UWB setups. Barometric pressure is a simpler, lower-power way to distinguish floors, especially when each floor has a calibrated baseline.
+
+The trade-off is weather sensitivity. Rapid barometric changes from storms can shift apparent floor assignments. The design mitigates this by requiring the rover to compare its own live pressure reading to the node reference, not relying on the node value alone.
+
+## Passive Barrier, Not Active Defense
+
+When an unregistered intruder is detected, the rover deploys its arm as a passive barrier. It does not contact, grasp, or strike the person. This decision reflects the safety principle that autonomous systems should not initiate physical contact with humans. The arm blocks a pathway, the alarm sounds, and the guardian is notified. Any further escalation requires explicit human authorization.
+
+## Why This Matters
+
+These decisions collectively keep EntryGuard affordable, maintainable, and ethically bounded. A security system that is too expensive to deploy fails the people who need it most. A system that streams biometric data to external servers creates risk. A system that physically restrains people autonomously creates liability. EntryGuard's architecture is designed to avoid all three failures.
+
+## How It Connects to the Rest of LifeSphere
+
+- **HollowRover** provides the compute and storage for face recognition and the physical platform for passive barriers.
+- **HollowCore** supplies the mode state that gates and responds to alerts.
+- **SphereAI** tailors verbal responses based on the system's confidence in the threat classification.
+- **Vital32** ensures that biometric monitoring continues during security events, providing physiological context.
+
+## Limits
+
+The source does not specify exact thresholds for the environmental sensors. The design assumes a technically capable installer or caregiver. The barometric floor discrimination may need periodic re-baselining. The face recognition pipeline's performance under low light is an unresolved practical limit.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Components" icon="microchip" href="/entryguard/components">
+    Full hardware list and sensor explanations.
+  </Card>
+
+  <Card title="Face Recognition" icon="eye" href="/entryguard/face-recognition">
+    How local profile storage protects privacy.
+  </Card>
+
+  <Card title="Safety Principles" icon="shield-halved" href="/design/safety-principles">
+    The system-wide commitment to passive, non-contact physical responses.
+  </Card>
+
+  <Card title="Privacy by Design" icon="lock" href="/design/privacy-by-design">
+    How LifeSphere keeps personal and biometric data local.
+  </Card>
+</CardGroup>

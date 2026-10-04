@@ -1,0 +1,74 @@
+---
+title: "HollowRover Compute and NPU: ROS2 Brain"
+sidebarTitle: "Compute and NPU"
+description: "The D-Robotics RDK X5 gives HollowRover a dedicated NPU for AI inference, leaving the CPU free for ROS2 SLAM and navigation without contention."
+icon: "microchip"
+---
+
+HollowRover's main computer is the D-Robotics RDK X5, a single-board computer chosen so that artificial intelligence and robot navigation can run in parallel without fighting for the same processor cores.
+
+## What the RDK X5 provides
+
+The RDK X5 features an 8-core Arm Cortex-A55 CPU cluster paired with a dedicated neural processing unit (NPU) rated at 10 TOPS (trillions of operations per second), also referred to in the source as a BPU. In general, an NPU is a specialized accelerator for the matrix-heavy math that underlies modern machine learning. By offloading neural-network inference to this separate silicon, the general-purpose CPU cores remain available for ROS2 node scheduling, sensor data aggregation, and navigation planning.
+
+Key specifications from the source:
+
+| Resource | Description |
+| --- | --- |
+| CPU | 8-core Cortex-A55 |
+| AI accelerator | 10 TOPS NPU / BPU |
+| Wireless | Wi-Fi 6, Bluetooth 5.4 |
+| Operating system | Ubuntu 22.04 |
+| Robot middleware | ROS2 Humble |
+
+## Why CPU-NPU separation matters
+
+In many small robots, SLAM (simultaneous localization and mapping), path planning, and AI inference all run on the same CPU. When an AI model such as a speech recognizer or face-recognition network fires, it can starve the navigation loop of cycles, causing jerky motion or delayed obstacle avoidance. The RDK X5's design eliminates that contention. SLAM and Nav2 occupy the CPU, while Whisper speech-to-text, DistilBERT sentiment analysis, and face recognition occupy the NPU. Both can run at the same time without one throttling the other.
+
+This parallelism is especially important for HollowRover because it is expected to navigate while listening, speaking, and recognizing faces. A delay in any one of those tasks can compromise safety or user trust.
+
+## Software stack
+
+Ubuntu 22.04 provides the base operating system. ROS2 Humble is the Long-Term Support (LTS) release of the Robot Operating System 2, a publish-subscribe middleware framework widely used in academic and commercial robotics. ROS2 handles inter-node communication, parameter management, and lifecycle orchestration for the rover's many concurrent processes: LiDAR drivers, IMU fusion, SLAM Toolbox, Nav2, camera pipelines, and the MQTT broker bridge.
+
+## Roles of the NPU in daily operation
+
+The source explicitly names three AI workloads that run on the NPU:
+
+- **Whisper speech-to-text:** converts live microphone audio into text transcripts for SphereAI's language agent.
+- **DistilBERT sentiment analysis:** classifies the emotional tone of transcribed speech to feed the trimodal emotional classifier.
+- **Face recognition:** matches faces detected by the front stereo depth camera against locally stored profiles.
+
+Each of these is a deep neural network. Running them on the NPU rather than the CPU keeps inference latencies low and preserves CPU headroom for real-time control loops that must meet strict timing.
+
+## Why this matters
+
+A caregiving robot that is slow to recognize a command, or that hesitates while navigating around a fallen user, is worse than useless: it is a source of anxiety. The RDK X5's dedicated NPU helps ensure that HollowRover can think and move at the same time, so it never has to choose between seeing and acting.
+
+## How it connects to the rest of LifeSphere
+
+HollowRover is the only subsystem that hosts both cloud-facing logic and local real-time control. The RDK X5 runs the Mosquitto MQTT broker that HollowCore and other local nodes use for sub-100-millisecond commands. It also maintains the Firebase listener that keeps the rover synchronized with the shared biological state. In this sense, the RDK X5 is both a node and a local hub: it participates in the distributed intelligence as a peer, and it brokers communication for peers that lack direct cloud connectivity.
+
+## Limits
+
+The source does not specify thermal throttling behavior under sustained NPU load, nor does it detail memory bandwidth limits when all three AI pipelines run concurrently. In general, small-board NPUs can become heat-constrained in enclosed robot chassis without active cooling. The source also does not state whether the NPU supports quantized or pruned model variants, which are common techniques for squeezing larger networks onto edge accelerators. These are practical considerations for future hardware revisions.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Dual Controller Split" icon="layer-group" href="/hollowrover/components/dual-controller-split">
+    How timing-critical ESP32 tasks are isolated from servo control.
+  </Card>
+
+  <Card title="Perception Sensors" icon="eye" href="/hollowrover/components/perception-sensors">
+    The sensor suite that feeds data into the RDK X5.
+  </Card>
+
+  <Card title="Stereo Depth Camera" icon="camera" href="/hollowrover/components/stereo-depth-camera">
+    The front-facing SC230AI and its role in vision tasks.
+  </Card>
+
+  <Card title="Navigation" icon="location-dot" href="/hollowrover/navigation/mapping-and-slam">
+    SLAM and path planning that run on the CPU side.
+  </Card>
+</CardGroup>

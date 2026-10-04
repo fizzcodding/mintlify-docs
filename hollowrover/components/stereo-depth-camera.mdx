@@ -1,0 +1,65 @@
+---
+title: "Stereo Depth Camera and Night Vision on HollowRover"
+sidebarTitle: "Stereo Depth Camera"
+description: "The SC230AI stereo depth camera gives HollowRover 3D scene understanding for face recognition and obstacle assessment, but its night vision needs a separate IR fill light that remains unresolved."
+icon: "camera"
+---
+
+HollowRover's main front camera is the SC230AI stereo depth camera. Stereo depth means the device contains two lenses spaced apart like human eyes. By comparing the slight difference in perspective between the left and right images, the system can compute a depth map: a pixel-by-pixel estimate of how far each point in the scene is from the camera. This is fundamentally different from a single camera, which captures only color and brightness with no inherent distance information.
+
+## How stereo depth works
+
+In general, stereo depth estimation relies on the principle of triangulation. When both cameras view the same scene point, that point appears at slightly different horizontal positions in the two images. The farther away the point, the smaller this displacement (called disparity). By knowing the physical separation between the lenses (baseline) and their optical properties, the system can convert disparity into distance. The resulting depth map is a dense 2.5D representation: it looks like an image, but each pixel encodes depth rather than color.
+
+For HollowRover, this depth information serves multiple purposes:
+
+- **Obstacle verification:** the LiDAR may flag an occupied cell, but the stereo camera can confirm whether the obstacle is a solid wall, a hanging curtain, or a person.
+- **Chokepoint monitoring:** at a security chokepoint (e.g., a hallway leading to valuables), the camera measures whether someone is standing in the corridor and how far they are from the rover.
+- **Face recognition pipeline:** when the TF-Luna ToF sensor on the arm detects presence at a chokepoint, the camera feed is routed to the face recognition service. A good-quality, well-lit image is essential for reliable matching against locally stored profiles.
+
+## The SC230AI in the perception stack
+
+The SC230AI is positioned as the rover's primary vision sensor. It is complemented by the MLX90640 thermal camera and the STL-19P LiDAR, but only the SC230AI provides both color texture and geometric depth from the same viewpoint. This alignment of appearance and geometry is valuable for semantic scene understanding: the system can say "there is a person 1.2 meters ahead" rather than just "there is an obstacle 1.2 meters ahead."
+
+## Night vision limitation
+
+The source explicitly notes that the SC230AI requires a separate infrared (IR) fill light for night vision. Infrared fill lights emit near-infrared illumination that is invisible to human eyes but detectable by camera sensors with the IR block filter removed or by sensors designed for low-light operation. Without this light, the stereo camera's performance after dark or in dimly lit rooms is not guaranteed.
+
+The source lists the IR fill light as **unresolved**. This means the design team has not yet selected, integrated, or validated a specific infrared illumination module for the SC230AI. Until this is resolved, HollowRover's vision-dependent functions (face recognition, depth-based obstacle assessment, chokepoint monitoring) may be limited to adequately lit conditions.
+
+## Why this matters
+
+Elderly users may keep lights low to save electricity or because bright lighting causes discomfort. Falls and emergencies do not respect daylight schedules. A rover that cannot see in the dark is a rover that cannot reliably respond at night, which is precisely when many health events occur. Resolving the IR fill light is therefore not a cosmetic upgrade; it is a requirement for 24-hour operational trust.
+
+## How it connects to the rest of LifeSphere
+
+The stereo depth camera feeds two distinct subsystems:
+
+- **EntryGuard / face recognition:** the FastAPI face recognition service uses the camera feed to distinguish registered occupants from unregistered individuals. Unregistered faces at a chokepoint trigger the passive barrier protocol.
+- **SphereAI:** visual context from the camera may inform the rover's spoken responses or alert descriptions sent to guardians, though the source does not specify explicit visual-to-language pipelines.
+
+The camera is also one factor in HollowCore's financial transaction authorization: facial recognition via the EntryGuard or HollowRover camera contributes to biometric confirmation for high-risk transactions.
+
+## Limits
+
+Beyond the unresolved IR fill light, the source does not specify the SC230AI's baseline length, field of view, or depth range. These parameters determine how wide a doorway the rover can perceive and how close an obstacle must be before depth estimation becomes unreliable. Stereo depth performance also degrades on textureless surfaces (blank walls, glossy tables) where matching left and right image patches is difficult.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Perception Sensors" icon="eye" href="/hollowrover/components/perception-sensors">
+    The full sensor suite that works alongside the SC230AI.
+  </Card>
+
+  <Card title="Passive Barrier" icon="shield-halved" href="/hollowrover/arm/passive-barrier">
+    How chokepoint detection triggers arm-based deterrence.
+  </Card>
+
+  <Card title="Face Recognition" icon="user-shield" href="/entryguard/face-recognition">
+    The InsightFace service that processes camera feeds.
+  </Card>
+
+  <Card title="Navigation" icon="location-dot" href="/hollowrover/navigation/mapping-and-slam">
+    How depth data complements LiDAR in obstacle assessment.
+  </Card>
+</CardGroup>

@@ -1,0 +1,73 @@
+---
+title: "SphereAI Voice Agent: MFCC, Pitch, Energy, Tempo"
+sidebarTitle: "Voice Agent"
+description: "How SphereAI extracts acoustic features like MFCC, pitch, energy, tempo, and zero-crossing rate from speech to decode emotional tone regardless of words."
+icon: "wave-square"
+---
+
+The Voice Agent in SphereAI analyzes how the user speaks, not what they say. It extracts acoustic features from raw audio using Librosa, a Python library for music and audio signal analysis.
+
+## What the Voice Agent measures
+
+Even when words are the same, vocal delivery reveals emotion. A trembling voice, a flat monotone, or rapid, clipped speech all carry emotional information that transcends language. The Voice Agent extracts five core acoustic features from each captured utterance.
+
+### MFCC (Mel-Frequency Cepstral Coefficients)
+
+MFCCs are the most widely used features in speech and music recognition. In general, audio analysis begins with a spectrogram: a visualization of how the frequency content of a sound changes over time. The human ear does not hear all frequencies equally; it is more sensitive to mid-range frequencies and less sensitive to very high and very low ones. MFCCs compress the spectrogram into a small set of coefficients that approximate this perceptual non-linearity. The "mel" scale is a frequency scale designed to match human auditory perception.
+
+In SphereAI, Librosa computes MFCCs from the captured audio. These coefficients capture the shape of the vocal tract and the tonal quality of the voice. A stressed voice tends to have different spectral tilt (energy distribution across frequencies) compared to a calm voice. MFCCs encode these differences numerically so the meta-classifier can compare them against the user's baseline.
+
+### Pitch (fundamental frequency)
+
+Pitch is the perceived highness or lowness of a voice, determined by how fast the vocal folds vibrate. Emotional states correlate with pitch changes. In general, anxiety and stress raise the pitch, while depression and low energy lower it. The Voice Agent tracks pitch variation over the utterance, not just the average. A voice that starts high and drops suddenly, or one that wavers unpredictably, can signal distress even when the words themselves sound neutral.
+
+### Energy (root mean square amplitude)
+
+Energy measures how loud the speech is. Loudness is not just volume but also the intensity with which the user is speaking. A sudden drop in average energy may indicate fatigue, sadness, or withdrawal. Conversely, spikes in energy may signal agitation or anger. The Voice Agent computes the RMS (root mean square) amplitude across the audio window, giving a frame-by-frame loudness profile.
+
+### Tempo (speaking rate)
+
+Tempo measures how fast the user is speaking. Rapid speech often accompanies anxiety or mania; very slow speech can indicate confusion, depression, or medication side effects. The tempo feature is extracted by analyzing the rhythmic structure of the speech signal. In general, speaking rate is correlated with syllable detection, though Librosa can also infer tempo from the amplitude envelope's periodicity.
+
+### Zero-crossing rate
+
+The zero-crossing rate counts how many times the audio waveform crosses zero amplitude within a given time window. In general, this is higher for sounds with many rapid oscillations, such as consonants, and lower for smoother sounds like vowels. It provides a simple indicator of the noisiness or breathiness of the speech. A breathy, unstable voice may have an unusual zero-crossing pattern that signals physical or emotional distress.
+
+## Why this matters
+
+The Voice Agent captures emotional information that words alone cannot. A person may say "I am fine" in a flat, barely audible monotone. The Language Agent would score that as neutral or positive text. The Voice Agent would flag the low energy, low pitch variation, and restricted tempo as evidence of low affect or distress. Together, the two agents paint a fuller picture.
+
+This is especially important in elderly care. Users experiencing cognitive decline may lose the ability to articulate their feelings in words. Their vocal prosody can still reveal loneliness, fear, or pain. Because the Voice Agent processes audio passively, it does not require the user to know how to operate a device or even to be fully coherent.
+
+## How it connects to the rest of LifeSphere
+
+The Voice Agent produces a score V that feeds into the meta-classifier alongside L (language sentiment) and B (biological signals). The meta-classifier applies dynamic weights depending on the prior emotional state. For example, when the prior state is "stressed," the Voice Agent's weight rises to 0.3 and the Biology Agent's rises to 0.5, reflecting the fact that vocal tension and physiological arousal together are more informative than words alone in someone already known to be stressed.
+
+The audio path also connects to the SphereAI wake-word system. The INMP441 I2S digital microphone captures high-quality audio up to 48 kHz with a low noise floor. The ESP32-S3 runs the lightweight ESP-SR wake-word model locally. Only after the wake word is detected does the full audio go to the RDK X5 for Whisper transcription and Librosa feature extraction. This architecture preserves privacy by not continuously streaming raw audio to the cloud.
+
+## Limits
+
+- The source does not specify how the five features are combined into a single score V. A weighted average, a neural network, or another method could be used; the exact pipeline is not detailed.
+- No baseline normalization method is described. In general, acoustic emotion recognition requires comparing features to the same person's normal speaking style, but the source does not state how this personal baseline is established.
+- The system assumes relatively clean audio from the INMP441 microphone. Heavy background noise from appliances, television, or other people may degrade feature quality.
+- No accuracy, emotion recognition rate, or validation data is reported.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Language Agent" icon="message" href="/sphereai/understanding/language-agent">
+    Speech-to-text and sentiment analysis from spoken words
+  </Card>
+
+  <Card title="Biology Agent" icon="heart-pulse" href="/sphereai/understanding/biology-agent">
+    How vital signs inform the emotional stream
+  </Card>
+
+  <Card title="Meta-Classifier" icon="brain" href="/sphereai/understanding/meta-classifier">
+    Fusing language, voice, and biology into one emotional state
+  </Card>
+
+  <Card title="Dynamic Weighting" icon="layer-group" href="/sphereai/understanding/dynamic-weighting">
+    Why trust shifts between the three streams state by state
+  </Card>
+</CardGroup>

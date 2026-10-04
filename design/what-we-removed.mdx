@@ -1,0 +1,96 @@
+---
+title: "What We Deliberately Removed: Design Subtractions"
+sidebarTitle: "What We Removed"
+description: "Features and approaches LifeSphere intentionally excluded: Personality Mirror, fixed-axle steering, single controller, two-anchor UWB, and earlier wheel and dispenser designs."
+icon: "circle-question"
+---
+
+Good design is often about what you leave out. LifeSphere's final architecture reflects not only what was built but what was deliberately abandoned after consideration, testing, or ethical review. This page documents the major design subtractions and the reasoning behind each one. Understanding what was removed clarifies what remains and why.
+
+## Personality Mirror
+
+The most significant ethical removal was the Personality Mirror, a planned feature that would construct a deep personality model of the user to improve interaction quality. The system would have learned preferences, values, behavioral patterns, and emotional tendencies in a structured, persistent form.
+
+This feature was removed on explicit ethical and privacy grounds. A deep personality model raises several concerns that the project team found unacceptable. First, it creates a replicable psychological profile that could be extracted, shared, or sold without the user's meaningful consent. Second, it risks reducing a person's complexity to an algorithmic caricature, with all the harms that follow when a machine "knows you better than you know yourself." Third, in a caregiving context, it might infantilize the user by treating their personality as something to be modeled and optimized rather than respected.
+
+What remains is a lighter form of preference learning. SphereAI still adjusts its tone on cortisol spikes, plays calming audio when stress is detected, and respects prayer times and fasting schedules. But these adaptations are behavioral and stateful, not architectural. There is no exportable personality file, no persistent psychological profile, and no deep model of the user's inner life. The system responds to the user's biology without claiming to understand their soul.
+
+## Fixed-axle skid-steer replaced by Ackermann steering
+
+HollowRover originally used a fixed-axle skid-steer setup with no independent steering. In this configuration, the rover would turn by running the left wheels at a different speed than the right wheels, dragging the tires sideways. This approach is mechanically simple but has significant drawbacks for indoor navigation.
+
+Skid-steer causes tire scrub, which increases wear, creates noise, and reduces precision. For a caregiving robot operating in a home with wooden or tiled floors, the noise and floor damage are unacceptable. More critically, skid-steer cannot achieve the precise path following required for SLAM (simultaneous localization and mapping) navigation. The rover needs to follow planned paths accurately to reach a fallen user or deliver medication without colliding with furniture.
+
+The replacement is an Ackermann linkage with independent steering at each corner. Two MG995 servos actuate the linkage, causing the inner wheel to turn more than the outer wheel during a turn. This geometry minimizes tire scrub and enables precise path following. The change reflects a commitment to navigation quality over mechanical simplicity.
+
+## Single peripheral controller split into two
+
+HollowRover originally planned to control all peripheral hardware (motors, servos, UWB, ultrasonics, BLE, barometric sensor) from a single ESP32 WROOM-32 microcontroller. This design was abandoned in favor of two dedicated controllers: a Drivetrain controller and a Manipulator controller.
+
+The split was driven by timing isolation. UWB ranging and BLE communication require predictable, low-latency response times. Servo PWM (pulse-width modulation) signals that control the robotic arm and steering servos introduce timing jitter because their signal generation is not perfectly deterministic on a shared microcontroller. When both functions run on the same ESP32, servo jitter can delay or corrupt UWB ranging and BLE communication.
+
+By isolating timing-critical functions on the Drivetrain controller and servo-driven functions on the Manipulator controller, the system guarantees that navigation and communication remain stable regardless of arm movement. This is a classic real-time systems design principle: separate time-critical and non-time-critical tasks onto independent processors.
+
+## Two-anchor UWB replaced by three-anchor positioning
+
+HollowRover's initial ultra-wideband positioning design used two anchors per floor. Two-anchor geometry can estimate distance but suffers from a fundamental ambiguity: a target at a given distance from two anchors lies on a circle, and without additional information, the system cannot distinguish left from right of the anchor baseline. This left-right ambiguity makes reliable indoor navigation impossible.
+
+The replacement is a three-anchor system with true 2D trilateration. Three anchors at known, non-collinear positions eliminate the ambiguity and provide a unique 2D position solution. The rover measures time-of-flight to each anchor, converts to distance, and solves the linear system derived from subtracting the circle equations pairwise. The result is a deterministic horizontal position to within approximately 10 cm.
+
+The three-anchor requirement also interacts with the barometric floor-detection system. Each registered floor stores its own pressure baseline and its own three-anchor geometry. The rover first identifies the floor from barometric pressure, then activates that floor's anchor set and SLAM map. This layered approach (barometric for vertical, UWB for horizontal) provides full 3D context for multi-floor buildings.
+
+## Face recognition approach replaced
+
+The project originally planned to use a different face recognition pipeline. This was replaced with a FastAPI service using InsightFace with the buffalo_sc model pack and MediaPipe, running on ONNX Runtime. The InsightFace-based design streams annotated video as MJPEG and stores face profiles locally on HollowRover.
+
+The replacement was driven by accuracy, efficiency, and deployment considerations. The source does not give detailed comparative results, but the choice reflects a preference for a pipeline that runs efficiently on edge hardware (ONNX Runtime) with model packs optimized for face recognition tasks (buffalo_sc). The local storage decision (face profiles never transmitted to external servers) was likely also a factor.
+
+## 4-slot servo dispenser replaced by 20-slot carousel
+
+The medication dispenser underwent a complete mechanical redesign. The original design used a small servo-driven 4-slot dispenser. This was replaced by a 20-slot carousel driven by a NEMA17 stepper motor through a 100-tooth ring gear with 5:1 reduction, an AS5600 magnetic encoder for closed-loop position feedback, a TMC2209 stepper driver, and an MG995 servo that opens a shutter to release the dose.
+
+The new design offers significantly higher capacity (20 slots versus 4), which matters for elderly users who may take multiple medications multiple times per day. The stepper motor with encoder provides precise, repeatable positioning, eliminating the accumulated error that can affect open-loop servo designs. The ring gear reduction increases torque while the stepper's natural holding torque maintains position without continuous power draw.
+
+The arithmetic consistency of the design is notable. With 20 slots, each slot occupies 18 degrees of carousel rotation. At 50 steps per slot and 20 slots, the motor executes 1000 steps per full carousel revolution. Given the 5:1 gear reduction, this equals 200 motor steps per motor revolution, which is the standard full-step count for a NEMA17 stepper with 1.8-degree step angle. The numbers align cleanly, suggesting a deliberate design rather than arbitrary selection.
+
+The custom 2-layer PCB designed in EasyEDA Pro and the 7.4 V 2S LiPo power supply with three power rails reflect the integration complexity that the new dispenser demanded.
+
+## Earlier wheel design replaced by S-curve wheels
+
+HollowRover's wheels went through eight or more geometry iterations before the final design was selected. The earlier designs are not described in detail, but the final 5.6-inch wheel has a two-part sinusoidal S-curve spoke design, 3D-printed in PLA+ with rim and tire body as one piece, featuring chevron tread lugs.
+
+The S-curve spoke geometry distributes load across the curved structure, allowing the wheel to flex slightly under pressure while maintaining shape. This is valuable for indoor navigation over doorway lips, floor transitions, and small obstacles. The PLA+ material was chosen for printability, cost (roughly 905 taka per wheel), and adequate strength for the rover's weight class.
+
+The design process that produced these wheels (8+ iterations, stress testing, cost optimization) illustrates the project's design culture of empirical iteration over theoretical perfection. The team tested, measured, and refined rather than specifying a wheel from a catalog.
+
+## A custom PCB for medication dispensing
+
+While not strictly a replacement (the earlier dispenser may have used breadboard or generic prototyping), the custom 2-layer PCB for the new dispenser electronics represents a significant design investment. Designed in EasyEDA Pro, the board manages the NEMA17 stepper, AS5600 encoder, TMC2209 driver, MG995 shutter servo, and touchscreen interface from a single organized layout.
+
+Custom PCB design reflects a transition from prototype to product. It reduces wiring errors, improves reliability, and shrinks the physical footprint. The choice of EasyEDA Pro (a free PCB design tool with integrated manufacturing quotes) also reflects the accessible-cost principle.
+
+## Why these removals matter
+
+Every subtraction reveals a design value. Personality Mirror was removed for ethics. Skid-steer was removed for navigation precision. The single controller was split for timing integrity. Two-anchor UWB was replaced for positional certainty. The 4-slot dispenser was replaced for capacity and accuracy. Earlier wheel designs were iterated for cost-optimized performance.
+
+Taken together, these removals show that LifeSphere's architecture is not an accumulation of features but a filtered selection. The team made hard choices, discarded familiar approaches, and accepted additional complexity when the benefit to the user justified it.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Design Philosophy" icon="brain" href="/design/design-philosophy">
+    The core principles that guided every inclusion and exclusion in LifeSphere.
+  </Card>
+
+  <Card title="Ethics of Autonomy" icon="scale-balanced" href="/design/ethics-of-autonomy">
+    How ethical reasoning shaped the decision to remove the Personality Mirror and restrict autonomous action.
+  </Card>
+
+  <Card title="Privacy by Design" icon="shield-halved" href="/design/privacy-by-design">
+    How privacy principles reinforced the removal of features that would have exposed sensitive data.
+  </Card>
+
+  <Card title="Safety Principles" icon="shield-halved" href="/design/safety-principles">
+    The safety reasoning behind mechanical and architectural choices like the passive barrier and controller split.
+  </Card>
+</CardGroup>

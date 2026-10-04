@@ -1,0 +1,58 @@
+---
+title: "HollowRover Rocker Suspension: Passive Terrain Adaptation"
+sidebarTitle: "Rocker Suspension"
+description: "HollowRover's rocker suspension uses spring-loaded pivot arms and a differential bar to keep all four wheels in contact with the floor across bumps, thresholds, and uneven surfaces."
+icon: "wave-square"
+---
+
+HollowRover's rocker suspension is a passive mechanical system that lets the chassis remain stable and level even when individual wheels encounter obstacles or depressions. It requires no motors, sensors, or active control algorithms: the geometry and spring forces do the work automatically.
+
+## How the rocker suspension works
+
+The suspension uses two rocker arms, one on each side of the chassis. Each rocker arm pivots on a spring-loaded central mount and carries two wheels: one toward the front and one toward the rear. When the front wheel on one side climbs over a doorway threshold or a floor transition, the rocker arm rotates around its central pivot, compressing the spring. The rear wheel on that same side drops slightly, maintaining contact with the floor.
+
+A differential bar links the left and right rocker arms. This bar transfers pitch motion between sides: if the left side rocker tilts forward because its front wheel climbed an obstacle, the differential bar causes the right side rocker to tilt slightly backward. The result is that the main chassis stays closer to level, rather than pitching nose-up or nose-down. This is especially important for a robot carrying a LiDAR that must scan a consistent horizontal plane for SLAM accuracy.
+
+## Spring-loaded pivots and traction
+
+The spring-loaded pivots keep each wheel pressed against the ground with consistent force. In general, a driven wheel that loses contact cannot propel the vehicle or contribute to odometry. By ensuring all four wheels remain loaded even on uneven indoor terrain, the suspension maximizes traction and minimizes wheel-slip errors that would corrupt the rover's internal position estimate.
+
+The springs are passive: they store energy when compressed and release it when the obstacle is passed. There is no electronic damping adjustment. This simplicity reduces failure modes and power draw, but it also means the suspension is tuned for a specific weight distribution and obstacle height range.
+
+## Why this matters in a home
+
+Residential floors are not flat. There are doorway lips between rooms, transitions from tile to carpet, uneven concrete in older buildings, and thresholds leading to bathrooms or balconies. A rigid chassis with fixed wheel mounts would teeter on three wheels in these conditions, risking LiDAR tilt, encoder slip, or loss of traction. The rocker suspension lets HollowRover treat these everyday irregularities as background noise rather than navigation hazards.
+
+For a caregiving robot, this stability has direct safety implications. When the rover hands medication or water to a user, it must not lurch or tilt unexpectedly. When it approaches a fallen person, it must not bounce or shudder on a floor transition and startle the user. The suspension absorbs these disturbances before they reach the chassis.
+
+## How it connects to the rest of LifeSphere
+
+The suspension's effect is felt most strongly in the navigation subsystem. SLAM Toolbox assumes the LiDAR scan plane is horizontal. If the chassis pitches because a wheel dropped into a depression, the scan plane tilts, distorting the occupancy grid and producing phantom obstacles. The rocker suspension minimizes this effect, keeping mapping and localization consistent across floor types.
+
+The arm also benefits. The 6-DOF arm has a limited workspace; if the chassis tilts, the arm's base frame tilts with it, changing where the gripper can reach. A level chassis means the arm's kinematic model remains valid without real-time compensation.
+
+## Limits
+
+The source does not specify spring rates, travel limits, or the maximum obstacle height the suspension can absorb. Very deep gaps or tall thresholds may exceed the rocker travel and cause a wheel to lift completely. The suspension also adds mechanical complexity: pivot bearings wear, springs fatigue, and the differential bar requires periodic inspection. The source does not describe maintenance intervals or field-adjustment procedures.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Drivetrain and Steering" icon="route" href="/hollowrover/components/drivetrain-and-steering">
+    The wheels and steering that the suspension carries.
+  </Card>
+
+  <Card title="Wheels Overview" icon="circle" href="/hollowrover/wheels/overview">
+    The 5.6-inch wheels that ride over obstacles.
+  </Card>
+
+  <Card title="Navigation" icon="location-dot" href="/hollowrover/navigation/mapping-and-slam">
+    Why LiDAR stability depends on chassis levelness.
+  </Card>
+
+  <Card title="Robotic Arm" icon="hand" href="/hollowrover/arm/overview">
+    How arm reach depends on a stable base.
+  </Card>
+</CardGroup>
+
+---

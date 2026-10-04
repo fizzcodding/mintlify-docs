@@ -1,0 +1,84 @@
+---
+title: "Biometric-to-Environment Mapping in HollowCore"
+sidebarTitle: "Biometric Mapping"
+description: "HollowCore maps five real-time biometric signals from Vital32 to automated home responses, turning biological state into physical environmental action."
+icon: "heart-pulse"
+---
+
+HollowCore applies five published rules that map specific biometric triggers from Vital32 to concrete home environment responses. Each rule has a defined threshold, a target relay or subsystem, and a physiological rationale. You do not interact with any interface to trigger these. The system reads your biology and responds automatically.
+
+## The Five Mapping Rules
+
+| Trigger | Action | Why It Helps |
+| --- | --- | --- |
+| Cortisol estimate > 18.0 | Warm dim lighting + lower AC temperature | Warm light and cooler air promote physiological calm and reduce sympathetic nervous system arousal |
+| Galvanic skin response > 0.6 | Publish `play_calming_audio` to SphereAI speaker | Elevated GSR indicates sympathetic activation; calming audio interrupts the stress response |
+| SpO2 \< 94.0% | Air purifier on | Lower oxygen saturation may correlate with airborne irritants; purification supports respiratory function |
+| Sleep detected (HRV + immobility) | Living room and bedroom lights off + main door locked | Conserves energy, reduces circadian disruption, and secures the home during vulnerability |
+| Skin temperature \< 35.5 | Raise AC thermostat | Prevents hypothermia risk and maintains thermal comfort during cold states |
+
+These five rules are the complete published set. No additional biometric-to-environment mappings are described in the source.
+
+## How Detection Works
+
+### Cortisol Estimation
+
+Cortisol is a hormone released during stress. LifeSphere does not measure cortisol directly from blood. Instead, a Gradient Boosting model with 200 trees estimates cortisol from heart rate variability (RMSSD), galvanic skin response baseline, skin temperature, and sleep efficiency. The output is labeled "ng/dL est." in the source, meaning nanograms per deciliter estimated. This is an approximation, not a laboratory test.
+
+When the estimate exceeds 18.0, HollowCore interprets this as a significant stress state requiring environmental intervention. Warm dim lighting reduces blue-spectrum exposure that can elevate alertness. Lowering the AC temperature provides a mild cooling effect that can counteract the warmth and sweating often associated with stress responses.
+
+### Galvanic Skin Response
+
+Galvanic skin response (GSR), also known as electrodermal activity, measures electrical conductance of the skin. Sympathetic nervous system activation increases sweating, which raises skin conductance. The Grove GSR sensor or a custom two-electrode design detects these changes.
+
+When GSR exceeds 0.6, HollowCore does not change a relay directly. Instead, it publishes a command to the MQTT topic `sphereai/command` with payload `play_calming_audio`. SphereAI's speaker then plays pre-selected calming audio. This is an emotional intervention rather than a physical one.
+
+### Oxygen Saturation
+
+SpO2 measures the percentage of hemoglobin carrying oxygen. Normal values typically range from 95 to 100 percent. The MAX30102 pulse oximeter provides this reading through photoplethysmography (PPG), which measures blood-volume changes using light.
+
+When SpO2 drops below 94.0%, HollowCore turns on the air purifier relay. The source does not specify what type of air purifier is used, what contaminants it targets, or how quickly it affects room air quality.
+
+### Sleep Detection
+
+Sleep is detected by combining two signals: heart rate variability patterns from the cardiac sensors and immobility from the MPU6050 accelerometer and gyroscope. When both indicators align, the system concludes the user has fallen asleep.
+
+Upon sleep detection, HollowCore turns off the living room light, turns off the bedroom light, and engages the main door lock solenoid. The source does not specify whether there is an override for emergency egress or how the system handles cases where the user wakes and needs to leave.
+
+### Skin Temperature
+
+Skin temperature is measured by the MLX90614 infrared non-contact temperature sensor. When readings fall below 35.5, described in the source as below baseline, HollowCore raises the AC thermostat to increase room temperature.
+
+The source does not specify how baseline is established, whether it is personalized, or what the typical baseline range is.
+
+## Why This Matters
+
+In conventional smart homes, users must manually program scenes or trigger automations through apps or voice commands. For elderly individuals with limited technology familiarity, or those experiencing cognitive decline, this creates a barrier to benefit. HollowCore's biometric mapping removes that barrier entirely. The home becomes an extension of the caregiver's attention: noticing when the resident is cold, stressed, low on oxygen, or asleep, and responding appropriately without being asked.
+
+For family members who cannot be present, this mapping provides assurance that the environment itself is watching and reacting to biological need.
+
+## How It Connects to the Rest of LifeSphere
+
+These mappings are only possible because of the shared biological state architecture. Vital32 writes the biometric fields. HollowCore reads them. SphereAI provides the emotional context that modulates response intensity. HollowRover hosts the MQTT broker that carries commands. EntryGuard contributes security context that may modify sleep protocols.
+
+Fire, intrusion, or gas alerts from EntryGuard could override or supplement sleep-state door locking, though the source does not specify the exact priority logic between competing triggers.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Lighting and Climate" icon="sun" href="/hollowcore/lighting-and-climate">
+    Deeper coverage of cortisol-driven lighting, temperature adjustment, and air purifier control.
+  </Card>
+
+  <Card title="Sleep Protocol" icon="moon" href="/hollowcore/sleep-protocol">
+    How sleep detection works and what automations it triggers.
+  </Card>
+
+  <Card title="Cortisol Estimation" icon="brain" href="/ai/cortisol-estimator">
+    The Gradient Boosting model that produces the cortisol estimate HollowCore responds to.
+  </Card>
+
+  <Card title="Vital32 Predictions" icon="microchip" href="/vital32/predictions/anomaly-scoring">
+    Overview of the AI models that feed biometric data into HollowCore rules.
+  </Card>
+</CardGroup>

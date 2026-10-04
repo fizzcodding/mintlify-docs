@@ -1,0 +1,113 @@
+---
+title: "Shared State Field Dictionary: The Biological State Backbone"
+sidebarTitle: "State Field Dictionary"
+description: "A complete dictionary of every shared-state field path, MQTT topic, and alert payload in LifeSphere's central biological state, organized by subsystem with examples and meanings."
+icon: "database"
+---
+
+All five LifeSphere subsystems synchronize through a single JSON tree in Firebase Realtime Database under the root key "lifesphere". This page documents every documented field path, example value, and meaning so you can trace how data flows from sensor to actuator.
+
+## Vital32 fields
+
+| Field | Example | Meaning |
+| --- | --- | --- |
+| vital32.heart_rate | 72 | Estimated beats per minute from cardiac signals |
+| vital32.spo2 | 98.2 | Peripheral oxygen saturation percentage from pulse oximetry |
+| vital32.skin_temp | 36.4 | Skin surface temperature in degrees Celsius from infrared sensor |
+| vital32.hrv_rmssd | 42.1 | Root mean square of successive RR interval differences over 2 minutes |
+| vital32.hrv_lf_hf | 1.8 | Ratio of low-frequency to high-frequency HRV power |
+| vital32.gsr | 0.34 | Galvanic skin response conductance, proxy for sympathetic arousal |
+| vital32.bio_age | 68.4 | AI-estimated biological age in years from multi-sensor fusion |
+| vital32.anomaly_score | 0.12 | Isolation Forest anomaly score from 0 to 1 |
+| vital32.seizure_prob | 0.03 | LSTM-estimated seizure probability from 0 to 1 |
+| vital32.cortisol_est | 14.2 | Gradient Boosting estimated cortisol level |
+| vital32.fall_detected | false | Boolean flag set true on confirmed fall event |
+| vital32.immune_alert | false | Boolean flag for immune activation designation goal |
+| vital32.timestamp | 1720000000000 | Milliseconds since epoch of last update |
+
+**Writes**: Vital32 continuously writes all fields above. **Reads**: The source does not specify any direct reads by Vital32 from shared state; it is primarily a publisher of biometric data.
+
+## SphereAI fields
+
+| Field | Example | Meaning |
+| --- | --- | --- |
+| sphereai.emotional_state | "calm" | Dominant emotional category from the meta-classifier |
+| sphereai.stress_level | 0.21 | Numerical stress estimate, exact computation not specified |
+| sphereai.loneliness_index | 0.15 | Numerical loneliness estimate, exact computation not specified |
+| sphereai.cognitive_score | 0.94 | Cognitive health score, with drift detection via CUSUM |
+
+**Writes**: SphereAI updates these fields on the 15-minute medium inference cycle. **Reads**: SphereAI subscribes to vital32 biomarkers for emotional fusion.
+
+## HollowRover fields
+
+| Field | Example | Meaning |
+| --- | --- | --- |
+| hollowrover.status | "idle" | Current operational mode of the rover |
+| hollowrover.battery | 87 | Battery charge level, unit not specified |
+
+**Writes**: HollowRover publishes its own status and battery level. **Reads**: The source states that HollowRover subscribes to vital32 biomarkers and entryguard alerts to trigger protocols.
+
+## HollowCore fields
+
+| Field | Example | Meaning |
+| --- | --- | --- |
+| hollowcore.ac_temp | 24 | Current air conditioning target temperature in degrees Celsius |
+| hollowcore.fan | false | Boolean state of the fan relay |
+
+**Writes**: HollowCore updates relay states after acting on biometric triggers. It also writes `med_schedule` and `dispenser_manual` under `lifesphere/hollowcore`. **Reads**: HollowCore subscribes to vital32 biomarkers and sphereai emotional state to trigger lighting, climate, audio, and lock rules.
+
+## EntryGuard fields
+
+| Field | Example | Meaning |
+| --- | --- | --- |
+| entryguard.mode | "passive" | Current security mode of the node |
+| entryguard.intruder_detected | false | Boolean flag for face-recognition mismatch at a chokepoint |
+
+**Writes**: EntryGuard nodes publish mode and intruder_detected flags, plus alert payloads containing alert type, value, node identity, UWB zone reference, and floor pressure reference. **Reads**: EntryGuard operates largely autonomously and pushes alerts upstream.
+
+## MQTT topics
+
+LifeSphere uses MQTT over local Wi-Fi for low-latency hardware-to-hardware commands. The Mosquitto broker runs on HollowRover's RDK X5.
+
+| Topic | Purpose |
+| --- | --- |
+| `lifesphere/hollowcore/command` | Device command to a HollowCore relay, with payload naming a device and a state (example: light_1 set to true) |
+| `sphereai/command` | Command to SphereAI speaker system, such as play_calming_audio |
+
+## Alert payloads
+
+EntryGuard alert payloads contain: type (motion, fire, or gas), value, node identity, UWB zone reference, and floor pressure reference. These are published to the shared state for downstream dispatch.
+
+**Note on ranges and units**: The source provides example values for most fields but does not consistently specify full valid ranges or measurement units beyond the inferences shown above. Where unit is not stated, the standard interpretation in wearable health monitoring is assumed.
+
+## Why this matters
+
+The shared state is what makes LifeSphere a single organism rather than five separate devices. When vital32.cortisol_est jumps from 14.2 to 19.0, HollowCore sees it within the target 150 millisecond latency, dims the lights, and lowers the AC temperature, while SphereAI begins a calming interaction. Without this unified data backbone, each subsystem would need custom integrations and the real-time coordination that protects users would be impossible.
+
+## How it connects to the rest of LifeSphere
+
+Vital32 writes at up to a 30-second cadence for biometric uploads, though the architecture also describes 15-minute and 24-hour inference cycles that feed back into fields like cortisol_est and bio_age. SphereAI writes on its medium cycle. HollowCore publishes device states after relay actuation. HollowRover reads continuously and acts. EntryGuard pushes event-driven alerts. The two-channel model uses Firebase for state synchronization and MQTT for sub-10 millisecond actuator commands, with GSM fallback during Wi-Fi outages.
+
+## Limits
+
+Several field paths are referenced in the architecture description but not fully elaborated. For example, the exact JSON structure of the med_schedule and dispenser_manual entries is not specified. The ranges of stress_level and loneliness_index are not stated. Battery may be a percentage but the source does not confirm the unit. Some fields, like the precise sleep state flag, are described in narrative form rather than as explicit paths.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="System Architecture" icon="gears" href="/core/system-architecture">
+    How the publish-subscribe model and two-channel communication work.
+  </Card>
+
+  <Card title="Trigger-to-Response Table" icon="route" href="/reference/trigger-response">
+    Every trigger condition and the response it initiates across subsystems.
+  </Card>
+
+  <Card title="Communication Channels" icon="wifi" href="/core/communication-channels">
+    Deep dive into Firebase, MQTT, UART, and GSM fallback architecture.
+  </Card>
+
+  <Card title="Glossary" icon="book" href="/reference/glossary">
+    Define terms like CUSUM, RMSSD, and trilateration used in field meanings.
+  </Card>
+</CardGroup>

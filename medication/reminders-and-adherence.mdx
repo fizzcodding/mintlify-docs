@@ -1,0 +1,72 @@
+---
+title: "Reminders and Adherence: Keeping the Schedule on Track"
+sidebarTitle: "Reminders and Adherence"
+description: "Understand how LifeSphere delivers medication reminders through Firebase and logs adherence, with the rover physically presenting each dose at the right time."
+icon: "bell"
+---
+
+A schedule is only useful if the user actually takes the medication. LifeSphere turns a confirmed schedule into a reminder system and a physical delivery action. Reminders travel through Firebase, reach the user via voice and displayreminder system and a physical delivery action. Reminders travel through Firebase, reach the user via voice and display, and conclude with HollowRover presenting the dose in person. This page explains the reminder pipeline, the physical delivery sequence, and what the source does and does not specify about missed doses or escalation.
+
+## How reminders are delivered
+
+When a dose is due, LifeSphere publishes a reminder event through Firebase. Multiple subsystems listen for this event and respond:
+
+- **SphereAI** speaks the reminder through its speaker, using the MAX98357A I2S amplifier and 3 W speaker. The tone adapts to the user's current emotional state and stress level. If cortisol is elevated, the reminder is phrased more gently.
+- **HollowRover OLED** displays a text notification with the medication name and dosage. This gives a visual fallback for users who are hard of hearing.
+
+The source specifies that reminders are delivered through Firebase. It does not describe additional reminder channels such as HollowCore lighting or climate cues for medication timing. The source does not state whether reminders repeat after a delay, whether they escalate in volume, or whether they eventually time out. It also does not describe a snooze or dismiss interaction model. The zero-interaction philosophy suggests that the system does not demand a button press from the user simply to acknowledge a reminder.
+
+## Physical delivery by HollowRover
+
+The most distinctive feature of LifeSphere medication management is that the rover does not wait for the user to come to it. When a dose is due, HollowRover navigates to the user's current location using UWB positioning or BLE RSSI person-finding. It stops at a safe distance, raises its arm from the stowed position, and presents the medication and a small water container at a height accessible from a seated or standing position.
+
+This reduces the physical burden of bending, reaching, or walking to a cabinet. For users with balance concerns or joint stiffness, receiving the dose directly is a meaningful safety feature.
+
+The arm's caregiving-assist role is separate from its passive-barrier security role. During delivery, the arm operates in caregiving mode. It does not block pathways or trigger alarms. The LiDAR occlusion safety rule, which stows the arm below the scan plane during navigation, is respected: the arm rises only after the rover is stationary at the delivery point.
+
+## Adherence logging
+
+Each scheduled dose carries an expected time. The source does not explicitly describe how the system records a "taken" event. In general, systems of this type infer adherence from the schedule timing, possibly combined with dispenser sensor feedback such as encoder position or shutter actuation. The exact mechanism is not specified.
+
+What is specified is that adherence data contributes to a running metric called adherence entropy, which measures the regularity of dosing times over a window. High entropy means the user takes doses at irregular times; low entropy means consistency. The metric is used for longitudinal monitoring and may feed into SphereAI's cognitive or emotional assessments if irregular medication correlates with other behavioral drift.
+
+## Why this matters
+
+For a working adult caring for an elderly parent, the hardest part of medication management is not writing the schedule. It is knowing whether the schedule was followed. Phone calls are intrusive and unreliable. LifeSphere closes the loop by delivering the dose to the user and logging the event, so the caregiver can see confirmation in the app without interrupting the user's day.
+
+For the user, the experience is effortless. There is no alarm to silence, no pillbox to open, no water glass to fetch. The system comes to them, speaks gently, and waits while they take the dose. This preserves dignity and reduces the cognitive load of remembering multiple medications at multiple times.
+
+## How it connects to the rest of LifeSphere
+
+- **Vital32**: if the wearable detects low SpO2, high GSR, or a seizure probability above threshold, medication reminders may be suppressed or rephrased to avoid adding stress during a physiological event.
+- **SphereAI**: companionship during dosing; the AI can answer questions about the medication, offer encouragement, or simply stay present while the user takes the dose.
+- **HollowCore**: ssleep detection locks the door and dims lights, so a nighttime dose reminder would be delivered with minimal disruption.
+- **EntryGuard**: in an intrusion or hazard event, the rover may redirect to the alert zone, pausing routine medication delivery until the higher-priority protocol completes.
+
+## Limits
+
+- The source does not specify what happens when a dose is missed. There is no described escalation sequence, no repeated alerts, and no guardian notification trigger for a single missed dose.
+- It is unclear whether the user must manually confirm that a dose was taken, or whether the system infers this automatically.
+- No quantitative data is provided on reminder effectiveness or adherence rates.
+- The source does not describe how multiple overlapping doses are handled, or what happens if the user's location is unknown at dosing time.
+- Dose verification (confirming the user actually swallowed the pill) is not described.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Medication Overview" icon="pills" href="/medication/overview">
+    The complete prescription-to-dose pipeline and its place in LifeSphere.
+  </Card>
+
+  <Card title="Adherence Entropy" icon="calculator" href="/medication/adherence-entropy">
+    How schedule regularity is quantified with information entropy.
+  </Card>
+
+  <Card title="SphereAI Voice HardwareSphereAI Voice Hardware" icon="wave-square" href="/sphereai/hardware/voice-hardware">
+    The microphone, amplifier, and speaker that deliver verbal remindersThe microphone, amplifier, and speaker that deliver verbal reminders.
+  </Card>
+
+  <Card title="Touchscreen Fallback" icon="hand" href="/medication/touchscreen-fallback">
+    Manual schedule entry on the dispenser's local touchscreen.
+  </Card>
+</CardGroup>

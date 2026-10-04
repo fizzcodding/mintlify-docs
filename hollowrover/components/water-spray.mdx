@@ -1,0 +1,67 @@
+---
+title: "HollowRover Water Spray Module: Small-Volume Liquid Delivery"
+sidebarTitle: "Water Spray"
+description: "HollowRover carries a 5 V peristaltic pump and 100 ml tank for autonomous liquid dispensing, though the source does not specify its exact caregiving role."
+icon: "droplet"
+---
+
+HollowRover includes a water spray module consisting of a 5 V mini peristaltic pump, a 100 ml tank, and a relay controlled by the Manipulator ESP32. The source lists these components but does not assign them a specific protocol or caregiving scenario. This page explains what the hardware is, how it works in general, and why a peristaltic pump is a sensible choice for a small mobile robot.
+
+## What a peristaltic pump is
+
+A peristaltic pump moves fluid by squeezing a flexible tube with rotating rollers or shoes. The name comes from peristalsis, the wave-like muscle contractions that move food through the human digestive tract. In the pump, a rotor with rollers presses against a soft tube fitted inside a curved housing. As the rotor turns, the rollers pinch the tube, trapping a pocket of liquid and pushing it forward. No liquid ever touches the pump mechanism; it stays entirely inside the tube.
+
+This design has several advantages for a caregiving robot:
+
+- **Contamination safety:** because the fluid only contacts the disposable or cleanable tube, there is no risk of pump residue cross-contaminating different liquids or doses.
+- **Precision:** the volume moved per rotation is determined by the tube diameter and the rotor geometry. With a known rotation count, the system can dispense repeatable small volumes.
+- **Self-priming:** peristaltic pumps can draw liquid up from a reservoir below the pump level, which simplifies tank placement in the compact rover chassis.
+- **Reversibility:** running the motor backward sucks fluid back, which can be useful for clearing lines or recovering unused liquid.
+
+## The HollowRover implementation
+
+The source states the module uses a 5 V mini peristaltic pump, a 100 ml tank, and a relay switched by the Manipulator controller. The 5 V rating means it can run directly from a standard logic-level supply without a high-voltage boost. The relay isolates the pump's motor current from the microcontroller's delicate logic pins: the ESP32 sends a low-current signal to the relay, and the relay closes the higher-current path to the pump.
+
+The 100 ml capacity is modest. It suggests the module is intended for small, frequent deliveries rather than large-volume tasks. A 100 ml tank could hold water for medication swallowing assistance, a mild saline rinse, or a cooling mist during a stress-relief protocol. The source does not confirm any of these uses.
+
+## Why this type suits small liquid volumes
+
+Peristaltic pumps are widely used in medical and laboratory settings precisely because they handle small volumes cleanly. A diaphragm pump or centrifugal pump would require seals, valves, and precision-machined chambers that add weight and maintenance burden. For a mobile robot where every gram and every cubic centimeter of space matters, the peristaltic pump's simple tube-and-roller mechanism is compact, lightweight, and reliable.
+
+The mini designation implies a reduced-size variant, likely with a smaller rotor and thinner tubing than industrial peristaltic pumps. This keeps the module low-profile enough to fit inside the rover's chassis without protruding into the arm workspace or unbalancing the vehicle.
+
+## How it connects to the rest of LifeSphere
+
+Because the source does not specify a dedicated protocol for the water spray module, its integration into caregiving workflows remains a design flexibility. In principle, it could be triggered by:
+
+- **HollowCore rules:** a shared-state field such as a dehydration risk flag could publish an MQTT command to the Manipulator controller to dispense water.
+- **SphereAI interaction:** during a calming protocol, the robot might offer water alongside medication.
+- **Medication delivery protocol:** the rover already hands medication and water to the user. The spray module may supplement this by providing a measured sip from the tank rather than requiring a separate cup.
+
+Until the source defines its role, these remain plausible inferences rather than documented behaviors.
+
+## Limits
+
+The source does not state flow rate, tube material, or whether the tank is pressurized or gravity-fed. Peristaltic pump tubes wear out with use and exposure to UV or ozone; the source does not mention replacement intervals. The 100 ml capacity would deplete quickly under frequent use, and the source does not describe an autonomous refilling mechanism.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Robotic Arm" icon="hand" href="/hollowrover/arm/overview">
+    The arm that hands medication and water to the user.
+  </Card>
+
+  <Card title="Medication Delivery" icon="pills" href="/hollowrover/protocols/medication-delivery">
+    How pills and liquids reach the user autonomously.
+  </Card>
+
+  <Card title="Dual Controller Split" icon="layer-group" href="/hollowrover/components/dual-controller-split">
+    Which ESP32 controls the spray relay.
+  </Card>
+
+  <Card title="Dispenser Overview" icon="pills" href="/medication/dispenser-overview">
+    The 20-slot carousel and its mechanical design.
+  </Card>
+</CardGroup>
+
+---

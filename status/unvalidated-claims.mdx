@@ -1,0 +1,78 @@
+---
+title: "Unvalidated Claims"
+description: "Predictive claims in LifeSphere are design goals, not proven results. This page lists each claim, what exists, and what remains unvalidated including longitudinal studies."
+sidebarTitle: "Unvalidated Claims"
+icon: "triangle-exclamation"
+---
+
+LifeSphere includes several predictive capabilities that are described as design goals, not as validated scientific results. This page separates what has been built from what has been proven, with special attention to the gap between training data and intended deployment data.
+
+## Predictive claims and their status
+
+The following table lists each major predictive claim, its current evidence status, and the specific gap between aspiration and validation.
+
+| Claim | What exists | What is missing |
+| --- | --- | --- |
+| Immune activation detection 24 to 48 h before symptom onset | Design goal, unvalidated. Anomaly detection pipeline with Isolation Forest and LSTM sequential modeling, plus the immune_alert field in shared state | No specified immune-detection features or threshold; no clinical validation against infectious disease onset |
+| Pre-seizure estimation 30 minutes before onset | Design goal, unvalidated on wearable data. LSTM model trained on CHB-MIT Scalp EEG Dataset and Epilepsy iEEG Prediction dataset | Training data are brain-signal recordings; wearable inputs are cardiac, motion, and temperature signals. This gap is acknowledged but not addressed in the source. No accuracy metrics reported |
+| Biological age estimation | Design goal, unvalidated. Ensemble of Random Forest plus XGBoost, daily update cycle | No specified training data, features, or correlation with clinical biological age markers |
+| Early cognitive decline detection | Design goal, unvalidated. CUSUM drift detection on speech patterns (unique word ratio, topic repetition, semantic coherence) | No threshold validation, no clinical ground truth comparison, no longitudinal speech dataset |
+| Cortisol estimation | Design goal, unvalidated. Gradient Boosting with 200 trees, inputs include RMSSD, GSR baseline, skin temperature, sleep efficiency | No specified training data. Output labeled ng/dL est. but not validated against blood cortisol measurement |
+| Anomaly detection (general) | Built but unvalidated. Isolation Forest with 100 trees, contamination 0.05, trained on user's first 30 days | No accuracy, false positive rate, or comparison against clinical events reported |
+| Emotional state classification | Built but unvalidated. Trimodal fusion with context-adaptive weights | No confusion matrix, inter-rater reliability, or clinical correlation reported |
+
+## The pre-seizure model: a detailed example of the validation gap
+
+The pre-seizure LSTM illustrates the validation problem most concretely. The model is designed to receive inputs from heart rate variability, accelerometer motion, and skin temperature features, arranged in 5-minute rolling windows of 300 time steps by 5 features. Its architecture includes two LSTM layers with 64 and 32 units, 0.3 dropout, a Dense 16 ReLU layer, and a Dense 1 sigmoid output representing seizure probability from 0 to 1.
+
+This is a well-specified model. However, it was trained on public EEG datasets: scalp and intracranial brain-signal recordings. The wearable provides entirely different physiological signals. The source document acknowledges this gap but does not describe any transfer learning, domain adaptation, or recalibration strategy to bridge it. The model may be sound in principle and yet fail in practice because the input distribution in deployment does not match the training distribution.
+
+No accuracy figures, sensitivity, specificity, or positive predictive value are reported. The alert threshold of 0.85 is stated, but whether this threshold produces acceptable clinical performance is unknown.
+
+## The hypothesis: untested by design
+
+The core hypothesis, that a fully integrated caregiving ecosystem outperforms any combination of single-function devices, is stated but not tested. Testing it would require a randomized controlled trial or a well-matched cohort study comparing LifeSphere users against users of best-available commercial alternatives over a period of six months to one year or longer.
+
+Outcome measures would need to include fall response time, medication adherence, emergency hospitalizations, loneliness scores, and user acceptance. The source document explicitly lists longitudinal user studies as future work. Until such studies are conducted, the hypothesis remains an engineering motivation rather than a scientific conclusion.
+
+## Why unvalidated does not mean unfounded
+
+It is important to distinguish between claims that are scientifically unsupported and claims that are scientifically premature. The predictive models in LifeSphere are built on legitimate techniques. Isolation Forest is a well-established anomaly detection method. LSTM networks are standard for sequential prediction. Gradient Boosting, Random Forest, and XGBoost are widely used in biomedical prediction. CUSUM charts are a classical approach to statistical process control.
+
+The issue is not the choice of method. It is the absence of validation on the target population, with the target sensors, against the target outcomes. This is a normal stage in research and development. It becomes a concern only if the gap is hidden. This documentation presents it explicitly.
+
+## What would be needed to validate each claim
+
+For the pre-seizure model: prospective collection of wearable data from people with epilepsy, synchronized with clinical seizure diaries or EEG confirmation, followed by retraining and cross-validation on this new dataset.
+
+For immune activation detection: prospective monitoring during known infection seasons, with ground truth established by subsequent symptom reporting or laboratory confirmation, to determine whether the anomaly score rises 24 to 48 hours before onset.
+
+For biological age: comparison against established biological age markers, such as DNA methylation clocks or clinical frailty indices, on a cohort of elderly users.
+
+For cognitive decline: longitudinal speech recording with parallel clinical cognitive assessment, to determine whether CUSUM drift correlates with clinical diagnosis.
+
+For cortisol estimation: simultaneous blood cortisol sampling and wearable data collection, to establish correlation between estimated and measured values.
+
+For the integrated hypothesis: a randomized or matched controlled trial of sufficient duration and sample size to detect differences in the primary outcomes listed above.
+
+All of these are significant research undertakings. None are trivial. The source document acknowledges this by listing them as future work rather than completed achievements.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Honest Limits" icon="circle-exclamation" href="/status/honest-limits">
+    Read the candid assessment of hardware and operational constraints.
+  </Card>
+
+  <Card title="Status and Roadmap" icon="road" href="/status/status-and-roadmap">
+    See what is built, designed, and planned for future validation.
+  </Card>
+
+  <Card title="The Hypothesis" icon="flask" href="/start/hypothesis">
+    Review the core research claim and what testing it would require.
+  </Card>
+
+  <Card title="AI Overview" icon="brain" href="/ai/overview">
+    Understand the overall AI architecture and its design philosophy.
+  </Card>
+</CardGroup>

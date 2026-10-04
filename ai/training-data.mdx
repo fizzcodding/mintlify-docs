@@ -1,0 +1,81 @@
+---
+title: "Training Data and Datasets"
+sidebarTitle: "Training Data"
+description: "Learn what data fuels each LifeSphere AI model, from personal 30-day baselines to public seizure datasets, and where the source specifies or leaves training details open."
+icon: "book"
+---
+
+Every LifeSphere AI model learns from data, but the source and nature of that data varies dramatically across the system. Some models train on your own biometrics collected during normal use. Others draw from public clinical datasets. A few rely on spending history or speech logs. This page maps each model to its known training data, notes where details are unspecified, and explains the implications for personalization and validation.
+
+## Personal baseline data (Isolation Forest)
+
+The anomaly detector, an Isolation Forest with 100 trees and a contamination parameter of 0.05, is trained on the user's own biometric data from the first 30 days of normal use. This means the model learns what "normal" looks like for this specific individual rather than comparing them to a generic population distribution.
+
+During the initial 30 days, Vital32 continuously records motion, pulse, skin temperature, galvanic skin response, and derived features such as heart rate variability. These measurements form a personal feature space. The Isolation Forest then learns to isolate outliers: data points that require fewer random splits to separate from the rest are considered more anomalous.
+
+This personalization is central to LifeSphere's claim of democratizing predictive healthcare. A 75-year-old with a naturally low resting heart rate and a 65-year-old with a higher baseline are not forced into the same statistical mold. Each gets their own anomaly detector calibrated to their own physiological landscape.
+
+The tradeoff is that the first 30 days represent a calibration period during which anomaly alerts may be less reliable. The source does not specify whether the model retrains automatically as new data accumulates or how concept drift (long-term changes in the user's baseline health) is handled.
+
+## User spending history (financial anomaly detection)
+
+HollowCore's financial anomaly detection uses an Isolation Forest trained on the user's historical spending patterns. The model flags unrecognized, out-of-pattern, or suspicious transactions by learning what normal purchase behavior looks like for that individual.
+
+The source does not specify the exact features extracted from transaction data: whether the model considers amount, merchant category, time of day, geographic location, or frequency patterns. No dataset size, training cadence, or retraining trigger is documented. The model is described as trained offline, but the hosting environment and update mechanism are not stated.
+
+## Public seizure datasets (Pre-Seizure LSTM)
+
+The pre-seizure LSTM model is the only LifeSphere AI model whose training datasets are explicitly named. It was trained on two public datasets:
+
+1. **CHB-MIT Scalp EEG Dataset**: scalp-recorded EEG signals from pediatric subjects with epilepsy, collected at Boston Children's Hospital and published through PhysioNet.
+2. **Epilepsy iEEG Prediction Dataset**: intracranial EEG recordings, also available through PhysioNet, offering higher spatial resolution than scalp EEG.
+
+These datasets contain brain-signal recordings, not wearable sensor data. The LSTM model is described with defined inputs of heart rate variability, accelerometer motion, and skin temperature features in 5-minute rolling windows. This creates a significant domain gap: the model was trained on electrical brain signals but is asked to predict seizures from cardiovascular and motion sensors worn on the wrist.
+
+The source explicitly notes that the model is unvalidated on real wearable data and that this gap is not addressed in the documentation. The design goal is to predict seizures 30 minutes before onset, but no accuracy, sensitivity, or specificity figures exist. PhysioNet is cited as the data repository (Goldberger 2000), and Shoeb's 2009 MIT thesis on seizure detection is also referenced.
+
+## Speech and text for emotional and cognitive models
+
+The emotional classifier and cognitive tracker both rely on speech data, but the source does not specify the training corpora. The language agent uses DistilBERT sentiment analysis, and the voice agent extracts MFCC and prosodic features with Librosa, yet no labeled emotional speech dataset is named. Whether the models were pretrained on public datasets and fine-tuned on user data, or trained entirely from scratch, is not documented.
+
+For the cognitive tracker, the CUSUM-based drift detection does not require a labeled training dataset in the traditional sense. It needs only a personal baseline period to establish the in-control mean and standard deviation. The source does not state how long this baseline period is.
+
+## Biological age and cortisol estimation
+
+The biological age clock, an ensemble of Random Forest and XGBoost, and the cortisol estimator, a Gradient Boosting model with 200 trees, both list multi-sensor fusion as their input source. However, the source does not name any training dataset for either model. Whether they were trained on public health surveys, wearables research datasets, or synthetic data is unspecified. The cortisol estimator's training data are entirely undocumented.
+
+## Why training data transparency matters
+
+Training data determines what a model can and cannot recognize. A model trained primarily on young adults may misinterpret elderly physiological patterns as abnormal. A model trained on Western populations may misclassify emotional expressions from other cultures. A model trained on brain signals cannot automatically transfer to wrist sensors.
+
+LifeSphere's approach of personal baselines mitigates some of these risks for the anomaly detector and financial model, but domain gaps remain for the seizure predictor and unspecified training regimes for the biological age and cortisol models. Caregivers and researchers should treat predictions as design goals and experimental outputs, not validated clinical tools, until longitudinal studies are completed.
+
+## How it connects to the rest of LifeSphere
+
+All models contribute to the shared biological state, which means their training data limitations cascade into system behavior. A poorly calibrated anomaly detector may trigger false rover dispatches. An unvalidated seizure model may miss genuine pre-onset patterns or generate spurious alerts. The system architecture of distributed intelligence and human authorization steps exists partly to buffer these uncertainties.
+
+The source cites 21 references, including foundational papers on Isolation Forest, LSTM, BERT, Whisper, ROS2 navigation, and sensor datasheets. These references support the architectural choices but do not constitute validation of the deployed models.
+
+## Limits
+
+No accuracy metrics, AUC values, cross-validation results, or performance benchmarks are reported for any model. The seizure model's training data mismatch is explicitly acknowledged. The emotional classifier, biological age clock, and cortisol estimator lack any named training data source. Whether models are retrained periodically, how they handle seasonal variation, and how they adapt to long-term health changes are all unspecified.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Pre-Seizure LSTM" icon="wave-square" href="/ai/pre-seizure-lstm">
+    Sequence model design goals, architecture, and the dataset domain gap
+  </Card>
+
+  <Card title="Anomaly Scoring" icon="shield-halved" href="/ai/isolation-forest">
+    How Isolation Forest learns your personal baseline for real-time alerts
+  </Card>
+
+  <Card title="Model Summary" icon="layer-group" href="/ai/model-summary">
+    One-page reference for every AI model, its output, and update cadence
+  </Card>
+
+  <Card title="Honest Limits" icon="circle-question" href="/status/honest-limits">
+    System-wide gaps between design goals and validated results
+  </Card>
+</CardGroup>

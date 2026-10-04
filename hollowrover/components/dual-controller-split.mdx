@@ -1,0 +1,71 @@
+---
+title: "Dual Controller Split: Timing Isolation on HollowRover"
+sidebarTitle: "Dual Controller Split"
+description: "HollowRover uses two ESP32 microcontrollers to isolate timing-critical UWB ranging and BLE communication from servo PWM jitter that could corrupt navigation data."
+icon: "layer-group"
+---
+
+HollowRover carries two ESP32 WROOM-32 microcontrollers rather than one. The split is deliberate: it separates tasks that demand strict timing regularity from tasks that introduce electrical noise and jitter, so neither compromises the other.
+
+## The two controllers
+
+| Controller | Key responsibilities | Why timing matters |
+| --- | --- | --- |
+| Drivetrain controller | Motors, steering, UWB ranging, ultrasonic distance, BLE RSSI, barometric pressure, 9-axis IMU | UWB ranging and BLE communication need precise, undisturbed timing to calculate position and direction accurately |
+| Manipulator controller | Arm servo PWM, TF-Luna ToF sensor, dispenser stepper and shutter servo, water spray relay | Servo PWM (pulse-width modulation) signals can introduce electrical noise and timing irregularities on shared buses |
+
+## What the drivetrain controller does
+
+The drivetrain controller is HollowRover's real-time nervous system for movement and localization. It handles:
+
+- **UWB ranging:** communicating with the three fixed DWM1000 UWB anchors per floor to measure time-of-flight distances for 2D trilateration. These measurements must happen at a steady cadence; any jitter in the communication interval translates directly into position error.
+- **BLE RSSI sampling:** measuring signal strength from the Vital32 wearable's BLE beacon. The rover rotates in place, samples RSSI at multiple headings, and infers the strongest direction. Consistent sampling intervals are needed for a valid comparison across headings.
+- **Ultrasonic obstacle detection:** four HC-SR04 sensors (front, left, right, rear) fire in sequence. Overlapping or delayed triggers would produce ghost echoes or missed obstacles.
+- **Motor encoding and steering feedback:** the Dake DK-37R gear motors include encoders that report wheel rotation. The controller uses this feedback to correct speed and heading in closed-loop fashion.
+- **Barometric floor sensing:** reads pressure from the BME688, compares it against registered floor baselines, and reports the floor identity to the RDK X5.
+- **IMU data:** the 9-axis IMU (inertial measurement unit) provides acceleration, gyroscope, and magnetometer data for odometry fusion with LiDAR in SLAM.
+
+## What the manipulator controller does
+
+The manipulator controller manages everything that moves above the chassis:
+
+- **Arm servo PWM:** six servos (MG996R and MG90S types) expect regular PWM pulses to hold or change position. PWM generation is computationally light but electrically noisy; the rapid on-off switching of servo current can couple noise onto shared I2C or SPI lines.
+- **TF-Luna ToF sensor:** a single-point time-of-flight distance sensor mounted on the arm, used during object retrieval and chokepoint detection.
+- **Dispenser mechanics:** a NEMA17 stepper motor driven through a TMC2209 driver, an AS5600 magnetic encoder for closed-loop carousel position, and an MG995 servo that opens the dose-release shutter.
+- **Water spray relay:** a 5 V peristaltic pump switched by a relay for small-volume liquid delivery.
+
+## Why this matters
+
+If a single ESP32 handled both sets of tasks, servo PWM interrupts could delay UWB packet processing or corrupt an ultrasonic echo timestamp. In a caregiving robot, position error means the rover might stop in the wrong place during a fall response, or misjudge the distance to a user when handing medication. The dual-controller architecture is a fault-containment strategy: the drivetrain controller's timing domain is protected from the manipulator's electrical domain.
+
+## Communication between controllers and the RDK X5
+
+The drivetrain controller connects to the RDK X5 over serial at 115200 baud for sub-10-millisecond motor and actuator commands. The manipulator controller likely uses a similar serial link, though the source does not specify its exact interface. Both ESP32s connect to the local Wi-Fi network for MQTT traffic, but the serial bridge is reserved for the fastest, most deterministic commands.
+
+## How it connects to the rest of LifeSphere
+
+The dual-controller split is invisible to the rest of the ecosystem. Vital32, SphereAI, EntryGuard, and HollowCore all see a single "HollowRover" entity in the shared biological state. Internally, however, the split ensures that the rover's physical actions (arm motion, dispensing, spraying) never perturb its navigational accuracy (UWB, BLE, odometry). This internal isolation is what lets the rover safely operate near a fallen or frail user.
+
+## Limits
+
+The source does not detail the exact bus topology between the two ESP32s and the RDK X5, nor does it specify what happens if one controller hangs while the other remains alive. In general, dual-controller systems benefit from a heartbeat or watchdog mechanism so the main computer can detect a failed peer and enter a safe state.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Compute and NPU" icon="microchip" href="/hollowrover/components/compute-and-npu">
+    The main RDK X5 computer that orchestrates both ESP32s.
+  </Card>
+
+  <Card title="Perception Sensors" icon="eye" href="/hollowrover/components/perception-sensors">
+    Sensors managed by the drivetrain controller.
+  </Card>
+
+  <Card title="Robotic Arm" icon="hand" href="/hollowrover/arm/overview">
+    The arm and dispenser managed by the manipulator controller.
+  </Card>
+
+  <Card title="Navigation" icon="location-dot" href="/hollowrover/navigation/uwb-positioning">
+    How UWB and BLE data flow into floor-aware localization.
+  </Card>
+</CardGroup>

@@ -1,0 +1,65 @@
+---
+title: "Motion Sensing: Fall, Tremor, and Sleep on Vital32"
+sidebarTitle: "Motion"
+description: "The MPU6050 accelerometer and gyroscope on Vital32 detect falls, monitor tremor, and confirm sleep through accelerometer immobility fused with heart-rate variability."
+icon: "person-falling"
+---
+
+Vital32 carries an MPU6050, a compact MEMS chip that combines a 3-axis accelerometer and a 3-axis gyroscope in one package. Accelerometers measure linear acceleration along x, y, and z axes. Gyroscopes measure rotational velocity around those same axes. Together they capture posture, movement intensity, impact events, and sustained lack of motion. The firmware runs these sensors at 50 Hz, sampling every 20 milliseconds, because falls and tremor unfold in time windows too short for slower cadences.
+
+The motion channel serves three distinct caregiving functions: detecting hard falls that may leave the user incapacitated, monitoring tremor as a possible neurological indicator, and confirming sleep state when fused with heart-rate variability data.
+
+## Fall detection
+
+The system uses a two-stage rule on the acceleration magnitude, computed as the Euclidean norm:
+
+$$
+|a| = \sqrt{a_x^2 + a_y^2 + a_z^2}
+$$
+
+This formula collapses the three directional readings into a single scalar that represents total acceleration independent of orientation. Stage one is freefall: the magnitude drops below 0.4 g, where g is standard gravitational acceleration. Stage two is impact: the magnitude exceeds 2.5 g within 500 milliseconds of the freefall event. Confirmation requires a third condition: near-zero movement, defined as magnitude below about 1.1 g, lasting for 3 seconds after impact. The 1.1 g bound is slightly above resting gravity because small residual motion or sensor noise is expected even when still.
+
+Only when all three stages align does `fall_detected` become true in the shared biological state. That boolean is the trigger for HollowRover's fall-response protocol. The 50 Hz sampling rate matters here: a 500 ms freefall-to-impact window contains 25 samples, enough to catch brief dynamics that a 1 Hz sensor would miss entirely.
+
+## Tremor detection
+
+The MPU6050 is listed for tremor detection in the source, but no tremor algorithm, frequency band, or threshold is specified. In general, tremor is a rhythmic oscillation typically in the 4 to 12 Hz range. Detecting it from a 50 Hz accelerometer stream is feasible with spectral analysis or band-pass filtering, but the source does not describe the specific method. The presence of the capability is noted as a placeholder for future refinement.
+
+## Sleep state
+
+Sleep is inferred from accelerometer immobility combined with HRV features. When the accelerometer shows sustained low-magnitude readings and the HRV pattern matches a resting parasympathetic profile, the system labels the state as sleep. This label drives HollowCore's sleep protocol: lights turn off, the main door locks, and climate may adjust. Sleep detection is not a direct accelerometer output. It is a fused inference that relies on the cardiac signal layer.
+
+## Why this matters
+
+Falls are a leading cause of injury and mortality among elderly individuals living alone. The difference between a detected fall with immediate physical response and an undetected fall can be measured in hours of lying on the floor. A 50 Hz motion stream, staged confirmation rules, and autonomous rover dispatch are designed to close that gap without requiring the user to press a button or speak a command.
+
+## How it connects to the rest of LifeSphere
+
+- **HollowRover**: `fall_detected true` triggers the fall-response protocol, dispatching the rover to the user's location.
+- **HollowCore**: Sleep state triggers lighting, door lock, and climate rules.
+- **Pre-seizure LSTM**: Accelerometer motion features enter the 5-minute rolling window as one of five inputs.
+- **SphereAI**: Sleep state may suppress non-urgent audio reminders.
+
+## Limits
+
+The source does not specify false-positive rates for fall detection, nor how the system distinguishes a genuine fall from dropping the device, sitting down hard, or rapid lying back. Tremor detection is listed but undefined. The 3-second post-impact immobility window may delay confirmation in scenarios where the user rolls or shifts immediately after impact. There is no mention of angular-velocity thresholds from the gyroscope entering the fall logic, even though the chip provides them.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Sensor Array" icon="microchip" href="/vital32/components/sensor-array">
+    All sensors and their roles
+  </Card>
+
+  <Card title="Fall Detection" icon="shield-halved" href="/vital32/sensing/fall-detection">
+    Staged rules and rover dispatch
+  </Card>
+
+  <Card title="Heart Rate Variability" icon="wave-square" href="/vital32/sensing/heart-rate-variability">
+    How HRV fuses with motion for sleep
+  </Card>
+
+  <Card title="Pre-Seizure Estimation" icon="brain" href="/vital32/predictions/pre-seizure-estimation">
+    LSTM inputs including motion
+  </Card>
+</CardGroup>

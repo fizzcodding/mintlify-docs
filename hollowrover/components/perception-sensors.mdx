@@ -1,0 +1,80 @@
+---
+title: "HollowRover Perception Sensors: Sensing the Home"
+sidebarTitle: "Perception Sensors"
+description: "HollowRover fuses LiDAR, ultrasonics, thermal, barometric, UWB, BLE, and stereo depth sensing into a coherent picture of the home and its occupants."
+icon: "eye"
+---
+
+HollowRover does not rely on any single sensor. It builds an understanding of its surroundings by fusing many sensors, each covering the weaknesses of the others. This page describes every perception sensor named in the source except the front stereo depth camera, which has its own dedicated page.
+
+## STL-19P time-of-flight LiDAR
+
+The STL-19P is a time-of-flight (ToF) LiDAR sensor. Time-of-flight ranging works by emitting a laser pulse and measuring how long the reflected light takes to return. The STL-19P offers a 12-meter range, 5000 Hz sampling rate, and resistance to glare up to 60000 lux. In practice, this means the rover can map rooms lit by bright daylight or overhead fluorescents without the laser returns washing out.
+
+LiDAR is the primary input for SLAM Toolbox. The sensor spins (or uses a solid-state scanning mechanism) to produce a 360-degree or wide-angle depth sweep, which ROS2 converts into a 2D occupancy grid: a map where each cell is marked free, occupied, or unknown. The ToF principle gives consistent accuracy across the range, unlike triangulation-based sensors that degrade at distance.
+
+## Four HC-SR04 ultrasonic sensors
+
+Four HC-SR04 ultrasonic rangefinders sit at the front, left, right, and rear of the chassis. These sensors emit an ultrasonic chirp and measure the echo time to detect obstacles. They are inexpensive, have no moving parts, and complement LiDAR in several ways:
+
+- **Low obstacles:** LiDAR scans are typically at a fixed height; an ultrasonic sensor near the floor can detect a shoe, a cable, or a threshold that the LiDAR plane misses.
+- **Transparent surfaces:** glass and clear plastic may pass or scatter laser light but reflect ultrasound.
+- **Close-range confirmation:** ultrasonics provide a secondary distance check when the rover is maneuvering near walls or furniture.
+
+The trade-off is lower precision and angular resolution compared with LiDAR. The source does not specify the firing sequence or fusion logic, but the four-sensor layout implies quadrantal coverage for basic obstacle avoidance.
+
+## 9-axis IMU
+
+A 9-axis IMU (inertial measurement unit) provides accelerometer, gyroscope, and magnetometer data. The accelerometer measures linear acceleration, the gyroscope measures rotational rate, and the magnetometer measures heading relative to Earth's magnetic field. Together, these nine data streams feed the robot's odometry: an estimate of how far the rover has moved and turned based on its own sensors, independent of external landmarks. SLAM fuses this odometry with LiDAR scans to produce a consistent map even when temporary obstacles block the laser view.
+
+## MLX90640 thermal camera
+
+The MLX90640 is a 32-by-24 pixel thermal camera. It measures infrared radiation emitted by objects and produces a low-resolution temperature image. The source lists it as part of the sensor fusion suite but does not assign it a specific algorithmic role. In general, thermal imaging can help distinguish a human body from background clutter based on temperature contrast, and it can operate in total darkness because it does not depend on visible light. Its inclusion suggests HollowRover may use it as a secondary confirmation channel for person detection or as an input to ambient-temperature mapping.
+
+## BME688 barometric sensor
+
+The BME688 measures barometric pressure, volatile organic compounds (VOCs), and humidity. On HollowRover, its critical role is floor discrimination. Each registered floor stores a calibrated pressure baseline. When the rover moves between floors, it compares current pressure to these baselines and selects the closest match. Only after floor identity is resolved does the rover activate that floor's SLAM map and UWB anchor set. Without this step, the rover would attempt to localize against the wrong geometry and produce meaningless position estimates.
+
+## DWM1000 UWB modules
+
+DWM1000 UWB modules (from the DW1000 family) provide ultra-wideband radio ranging. Three anchors are fixed per registered floor at known, non-collinear positions. The rover measures its distance to each anchor via time-of-flight, then solves a 2D trilateration system to find its horizontal coordinates. UWB positioning achieves roughly 10-centimeter accuracy under favorable conditions. It resolves the left-right ambiguity that two-anchor geometry cannot, and it is more precise than Wi-Fi or BLE fingerprinting.
+
+## BLE RSSI module
+
+A BLE RSSI module measures the received signal strength indication from the Vital32 wearable's Bluetooth Low Energy beacon. When the user is outside the UWB coverage area or in an unmapped room, the rover uses BLE RSSI as a coarse directional cue. It rotates in place, samples signal strength at multiple headings, and navigates toward the strongest reading. Once the user re-enters UWB coverage, the rover switches back to precise trilateration. BLE RSSI is significantly longer-range than UWB but also significantly less precise, making it a useful fallback rather than a primary localization method.
+
+## SC230AI stereo depth camera
+
+The rover's main front camera is the SC230AI stereo depth camera. Because it has its own dedicated page in this documentation, this section only notes its presence in the perception suite. It feeds face recognition, depth-based obstacle verification, and chokepoint monitoring. See the stereo depth camera page for full detail.
+
+## Why sensor fusion matters
+
+No single sensor is sufficient for safe home navigation. LiDAR fails on glass. Ultrasonics fail at long range. UWB requires anchors. BLE is coarse. IMU drifts over time. By fusing all of these, HollowRover can cross-check estimates, tolerate temporary sensor degradation, and maintain reliable operation in the cluttered, unpredictable environment of a lived-in home.
+
+## How it connects to the rest of LifeSphere
+
+EntryGuard nodes also carry UWB and barometric sensors. When an EntryGuard alert fires, it includes a node identity, a UWB zone reference, and a floor pressure reference. The rover uses its own UWB and barometric sensors to load the correct floor map and navigate to that zone. This sensor alignment between subsystems is what makes the dispatch pipeline floor-aware and precise.
+
+## Limits
+
+The source does not specify how thermal camera data is fused with other perception streams, nor how the system handles UWB multipath in rooms with many reflective surfaces. UWB accuracy can degrade when signals bounce off metal or concrete before reaching the rover. The BLE person-finding method is inherently coarse and may require the rover to explore multiple directions before converging.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Stereo Depth Camera" icon="camera" href="/hollowrover/components/stereo-depth-camera">
+    The SC230AI front camera and its unresolved night-vision needs.
+  </Card>
+
+  <Card title="Navigation" icon="location-dot" href="/hollowrover/navigation/mapping-and-slam">
+    How sensor data feeds SLAM and path planning.
+  </Card>
+
+  <Card title="UWB Positioning" icon="wifi" href="/hollowrover/navigation/uwb-positioning">
+    2D trilateration and floor-aware anchor sets.
+  </Card>
+
+  <Card title="BLE Person-Finding" icon="bluetooth" href="/hollowrover/navigation/ble-person-finding">
+    Coarse directional search when UWB is out of range.
+  </Card>
+</CardGroup>

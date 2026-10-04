@@ -1,0 +1,65 @@
+---
+title: "Wheel Cost Optimization: Accessible Hardware for Caregiving"
+sidebarTitle: "Cost Optimization"
+description: "HollowRover wheels cost roughly 905 Bangladeshi taka each. Learn how this price supports LifeSphere's goal of accessible, locally reproducible caregiving technology."
+icon: "scale-balanced"
+---
+
+Each HollowRover wheel is cost-optimized to approximately 905 Bangladeshi taka. This price target is not merely a manufacturing detail; it is a design requirement that shapes material selection, fabrication method, and geometric complexity. The wheel demonstrates that a critical mechanical component of an autonomous caregiving robot can be produced at a cost that is accessible in the markets where elderly care infrastructure is most needed.
+
+## The Significance of the 905 Taka Target
+
+Bangladesh is home to over 15 million elderly citizens, most of whom live at home while family members work full-time. Commercial caregiving robots, when available at all, are priced in ranges that place them far beyond typical household budgets. A single wheel that costs thousands of taka might be acceptable for a research prototype or a luxury market, but it would make mass deployment impossible.
+
+The 905 taka figure represents a conscious choice to prioritize accessibility over premium performance. At this price, a complete set of four wheels costs roughly 3,600 taka. This is a fraction of what commercial robot wheels with molded rubber tires, metal hubs, and precision bearings would cost. The savings come from three design decisions: 3D printing instead of molding or machining, PLA+ filament instead of engineering polymers or metals, and a single-piece design instead of a multi-material assembly.
+
+## How Design Choices Enable the Cost Target
+
+The wheel achieves its low cost through integration of multiple functions into one printable part:
+
+- **Spoke, rim, tire body, and coupler in one print:** A single print job produces the complete wheel. There are no separate tires to purchase, no metal hubs to machine, no bearings to press in, and no adhesives to apply. Each eliminated part is an eliminated cost.
+- **Standard filament:** PLA+ is one of the most affordable 3D printing filaments. It is produced in large volumes for the consumer market and is available from multiple suppliers. Specialty filaments such as carbon-fiber-reinforced nylon or flexible TPU cost significantly more and often require hardened nozzles and heated chambers.
+- **No post-processing:** The wheel is designed to print with minimal support material and to require no sanding, drilling, or coating after printing. Support removal and surface finishing add labor time, which translates directly to cost whether the labor is paid or volunteer.
+- **M4 hardware:** The threaded coupler uses standard M4 screws, which are commodity hardware items available at any construction supply store. No special fasteners, no custom shafts, no proprietary adapters.
+
+These choices are possible because the wheel's functional requirements are sized to what PLA+ and FDM printing can deliver. The S-curve spokes provide compliance through geometry rather than through expensive flexible materials. The chevron tread provides grip through pattern rather than through rubber compound formulation. The shaft coupler provides attachment through printed threads rather than through machined metal.
+
+## Cost in Context: The Full Rover
+
+The wheel cost must be understood in the context of the complete system. HollowRover carries a D-Robotics RDK X5 compute unit, dual ESP32 controllers, a medication dispenser with a NEMA17 stepper motor and magnetic encoder, a 6-DOF robotic arm, a ToF LiDAR, a stereo depth camera, UWB modules, and a 5000 mAh LiPo battery. These components represent the bulk of the system's electrical and computational cost. The mechanical parts, wheels and suspension included, are kept as affordable as possible so that the overall system remains within reach.
+
+In general, accessible robotics design invests in subsystems that require high performance while minimizing cost in areas where simpler solutions suffice. The wheel is an example of the latter: it does not need aerospace-grade materials to roll across indoor floors.
+
+## Connection to LifeSphere's Broader Mission
+
+LifeSphere's conclusion states that the system is achievable at an accessible cost point with commercially available hardware and open-source software. The wheel cost is one concrete data point supporting that claim. It shows that mechanical components, which in commercial robotics are often the most expensive and hardest to source, can be reimagined for contexts where cost and maintainability matter more than industrial-grade specifications.
+
+The accessible cost principle also connects to the zero-interaction design philosophy. A robot that is too expensive to purchase is a robot that never reaches the user. A robot that is too expensive to repair is a robot that becomes electronic waste after its first failure. By keeping wheel replacement affordable, LifeSphere extends the usable lifetime of the system and reduces the total cost of ownership.
+
+## Why This Matters
+
+For families considering a caregiving robot, cost is often the single largest barrier. In Bangladesh and similar economies, a device that costs several months of household income is not a realistic option, regardless of its capabilities. The 905 taka wheel demonstrates that the system was designed with this economic reality in mind from the earliest prototyping stages.
+
+## Limits
+
+The source document states the approximate cost of 905 taka per wheel but does not provide a cost breakdown by material volume, print time, electricity consumption, or hardware. The figure is approximate, meaning actual cost may vary depending on filament supplier, printer efficiency, and local labor rates. The cost does not include the Dake DK-37R gear motor, which is a separate component. Whether the 905 taka includes the M4 screw or assumes the user already has standard hardware is not specified.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Wheel Design Overview" icon="truck" href="/hollowrover/wheels/overview">
+    How cost optimization fits into the overall wheel design strategy.
+  </Card>
+
+  <Card title="Material and Printing" icon="gears" href="/hollowrover/wheels/material-and-printing">
+    How PLA+ and single-piece printing reduce cost compared to multi-material wheels.
+  </Card>
+
+  <Card title="Eight Iterations" icon="rotate" href="/hollowrover/wheels/eight-iterations">
+    How iterative design converged on a cost-effective, reliable geometry.
+  </Card>
+
+  <Card title="Impact and Who It Serves" icon="heart" href="/start/impact">
+    LifeSphere's mission to make caregiving technology accessible where it is needed most.
+  </Card>
+</CardGroup>

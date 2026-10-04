@@ -1,0 +1,76 @@
+---
+title: "Language-Model Extraction: From Raw Text to a Medication Schedule"
+sidebarTitle: "LLM Extraction"
+description: "Learn why LifeSphere uses a large language model to interpret prescription context and extract structured medication fields, rather than relying on raw OCR output alone."
+icon: "brain"
+---
+
+Raw text from optical character recognition is rarely clean enough to trust with a medication schedule. Doctor handwriting is ambiguous, abbreviations vary by region, and dosage instructions are often phrased as sentences rather than structured data. LifeSphere solves this by passing the OCR output through a large language model that understands context, interprets handwriting variability, and returns consistent fields. This page explains what the model extracts, why it is needed, and what the source does and does not specify about its operation.
+
+## Why raw OCR is not enough
+
+Optical character recognition reads shapes, not meaning. A line that reads "1/2 tab bd pc" could mean half a tablet twice daily after meals, or it could be a misread of something completely different. A human pharmacist resolves this through training and context. A rules-based parser would need thousands of regular expressions to cover every abbreviation, every spelling variant, and every doctor's personal shorthand.
+
+A large language model, by contrast, has been trained on broad text corpora that include medical writing, dosage conventions, and contextual patterns. It can infer that "bd" in a prescription context almost always means "bis in die" (twice daily), that "pc" means "post cibum" (after food), and that "1/2 tab" should be parsed as a quantity of 0.5 tablets. This contextual reasoning is the core reason LifeSphere adds an LLM stage after OCR.
+
+## Fields extracted
+
+The LLM extracts the following structured fields from the raw text. The user sees these in the review screen before confirming.
+
+| Field | Meaning | Example |
+| --- | --- | --- |
+| Medicine name | Generic or brand name of the drug | Metformin 500 mg |
+| Dosage | Amount per administration | 1 tablet |
+| Frequency | How often to take it | Twice daily |
+| Duration | How long the course continues | 14 days |
+| Instructions | Special guidance | After meals, with water |
+
+The source does not specify whether the model also infers start dates, tapering schedules, or conditional instructions such as "take only if pain persists." It also does not state how the model handles multi-drug prescriptions on a single sheet, though the extraction of multiple rows is the natural expectation.
+
+## Where the model runs
+
+The source states that the LLM may run on the phone or in the cloud. It does not name the specific model, its parameter count, or the inference framework. This ambiguity is common for prototype systems where the exact backend can change without affecting the user-facing flow.
+
+In general, on-device inference offers lower latency and better privacy because the prescription text never leaves the phone. Cloud inference offers larger models with better accuracy on rare or complex handwriting. LifeSphere's architecture is compatible with either approach because the output format is fixed, and the human review stage catches errors regardless of where the model ran.
+
+## Context-aware interpretation vs. raw matching
+
+The key differentiator is that the LLM interprets rather than matches. A template system would look for the word "daily" and assign frequency = 1. The LLM can read "take one in the morning and one at night" and correctly infer frequency = 2, even though the word "daily" never appears. It can also resolve spelling errors. If OCR reads "Metf0rmin" with a zero instead of an o, a language model with medical vocabulary will likely autocorrect to the intended drug name.
+
+This capacity is especially valuable for handwritten prescriptions in Bangladesh, where doctors may mix English drug names with Bengali dosage notes, use local abbreviations, or write in a rapid cursive style. The source does not explicitly describe Bengali handling, but the design of context-aware extraction is clearly aimed at real-world variability.
+
+## Why this matters
+
+Without the LLM stage, every OCR error becomes a potential medication error. A misread dosage could lead to under-treatment or overdose. A missed frequency could collapse a twice-daily drug into a once-daily alert. By inserting a reasoning layer between raw text and user confirmation, LifeSphere trades a small increase in processing time for a large decrease in human data-entry burden and clinical risk.
+
+## How it connects to the rest of LifeSphere
+
+The LLM stage sits in the middle of the medication pipeline. Its input is raw OCR from the phone app. Its output is a structured JSON-like object displayed in the review screen. Once the user confirms, the object is written to Firebase under `lifesphere/hollowcore/med_schedule`. HollowRover subscribes to this path and populates its local dispenser schedule. SphereAI later uses adherence data from the same branch to adjust conversational tone if missed doses correlate with emotional distress.
+
+## Limits
+
+- The specific LLM is not named. It could be a small on-device model or a large cloud model; accuracy and latency vary accordingly.
+- The source does not state training data, fine-tuning, or whether medical-domain adaptation was performed.
+- No accuracy figures are provided for extraction correctness.
+- Bengali or mixed-script prescriptions are not explicitly supported in the source.
+- The model may hallucinate plausible but incorrect drug names or dosages if the handwriting is extremely poor. The human review stage exists to catch these cases.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Prescription Reading" icon="file-lines" href="/medication/prescription-reading">
+    Grayscale conversion, adaptive thresholding, and Tesseract OCR.
+  </Card>
+
+  <Card title="Review and Confirmation" icon="clipboard-check" href="/medication/review-and-confirmation">
+    Human-in-the-loop editing, confirmation, and manual schedule fallback.
+  </Card>
+
+  <Card title="Medication Overview" icon="pills" href="/medication/overview">
+    The complete flow from prescription photograph to physical delivery.
+  </Card>
+
+  <Card title="Touchscreen Fallback" icon="hand" href="/medication/touchscreen-fallback">
+    Manual entry on the dispenser's local touchscreen when OCR fails.
+  </Card>
+</CardGroup>

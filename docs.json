@@ -1,0 +1,404 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "maple",
+  "name": "LifeSphere",
+  "colors": {
+    "primary": "#2E3B6B",
+    "light": "#3F8BA5",
+    "dark": "#2E3B6B"
+  },
+  "favicon": "/logo/lifesphere-icon.png",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Foundations",
+        "groups": [
+          {
+            "group": "Start Here",
+            "icon": "flag-checkered",
+            "pages": [
+              "index",
+              "start/how-to-read",
+              "start/why-lifesphere-exists",
+              "start/problem-in-bangladesh",
+              "start/why-existing-devices-fall-short",
+              "start/hypothesis",
+              "start/impact"
+            ]
+          },
+          {
+            "group": "The Core Idea",
+            "icon": "lightbulb",
+            "pages": [
+              "core/zero-interaction-principle",
+              "core/system-architecture",
+              "core/shared-biological-state",
+              "core/distributed-intelligence",
+              "core/communication-channels",
+              "core/multi-timescale-inference",
+              "core/fault-tolerance",
+              "core/security-and-data-integrity",
+              "core/human-authorization",
+              "core/deployment-scope"
+            ]
+          },
+          {
+            "group": "Design and Ethics",
+            "icon": "scale-balanced",
+            "pages": [
+              "design/design-philosophy",
+              "design/ethics-of-autonomy",
+              "design/privacy-by-design",
+              "design/what-we-removed",
+              "design/cultural-and-islamic-design",
+              "design/safety-principles"
+            ]
+          },
+          {
+            "group": "Status",
+            "icon": "signal",
+            "pages": [
+              "status/status-and-roadmap",
+              "status/honest-limits",
+              "status/unvalidated-claims"
+            ]
+          }
+        ],
+        "icon": "compass"
+      },
+      {
+        "tab": "Subsystems",
+        "groups": [
+          {
+            "group": "Vital32",
+            "icon": "heart-pulse",
+            "pages": [
+              "vital32/overview",
+              {
+                "group": "What It Is Made Of",
+                "expanded": false,
+                "pages": [
+                  "vital32/components/sensor-array",
+                  "vital32/components/pulse-and-spo2",
+                  "vital32/components/motion",
+                  "vital32/components/temperature",
+                  "vital32/components/galvanic-skin-response",
+                  "vital32/components/bioimpedance",
+                  "vital32/components/environmental-and-uv",
+                  "vital32/components/compute-power-display"
+                ]
+              },
+              {
+                "group": "How It Reads the Body",
+                "expanded": false,
+                "pages": [
+                  "vital32/sensing/signal-processing",
+                  "vital32/sensing/fall-detection",
+                  "vital32/sensing/heart-rate-variability",
+                  "vital32/sensing/tremor-detection",
+                  "vital32/sensing/plausibility-filtering",
+                  "vital32/sensing/sensing-cadence"
+                ]
+              },
+              {
+                "group": "What It Predicts",
+                "expanded": false,
+                "pages": [
+                  "vital32/predictions/anomaly-scoring",
+                  "vital32/predictions/immune-activation",
+                  "vital32/predictions/pre-seizure-estimation",
+                  "vital32/predictions/cortisol-estimation",
+                  "vital32/predictions/biological-age"
+                ]
+              },
+              {
+                "group": "Context",
+                "expanded": false,
+                "pages": [
+                  "vital32/design-decisions",
+                  "vital32/limits-and-ethics"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "HollowRover",
+            "icon": "robot",
+            "pages": [
+              "hollowrover/overview",
+              {
+                "group": "What It Is Made Of",
+                "expanded": false,
+                "pages": [
+                  "hollowrover/components/compute-and-npu",
+                  "hollowrover/components/dual-controller-split",
+                  "hollowrover/components/perception-sensors",
+                  "hollowrover/components/stereo-depth-camera",
+                  "hollowrover/components/drivetrain-and-steering",
+                  "hollowrover/components/rocker-suspension",
+                  "hollowrover/components/power-and-backup",
+                  "hollowrover/components/water-spray"
+                ]
+              },
+              {
+                "group": "Wheel Engineering",
+                "expanded": false,
+                "pages": [
+                  "hollowrover/wheels/overview",
+                  "hollowrover/wheels/s-curve-spokes",
+                  "hollowrover/wheels/eight-iterations",
+                  "hollowrover/wheels/material-and-printing",
+                  "hollowrover/wheels/chevron-tread",
+                  "hollowrover/wheels/shaft-coupler",
+                  "hollowrover/wheels/cost-optimization",
+                  "hollowrover/wheels/stress-testing"
+                ]
+              },
+              {
+                "group": "Navigation",
+                "expanded": false,
+                "pages": [
+                  "hollowrover/navigation/mapping-and-slam",
+                  "hollowrover/navigation/path-planning",
+                  "hollowrover/navigation/uwb-positioning",
+                  "hollowrover/navigation/barometric-floor-detection",
+                  "hollowrover/navigation/multi-floor-maps",
+                  "hollowrover/navigation/ble-person-finding"
+                ]
+              },
+              {
+                "group": "Robotic Arm",
+                "expanded": false,
+                "pages": [
+                  "hollowrover/arm/overview",
+                  "hollowrover/arm/caregiving-assist",
+                  "hollowrover/arm/passive-barrier",
+                  "hollowrover/arm/trigger-pipeline",
+                  "hollowrover/arm/lidar-occlusion",
+                  "hollowrover/arm/safety-rules"
+                ]
+              },
+              {
+                "group": "Protocols",
+                "expanded": false,
+                "pages": [
+                  "hollowrover/protocols/biomarker-triggered",
+                  "hollowrover/protocols/fall-response",
+                  "hollowrover/protocols/pre-seizure-cushioning",
+                  "hollowrover/protocols/cortisol-de-escalation",
+                  "hollowrover/protocols/medication-delivery",
+                  "hollowrover/protocols/security-response"
+                ]
+              },
+              {
+                "group": "Software and Context",
+                "expanded": false,
+                "pages": [
+                  "hollowrover/software-stack",
+                  "hollowrover/design-decisions",
+                  "hollowrover/limits-and-ethics"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "SphereAI",
+            "icon": "comments",
+            "pages": [
+              "sphereai/overview",
+              {
+                "group": "What It Is Made Of",
+                "expanded": false,
+                "pages": [
+                  "sphereai/hardware/voice-hardware",
+                  "sphereai/hardware/wake-word-engine",
+                  "sphereai/hardware/display-and-output"
+                ]
+              },
+              {
+                "group": "How It Understands",
+                "expanded": false,
+                "pages": [
+                  "sphereai/understanding/language-agent",
+                  "sphereai/understanding/voice-agent",
+                  "sphereai/understanding/biology-agent",
+                  "sphereai/understanding/meta-classifier",
+                  "sphereai/understanding/dynamic-weighting",
+                  "sphereai/understanding/emotional-states",
+                  "sphereai/understanding/cognitive-monitoring",
+                  "sphereai/understanding/loneliness-index"
+                ]
+              },
+              {
+                "group": "Islamic Integration",
+                "expanded": false,
+                "pages": [
+                  "sphereai/islamic/salah-reminders",
+                  "sphereai/islamic/adhkar",
+                  "sphereai/islamic/ramadan-mode"
+                ]
+              },
+              {
+                "group": "Context",
+                "expanded": false,
+                "pages": [
+                  "sphereai/personality-mirror",
+                  "sphereai/design-decisions",
+                  "sphereai/limits-and-ethics"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "EntryGuard",
+            "icon": "shield-halved",
+            "pages": [
+              "entryguard/overview",
+              "entryguard/components",
+              "entryguard/intrusion-detection",
+              "entryguard/fire-and-gas",
+              "entryguard/face-recognition",
+              "entryguard/video-streaming",
+              "entryguard/floor-aware-dispatch",
+              "entryguard/threat-classification",
+              "entryguard/design-decisions",
+              "entryguard/limits-and-ethics"
+            ]
+          },
+          {
+            "group": "HollowCore",
+            "icon": "house-signal",
+            "pages": [
+              "hollowcore/overview",
+              "hollowcore/components",
+              "hollowcore/biometric-mapping",
+              "hollowcore/lighting-and-climate",
+              "hollowcore/sleep-protocol",
+              "hollowcore/financial-anomaly-detection",
+              "hollowcore/transaction-authorization",
+              "hollowcore/design-decisions",
+              "hollowcore/limits-and-ethics"
+            ]
+          },
+          {
+            "group": "Medication",
+            "icon": "pills",
+            "pages": [
+              "medication/overview",
+              "medication/prescription-reading",
+              "medication/llm-extraction",
+              "medication/review-and-confirmation",
+              "medication/dispenser-overview",
+              "medication/carousel",
+              "medication/gear-reduction",
+              "medication/encoder-feedback",
+              "medication/shutter-and-release",
+              "medication/stepper-driver",
+              "medication/custom-pcb",
+              "medication/touchscreen-fallback",
+              "medication/reminders-and-adherence",
+              "medication/adherence-entropy"
+            ]
+          }
+        ],
+        "icon": "cubes"
+      },
+      {
+        "tab": "Intelligence",
+        "groups": [
+          {
+            "group": "How It Thinks",
+            "icon": "brain",
+            "pages": [
+              "ai/overview",
+              "ai/personal-baselines",
+              "ai/isolation-forest",
+              "ai/pre-seizure-lstm",
+              "ai/emotional-classifier",
+              "ai/cortisol-estimator",
+              "ai/biological-age-clock",
+              "ai/cognitive-tracker",
+              "ai/training-data",
+              "ai/thresholds-and-alerts",
+              "ai/model-summary",
+              "ai/limits"
+            ]
+          }
+        ],
+        "icon": "brain"
+      },
+      {
+        "tab": "Scenarios",
+        "icon": "route",
+        "groups": [
+          {
+            "group": "Walkthroughs",
+            "icon": "route",
+            "pages": [
+              "scenarios/fall",
+              "scenarios/stress-spike",
+              "scenarios/intruder-at-night",
+              "scenarios/missed-medication",
+              "scenarios/pre-seizure-warning",
+              "scenarios/immune-activation-alert",
+              "scenarios/ramadan-fasting-day",
+              "scenarios/wifi-outage",
+              "scenarios/multi-floor-danger",
+              "scenarios/suspicious-transaction"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "icon": "book",
+        "groups": [
+          {
+            "group": "Reference",
+            "icon": "book",
+            "pages": [
+              "reference/glossary",
+              "reference/subsystem-comparison",
+              "reference/trigger-response",
+              "reference/state-field-dictionary",
+              "reference/math-signal-processing",
+              "reference/math-anomaly-score",
+              "reference/math-trilateration",
+              "reference/math-floor-detection",
+              "reference/math-adherence-entropy",
+              "reference/faq",
+              "reference/references"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "logo": {
+    "light": "/logo/lifesphere-horizontal.png",
+    "dark": "/logo/lifesphere-horizontal.png",
+    "href": "/"
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude"
+    ]
+  },
+  "description": "LifeSphere is an AI-powered autonomous caregiving ecosystem for elderly people living alone, built from five subsystems that share one biological state.",
+  "appearance": {
+    "default": "light",
+    "strict": true
+  },
+  "fonts": {
+    "family": "Inter"
+  },
+  "styling": {
+    "eyebrows": "breadcrumbs"
+  },
+  "interaction": {
+    "drilldown": false
+  }
+}

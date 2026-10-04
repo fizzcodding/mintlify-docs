@@ -1,0 +1,114 @@
+---
+title: "Thresholds and Alerts Across LifeSphere"
+sidebarTitle: "Thresholds and Alerts"
+description: "Every numeric threshold in LifeSphere that triggers an alert, protocol, or environmental change, with the subsystem, value, and consequence in one reference table."
+icon: "scale-balanced"
+---
+
+LifeSphere makes autonomous decisions by comparing live sensor and model outputs against fixed thresholds. This page collects every numeric threshold documented in the source into a single reference, organized by subsystem and consequence. Use it to understand what value triggers what response, and which outputs sit just below alert levels during normal operation.
+
+## Anomaly and emergency thresholds
+
+The anomaly detector produces a score from 0 to 1. Higher scores indicate greater deviation from the user's personal baseline.
+
+| Value / Trigger | Subsystem / Consequence |
+| --- | --- |
+| anomaly score greater than 0.7 | Soft alert to guardian of elevated deviation |
+| anomaly score greater than 0.9 | HollowRover emergency protocol dispatch |
+
+These thresholds are applied to the Isolation Forest output. The soft alert gives guardians early warning. The emergency threshold crosses into physical response territory, where HollowRover may navigate to the user or prepare assistance.
+
+## Pre-seizure threshold
+
+| Value / Trigger | Subsystem / Consequence |
+| --- | --- |
+| seizure probability greater than 0.85 | HollowRover seizure cushioning protocol |
+
+This threshold acts on the LSTM model's sigmoid output. When crossed, HollowRover executes a pre-seizure cushioning deployment. The source does not specify the physical mechanism of cushioning. The model is unvalidated on real wearable data, so this threshold should be treated as a design parameter for a goal, not a clinically validated cutoff.
+
+## Environmental and comfort thresholds
+
+HollowCore compares biomarker values to thresholds that drive home environment changes.
+
+| Value / Trigger | Subsystem / Consequence |
+| --- | --- |
+| cortisol estimate greater than 18.0 | HollowCore warm dim lighting plus lowered AC temperature |
+| galvanic skin response greater than 0.6 | HollowCore publishes play_calming_audio command to SphereAI speaker |
+| blood oxygen less than 94.0 | HollowCore air purifier relay activated |
+| skin temperature below 35.5 | HollowCore raises AC thermostat |
+
+These thresholds translate internal biological state into external environmental response. The cortisol threshold aims to create a calming atmosphere before stress escalates. The blood oxygen threshold addresses respiratory or circulatory compromise by improving air quality.
+
+## Fall detection thresholds
+
+Fall detection on Vital32 uses a two-stage accelerometer pipeline.
+
+| Stage / Condition | Value / Timing |
+| --- | --- |
+| Freefall: acceleration drops below | 0.4 g |
+| Impact: acceleration exceeds | 2.5 g within 500 ms of freefall |
+| Confirmation: near-zero movement persists | below about 1.1 g for 3 s after impact |
+
+The magnitude is computed as the Euclidean norm of the three accelerometer axes: square root of the sum of squared components. Only when all three conditions are met does fall detected become true, triggering the rover fall protocol.
+
+## Cognitive tracker threshold
+
+| Value / Trigger | Subsystem / Consequence |
+| --- | --- |
+| CUSUM exceeds 2 sigma from personal baseline | Source does not specify the exact alert consequence |
+
+This is a statistical threshold rather than a fixed number. The tracker watches for accumulated speech-feature drift exceeding two standard deviations from the user's own historical baseline.
+
+## EntryGuard alert thresholds
+
+EntryGuard nodes use sensor-specific thresholds, but the source does not provide numeric values for the fire or gas thresholds.
+
+| Sensor | Threshold status |
+| --- | --- |
+| Fire / flame | Above a fire threshold, exact value not specified |
+| Gas | Above a gas threshold, exact value not specified |
+| Motion | Alert only when system mode is ACTIVE |
+
+The fire and gas thresholds are described as existing but their numerical values are not documented. This means the system can respond to genuine hazards, but the precise sensitivity is not available for external validation.
+
+## Financial anomaly threshold
+
+| Value / Trigger | Subsystem / Consequence |
+| --- | --- |
+| High-risk transaction threshold not specified | HollowCore requires face plus fingerprint plus proximity authorization |
+
+The threshold that separates routine transactions from high-risk ones is not documented. When a transaction is flagged as high-risk, HollowCore requires three-factor biometric authorization before approval.
+
+## Why threshold choice matters
+
+Thresholds are the boundary between normal life and system intervention. Set too low, and false alerts erode trust: families stop responding, and the rover makes unnecessary trips. Set too high, and genuine emergencies may go unanswered. LifeSphere's use of personal baselines for anomaly detection helps, because the same absolute heart rate might be abnormal for one user and normal for another. But fixed thresholds like the 0.85 seizure probability or the 18.0 cortisol level apply uniformly unless personalization is added later.
+
+The source does not document any adaptive thresholding, hysteresis bands, or user-specific tuning of the fixed values. All thresholds should be understood as initial design parameters subject to refinement through longitudinal deployment.
+
+## How it connects to the rest of LifeSphere
+
+Threshold crossings write fields to the shared biological state, which other subsystems read via Firebase listeners. Anomaly score and seizure probability reach HollowRover through this channel. Cortisol estimate and galvanic skin response reach HollowCore. Fall detected triggers both rover dispatch and guardian notification. The same value may cascade through multiple thresholds: a high anomaly score plus low blood oxygen could simultaneously trigger rover dispatch and air purifier activation.
+
+## Limits
+
+Not all thresholds have documented numeric values. Fire and gas thresholds in EntryGuard are qualitative. The high-risk financial boundary is unspecified. The source does not describe how thresholds were chosen: clinical consultation, heuristic tuning, or literature review. There is no documented override or sensitivity adjustment for caregivers. Validation of whether these thresholds minimize false positives and false negatives in elderly Bangladeshi users is listed as future work.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Anomaly Scoring" icon="wave-square" href="/ai/isolation-forest">
+    How Isolation Forest generates the 0 to 1 score that feeds these thresholds
+  </Card>
+
+  <Card title="Pre-Seizure LSTM" icon="brain" href="/ai/pre-seizure-lstm">
+    Sequence model architecture and the 0.85 seizure probability threshold
+  </Card>
+
+  <Card title="Fall Detection" icon="person-falling" href="/vital32/sensing/fall-detection">
+    The three-stage accelerometer pipeline behind fall detected
+  </Card>
+
+  <Card title="Model Summary" icon="layer-group" href="/ai/model-summary">
+    Compact reference card for every AI model and its outputs
+  </Card>
+</CardGroup>

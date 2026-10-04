@@ -1,0 +1,73 @@
+---
+title: "Wheel Iterations: Refining Geometry for Caregiving Reliability"
+sidebarTitle: "Eight Iterations"
+description: "HollowRover wheels went through 8+ design iterations. Learn what iterative wheel development generally tests and how the final geometry was selected."
+icon: "rotate"
+---
+
+HollowRover's wheels did not emerge fully formed. The design went through more than eight geometry iterations, each one printed, tested, evaluated, and revised before the final spoke profile, tread pattern, and wall thicknesses were selected. The source document does not list what changed in each individual iteration, but the iterative count itself tells an important engineering story about building reliable hardware for caregiving.
+
+## What Iterative Wheel Design Typically Tests
+
+When engineers iterate on a 3D-printed wheel, they are usually exploring a design space with multiple competing variables. Each iteration tests a hypothesis about how the wheel will perform under load, how it will print reliably, and how it will feel in operation. The common variables in wheel iteration include:
+
+- **Spoke thickness and count:** Thinner spokes are lighter and more flexible, but they may break under load. Thicker spokes are stronger, but they reduce compliance and increase print time and material cost. The number of spokes also affects load distribution and spoke-to-spoke resonance.
+- **Spoke geometry:** The amplitude and frequency of the sinusoidal S-curve determine how much the spoke bends before reaching its elastic limit. A deeper S-curve provides more compliance but requires more material and may be harder to print without support.
+- **Rim wall thickness:** The outer ring must be stiff enough to maintain a circular shape under load, but not so thick that it becomes brittle or difficult to print without warping.
+- **Tread lug height and angle:** Chevron treads must protrude enough to grip smooth floors, but tall lugs can catch on carpet edges or produce vibration. The angle of the chevron affects both forward traction and lateral stability.
+- **Hub interface geometry:** The central hole and the coupler mounting surface must fit the motor shaft precisely. An overly tight fit stresses the hub during assembly. An overly loose fit causes backlash and encoder errors.
+- **Overall diameter:** A larger diameter rolls more easily over obstacles but raises the center of gravity. A smaller diameter improves stability but reduces ground clearance.
+
+An engineer starting with a rough concept would print a version, mount it on the rover, run it across representative floor surfaces, and observe where it fails, flexes too much, or prints poorly. Each observation leads to a targeted change, and the cycle repeats.
+
+## What the Final Design Settled On
+
+After eight or more iterations, the design converged on a specific combination: a two-part sinusoidal S-curve spoke geometry, a single-piece rim and tire body printed in PLA+, chevron tread lugs, and a dedicated printed shaft coupler with M4 threads. This final combination represents the point in the design space where the team judged that compliance, strength, printability, traction, and cost were all acceptably balanced.
+
+The number of iterations suggests that early designs failed in one or more of these dimensions. Perhaps early spokes were too rigid and the rover bounced excessively. Perhaps early tread patterns slipped on polished tile. Perhaps early rim walls cracked during mounting. The source does not say which specific failures occurred, which is normal for a technical summary: the iteration count signals refinement without requiring a full failure log.
+
+## The Value of Documenting Iteration Count
+
+Stating that a design went through eight or more iterations serves a purpose beyond technical detail. It communicates that the component was treated seriously, that the team was willing to revise rather than accept the first working prototype, and that the final geometry is the product of comparative testing rather than guesswork.
+
+For a caregiving robot, this matters because reliability is not optional. A wheel that cracks after three months of use is not merely an inconvenience; it is a failure mode that could immobilize the rover during an emergency. The iteration count is an implicit signal that the design was hardened against such failures.
+
+## General Background on Iterative Hardware Design
+
+In general, iterative hardware development follows a pattern of prototype, test, analyze, and refine. Each prototype is not expected to be perfect; it is expected to teach something specific. A prototype with deliberately thin spokes teaches whether thinness is viable. A prototype with exaggerated tread height teaches whether grip or vibration dominates. The knowledge from each prototype narrows the design space until a final configuration emerges.
+
+This process is especially important for 3D-printed parts because printing introduces its own variables: layer adhesion strength, print orientation effects on part strength, warping during cooling, and surface finish. A wheel design that works in simulation or in a CAD stress analysis may still fail when printed because the printed material has anisotropic properties, meaning it is stronger in some directions than others depending on how the layers were deposited.
+
+## How Iterations Connect to System Reliability
+
+The wheel is one of the most mechanically stressed components on HollowRover. It supports the rover's weight (including the 5000 mAh LiPo battery, the RDK X5 compute unit, the dual ESP32 controllers, the medication dispenser, and the 6-DOF arm) while rolling over thresholds and floor transitions. It must maintain dimensional stability so that the encoder-based odometry used by SLAM Toolbox remains accurate. It must not delaminate or fracture because a failed wheel would disable the rover entirely.
+
+The eight-plus iterations therefore contributed directly to system-level reliability. Every revision that improved spoke durability, rim stability, or tread grip reduced the probability of a mission-ending mechanical failure. For a system that must autonomously respond to falls, seizures, and intrusions, this probability reduction is a significant design achievement.
+
+## Why This Matters
+
+For the families and caregivers who depend on LifeSphere, the wheel iteration story means that the robot was built with attention to real-world durability. A hastily designed wheel might work beautifully on a test bench and fail within weeks on a real floor. The iterative process is the difference between a demonstration prototype and a deployable caregiving device.
+
+## Limits
+
+The source document does not identify which iterations failed or why, does not specify the test protocol used to evaluate each iteration, and does not compare the final design quantitatively to earlier versions. The number eight is approximate ("8+"), meaning the actual count may be higher. Whether the iterations were spaced over days, weeks, or months is not stated.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Wheel Design Overview" icon="truck" href="/hollowrover/wheels/overview">
+    The complete wheel assembly and its role in HollowRover's mobility.
+  </Card>
+
+  <Card title="S-Curve Spokes" icon="wave-square" href="/hollowrover/wheels/s-curve-spokes">
+    How the two-part sinusoidal spoke geometry provides controlled compliance.
+  </Card>
+
+  <Card title="Material and Printing" icon="gears" href="/hollowrover/wheels/material-and-printing">
+    Why PLA+ and single-piece printing support reliable, repeatable wheels.
+  </Card>
+
+  <Card title="Stress Testing" icon="shield-halved" href="/hollowrover/wheels/stress-testing">
+    What is known about how the final wheel was validated under load.
+  </Card>
+</CardGroup>

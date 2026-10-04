@@ -1,0 +1,56 @@
+---
+title: "HollowRover Caregiving Assist: Retrieval and Handoff"
+sidebarTitle: "Caregiving Assist"
+description: "Learn how HollowRover's 6-DOF arm retrieves dropped medication, hands water and pills to the user, and reduces bending and reaching for elderly people living alone."
+icon: "hand"
+---
+
+HollowRover's caregiving assist mode turns the robotic arm from a passive tool into an active helper that brings physical objects to the user, reducing the need to bend, reach, or get up from a chair or bed. This matters because falls and musculoskeletal strain are leading causes of injury among elderly people living alone; every avoided bend or stretch is a prevented risk.
+
+## What caregiving assist covers
+
+The arm performs three main caregiving actions: retrieving dropped objects from the floor, handing medication and water to the user at an accessible height, and holding personal items such as a remote or mobile phone within easy reach. Each action uses the same six joints and the same gripper, but with different target poses planned by the Manipulator controller.
+
+## Retrieving dropped objects from the floor
+
+Dropped medication strips, small containers, or personal items are common in elderly households. The rover navigates to the approximate zone where the object lies, then the arm extends downward with the gripper open. The TF-Luna single-point time-of-flight sensor, mounted near the wrist, measures distance to the floor or object surface so the arm does not crash into the ground. Once the gripper closes around the object, the elbow and shoulder lift it clear of obstacles, the wrist pitch keeps the object level, and the base rotation aims toward the user. The rover then drives to the user's last-known UWB position and presents the item.
+
+## Handing medication and water
+
+When the medication schedule fires from `lifesphere/hollowcore/med_schedule` in Firebase, HollowRover's internal dispenser releases the dose through its shutter mechanism. The arm then picks up the dispensed medication (or a pre-placed water cup) and raises it to a comfortable handoff height. The target height is typically lap to chest level, chosen so the seated user can receive the item without twisting or standing. Wrist roll aligns the object so the user can grasp it naturally; wrist pitch prevents spilling. After the gripper opens and the user takes the item, the arm retracts to a stowed posture beneath the LiDAR scan plane.
+
+## Reducing bending and reaching
+
+Bending to the floor raises center-of-gravity shift and balance risk, especially for people with reduced proprioception (awareness of body position) or lower-limb weakness. Reaching overhead can strain shoulders and destabilize a seated posture. By bringing objects to the user rather than requiring the user to go to the objects, the arm inserts a physical buffer between the elderly person's body and common injury scenarios. This is not merely convenience; it is a direct extension of the zero-interaction principle into the physical domain.
+
+## How the arm coordinates with SphereAI
+
+SphereAI can verbally guide the user when the arm is approaching. For example, if the rover is delivering medication after a missed-dose alert, SphereAI may announce, "I am bringing your medication now; please hold out your hand." The voice output uses the MAX98357A amplifier and the 3 W speaker on the rover body. If the user seems confused or distressed, SphereAI can pause the arm and ask whether help is needed, because the rover subscribes to `sphereai/emotional_state` and can inhibit motion commands when stress is high.
+
+## How it connects to the rest of LifeSphere
+
+Caregiving assist is triggered by schedule events from HollowCore, by fall-detected events from Vital32 (the arm may bring water while the rover checks on the user), or by guardian-initiated commands sent through Firebase. The arm's end-effector pose is not shared back to Firebase in real time; the Manipulator controller handles local trajectory generation and collision checks using the TF-Luna depth reading. This is intentional: arm motion requires sub-10 ms servo updates, so offloading to the dedicated ESP32 avoids loading the RDK X5 with high-frequency inverse kinematics.
+
+## Limits
+
+The source does not specify how the arm distinguishes a target object from clutter on the floor, whether computer vision guides grasp alignment, or what happens if the user cannot open their hand to receive an item. In general, open-loop gripping without tactile feedback risks dropping fragile objects or failing to grasp smooth surfaces. The arm also cannot open doors, operate appliances, or lift the user. Its role is object transport within the rover's navigation map, not full domestic assistance.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Arm Overview" icon="robot" href="/hollowrover/arm/overview">
+    Joint-by-joint breakdown of the 6-DOF arm, servo types, and kinematic roles.
+  </Card>
+
+  <Card title="Passive Barrier" icon="shield-halved" href="/hollowrover/arm/passive-barrier">
+    The arm's alternate security role: blocking chokepoints against unregistered intruders.
+  </Card>
+
+  <Card title="LiDAR Occlusion" icon="eye" href="/hollowrover/arm/lidar-occlusion">
+    Why the arm stows below the LiDAR plane during navigation and only rises when the rover is stationary.
+  </Card>
+
+  <Card title="Medication Delivery" icon="pills" href="/hollowrover/protocols/medication-delivery">
+    The full protocol from prescription reading through dispenser release to rover handoff.
+  </Card>
+</CardGroup>

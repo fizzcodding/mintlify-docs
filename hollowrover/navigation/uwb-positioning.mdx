@@ -1,0 +1,112 @@
+---
+title: "UWB Positioning: True 2D Trilateration Within 10 Centimeters"
+sidebarTitle: "UWB Positioning"
+description: "HollowRover localizes precisely on each floor using DWM1000 UWB modules and true three-anchor 2D trilateration, avoiding left-right ambiguity."
+icon: "location-dot"
+---
+
+HollowRover determines its horizontal position on any floor using ultra-wideband (UWB) radio ranging with three fixed anchors per floor, achieving accuracy to within 10 centimeters through true 2D trilateration.
+
+## What UWB means
+
+Ultra-wideband (UWB) is a short-range radio technology that measures distance by timing extremely narrow pulses. Unlike Bluetooth or Wi-Fi, which estimate distance indirectly from signal strength, UWB calculates time-of-flight between a tag and an anchor. Because radio pulses travel at the speed of light, very small timing errors translate into small distance errors, producing the centimeter-level precision needed for indoor robotics.
+
+The rover carries a UWB tag, while each registered floor has three fixed anchors at known positions. The anchors are placed so they are not all in a straight line (non-collinear), which is required for a unique position solution.
+
+## Two-anchor ambiguity and why three anchors matter
+
+With only two anchors, a robot can measure its distance to each anchor and draw two circles. Those circles intersect at two points, one on each side of the line connecting the anchors. This is the left-right ambiguity: the robot cannot tell which intersection is correct without extra information such as a previous position guess or a third measurement.
+
+LifeSphere uses three anchors on every floor. Three circles from three non-collinear anchors intersect at a single unique point in the plane. This is called true 2D trilateration, and it removes the ambiguity without relying on motion history or heuristics.
+
+## The trilateration equations
+
+Let the three anchor positions be (A = (a_x, a_y)), (B = (b_x, b_y)), and (C = (c_x, c_y)). The measured distances from the rover tag to each anchor are (r_A), (r_B), and (r_C). The unknown rover position is ((x, y)).
+
+Each distance defines a circle:
+
+$$
+(x - a_x)^2 + (y - a_y)^2 = r_A^2
+$$
+
+$$
+(x - b_x)^2 + (y - b_y)^2 = r_B^2
+$$
+
+$$
+(x - c_x)^2 + (y - c_y)^2 = r_C^2
+$$
+
+Subtract the first equation from the second and third to eliminate the quadratic terms. This yields a linear system:
+
+$$
+A \begin{bmatrix} x \\ y \end{bmatrix} = b
+$$
+
+where
+
+$$
+A = \begin{bmatrix}
+2(b_x - a_x) & 2(b_y - a_y) \\
+2(c_x - a_x) & 2(c_y - a_y)
+\end{bmatrix}
+$$
+
+and
+
+$$
+b = \begin{bmatrix}
+r_A^2 - r_B^2 + b_x^2 - a_x^2 + b_y^2 - a_y^2 \\
+r_A^2 - r_C^2 + c_x^2 - a_x^2 + c_y^2 - a_y^2
+\end{bmatrix}
+$$
+
+The solution is:
+
+$$
+\begin{bmatrix} x \\ y \end{bmatrix} = A^{-1} b
+$$
+
+Three non-collinear anchors guarantee that the matrix (A) is invertible, so there is exactly one solution.
+
+## Plain-language interpretation
+
+In plain terms, the rover knows exactly where each anchor is installed. It radios each anchor and measures how long the reply takes. Those three time measurements become three distances. By combining the distances with the known anchor coordinates, the rover solves for its own coordinates. The math is equivalent to finding the one point where three circles overlap.
+
+## Why this matters
+
+Ten-centimeter accuracy means the rover can navigate narrow hallways, stop precisely beside a fallen person, and align its arm for medication handoff without guessing. In an emergency, guesswork is not acceptable.
+
+## How it connects to the rest of LifeSphere
+
+UWB horizontal positioning is paired with [barometric floor detection](/hollowrover/navigation/barometric-floor-detection) to form a complete 3D location system. Barometric pressure identifies the vertical floor context; three-anchor UWB resolves precise horizontal position. Once the floor is known, the rover selects that floor's SLAM map and anchor set, then proceeds along a Nav2-planned route.
+
+EntryGuard alert payloads include a UWB zone reference and a floor pressure reference. When an alert fires, the rover uses the pressure reference to confirm the floor, loads the correct map and anchor geometry, localizes, and drives to the zone.
+
+The Vital32 wearable also carries a UWB tag. It is ranged within the same floor reference, so the system can correlate the person's body position with the rover's position when needed. The wearable also acts as a BLE beacon, which the rover uses for coarser person-finding when UWB coverage is lost. See [BLE Person-Finding](/hollowrover/navigation/ble-person-finding).
+
+## Limits
+
+UWB requires line-of-sight or near-line-of-sight to each anchor. Thick concrete walls or metal cabinets can block or reflect signals, producing multipath errors. The source does not specify how the system handles temporary anchor occlusion.
+
+Positions are accurate in the horizontal plane only. UWB does not provide a reliable Z-axis (height) for floor identification, which is why barometric sensing handles the vertical dimension separately.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Barometric Floor Detection" icon="temperature-half" href="/hollowrover/navigation/barometric-floor-detection">
+    Pressure baselines that tell the rover which floor it is on before localizing horizontally.
+  </Card>
+
+  <Card title="Multi-Floor Map Switching" icon="layer-group" href="/hollowrover/navigation/multi-floor-maps">
+    How the rover pairs each floor with its own map, anchors, and pressure baseline.
+  </Card>
+
+  <Card title="BLE Person-Finding" icon="bluetooth" href="/hollowrover/navigation/ble-person-finding">
+    Fallback search using the wearable's BLE beacon when UWB coverage is unavailable.
+  </Card>
+
+  <Card title="Mapping and SLAM" icon="map" href="/hollowrover/navigation/mapping-and-slam">
+    Building the occupancy grids that Nav2 uses for path planning after localization.
+  </Card>
+</CardGroup>

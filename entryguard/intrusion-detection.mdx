@@ -1,0 +1,75 @@
+---
+title: "EntryGuard Intrusion Detection: Motion, Distance, and Mode"
+sidebarTitle: "Intrusion Detection"
+description: "EntryGuard detects intrusion using PIR motion and ultrasonic distance, gated by system mode, and links every confirmed event to the shared intruder_detected state field."
+icon: "user-secret"
+---
+
+EntryGuard's intrusion detection capability turns a doorway or hallway into a smart checkpoint that can distinguish between ordinary household movement and unauthorized entry. It does this by combining two physical sensing principles and a behavioral gate tied to the system's operating mode.
+
+## The Two-Sensor Approach
+
+Each EntryGuard node uses two complementary sensors for motion detection:
+
+- A **PIR (passive infrared) sensor** detects warm-body movement across its field of view by sensing changes in infrared radiation. When a person walks past the sensor, their body heat alters the infrared pattern the sensor sees, generating a trigger signal.
+- An **ultrasonic distance sensor** emits a short pulse of high-frequency sound and measures the time until the echo returns. This gives a precise distance to the nearest solid object in front of the node.
+
+The PIR sensor is excellent at detecting that something warm is moving, but it cannot tell how far away the source is. The ultrasonic sensor gives distance but cannot identify whether the object is a person. Used together, they provide both detection and confirmation: motion is detected by the PIR, and the ultrasonic reading gives a distance context that helps the system decide whether the event is near the monitored threshold.
+
+## Mode Gating
+
+Not all motion should raise an alarm. A resident walking to the kitchen at night is normal; a stranger entering through the front door at 2 a.m. is not. EntryGuard controls this through the `entryguard.mode` field in the shared biological state.
+
+When the mode is **ACTIVE**, motion alerts are enabled. The PIR trigger combined with a meaningful ultrasonic distance reading can lead to a motion alert. When the mode is **PASSIVE**, the node continues to sense but does not emit intrusion alerts. This allows the system to collect ambient data and remain ready without disturbing the resident during ordinary activity.
+
+The mode can change automatically based on other subsystem signals. For example, HollowCore may set the mode to ACTIVE when the home is empty or when the resident is asleep, based on combined sleep detection from Vital32.
+
+## The Alert Sequence
+
+When the conditions are met, the node constructs a motion alert payload. The payload includes:
+
+- Alert type: motion
+- Distance value from the ultrasonic sensor
+- Node identity
+- UWB zone reference for horizontal location
+- Barometric pressure reference for floor level
+
+This payload is published to both Firebase and the local MQTT broker, ensuring the rover receives it quickly while the shared state remains synchronized.
+
+## Face Check at Chokepoints
+
+At certain monitored chokepoints, such as a hallway leading to valuables or sensitive rooms, the intrusion pipeline is extended with face recognition. When the TF-Luna single-point time-of-flight sensor at the chokepoint detects a presence, the camera feed is routed into the face recognition pipeline. If the face is unmatched against the locally stored registered profiles, the system flags the event as a higher-priority anomaly and may trigger the passive barrier response.
+
+## Why This Matters
+
+Traditional home alarm systems either alert on every motion, causing frequent false alarms that lead users to disable them, or rely on manual arming and disarming, which elderly residents may forget or find difficult. EntryGuard's mode gating and dual-sensor fusion are designed to reduce false positives while remaining fully autonomous. The resident never needs to press a button.
+
+## How It Connects to the Rest of LifeSphere
+
+- **HollowRover** receives the alert payload and navigates to the UWB zone on the referenced floor. If the face recognition result is "unregistered," the rover may deploy its arm as a passive barrier and sound an audible alarm.
+- **SphereAI** can issue a verbal challenge or calming statement through the rover's speaker depending on the situation.
+- **HollowCore** reads `entryguard.intruder_detected` and may turn on lights to expose the area.
+
+## Limits
+
+The source does not specify the exact ultrasonic distance threshold that qualifies as an intrusion, nor the exact mode-transition rules. The PIR sensor can be triggered by pets, heaters, or direct sunlight, so placement and calibration are necessary. Face recognition accuracy is lighting-dependent, and local profile storage is limited to the storage capacity of the HollowRover.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Components" icon="microchip" href="/entryguard/components">
+    Full breakdown of the PIR, ultrasonic, and other sensors in each node.
+  </Card>
+
+  <Card title="Face Recognition" icon="eye" href="/entryguard/face-recognition">
+    How InsightFace classifies registered and unregistered faces.
+  </Card>
+
+  <Card title="Threat Classification" icon="circle-question" href="/entryguard/threat-classification">
+    How the system interprets motion, fire, and gas signals.
+  </Card>
+
+  <Card title="Floor-Aware Dispatch" icon="layer-group" href="/entryguard/floor-aware-dispatch">
+    How the rover uses floor and zone references to reach an alert location.
+  </Card>
+</CardGroup>

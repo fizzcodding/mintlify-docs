@@ -1,0 +1,67 @@
+---
+title: "LifeSphere 20-Slot Carousel: Dividing a Circle Into Doses"
+sidebarTitle: "Carousel"
+description: "LifeSphere's medication carousel splits 360 degrees into 20 identical slots, giving each medication a unique 18-degree mechanical address for precise dispensing."
+icon: "circle-notch"
+---
+
+The medication carousel is the storage and indexing backbone of the LifeSphere dispenser. It is a rotating disc divided into 20 identical compartments that each hold one medication type or dosage grouping. By splitting a full 360-degree circle into 20 equal angular segments, the mechanism creates a simple and reliable coordinate system: every medication loaded into the device is assigned a slot number, and that number maps directly to a known rotation angle. This page explains why a 20-slot design was chosen, how the geometry works, and what trade-offs come with the capacity.
+
+## Why indexed slots matter
+
+In a fully autonomous system, there is no human present to read a label or choose a bottle. The dispenser must know, mechanically and electronically, where each medication lives. An indexed carousel solves this by making position and identity one and the same. When the schedule calls for "medication in slot 7," the controller knows exactly how many degrees to rotate. There is no vision system reading labels, no barcode scanner, and no ambiguity. This simplicity is what allows the device to operate reliably for weeks without human intervention.
+
+## The geometry
+
+A complete rotation of the carousel is 360 degrees. With 20 equally spaced slots, the angle between the center of any two neighboring slots is:
+
+$$
+\frac{360^{\circ}}{20} = 18^{\circ}
+$$
+
+This means slot 1 is at 0 degrees, slot 2 at 18 degrees, slot 3 at 36 degrees, and so on up to slot 20 at 342 degrees. After the twentieth slot, the geometry wraps back to the first, so the controller can reach any slot by rotating forward or backward through the shortest arc.
+
+The small, fixed step size is what makes closed-loop correction practical. If the encoder detects that the carousel stopped at 37.2 degrees instead of the expected 36 degrees for slot 3, the controller can issue a small reverse command to nudge the disc back into alignment. Because every slot boundary is a known, quantized angle, the firmware never has to guess whether it is "close enough."
+
+## Capacity and care planning
+
+Twenty slots is a deliberate capacity point. It is large enough to handle a typical elderly user's multi-drug regimen, including separate morning, afternoon, and evening doses, without requiring daily reloading. At the same time, it keeps the diameter of the carousel manageable inside the HollowRover chassis, where space must also be shared with the arm, water reservoir, compute stack, and battery.
+
+In general, medication organizers for chronic conditions often provide 7 to 14 compartments for weekly use. LifeSphere's 20-slot carousel extends that model to cover longer loading intervals or more complex regimens, reducing the burden on family members or caregivers who would otherwise need to visit frequently to restock the device.
+
+## How it connects to the rest of LifeSphere
+
+The carousel is the physical layer beneath several coordinated behaviors:
+
+- **HollowRover's schedule engine** maintains a mapping from Firebase slot numbers to drug names and dosages. When a timer fires, the engine looks up the slot index and issues the rotation command.
+- **The AS5600 encoder** verifies that the mechanical angle matches the expected slot index. Any deviation triggers a correction before the shutter opens.
+- **The TMC2209 stepper driver** delivers the step pulses that turn the motor. The 50 steps per slot relationship is only meaningful because the 20-slot geometry creates the 18-degree quantum.
+- **SphereAI** announces which medication is being delivered, using the same slot-to-name mapping, so the user knows what they are receiving.
+
+## Trade-offs and honest unknowns
+
+The source does not specify the physical depth or width of each slot, so the maximum pill size or capsule length the carousel can accept is not documented. It also does not state whether slots can be subdivided for multi-pill doses of the same medication, or whether the user must load identical dosages into a single slot. The 20-slot count was chosen as a balance between capacity and form factor, but the exact design constraints that led to this number over, say, 16 or 24 are not detailed.
+
+## Limits
+
+All 20 slots must be loaded correctly at setup. If a caregiver places a medication in the wrong slot, the dispenser will still rotate to the commanded angle and release the contents. There is no automatic onboard verification of pill identity, shape, or count. This is why the prescription-reading and review workflow in the companion app is critical: the slot-to-drug mapping is only as accurate as the human who loads the carousel and confirms the schedule.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Gear Reduction and Positioning" icon="gears" href="/medication/gear-reduction">
+    How a 5:1 ring-gear reduction turns coarse motor steps into precise 18-degree slot moves.
+  </Card>
+
+  <Card title="Closed-Loop Encoder Feedback" icon="wave-square" href="/medication/encoder-feedback">
+    Why step counting alone is insufficient, and how the AS5600 guarantees the carousel is exactly where it should be.
+  </Card>
+
+  <Card title="Shutter and Release" icon="lock" href="/medication/shutter-and-release">
+    The servo-driven shutter that opens only when the right slot is confirmed beneath it.
+  </Card>
+
+  <Card title="Dispenser Mechanism Overview" icon="pills" href="/medication/dispenser-overview">
+    The full sequence from Firebase schedule to dose delivery, including all components working together.
+  </Card>
+</CardGroup>

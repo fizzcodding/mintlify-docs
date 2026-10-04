@@ -1,0 +1,108 @@
+---
+title: "Multi-Timescale Inference: From Seconds to Days"
+sidebarTitle: "Multi-Timescale Inference"
+description: "LifeSphere runs inference on three timescales: 30-second acute anomaly detection, 15-minute emotional and cortisol cycles, and 24-hour longitudinal biological age and cognitive tracking."
+icon: "wave-square"
+---
+
+Biological processes operate across a vast range of timescales. A heart can skip a beat in milliseconds. Stress can build over minutes. Immune activation can develop over days. A caregiving system that only looks at one timescale will miss either the immediate emergency or the slow decline that precedes it. LifeSphere addresses this by running inference on three distinct cycles, each with its own inputs, models, and outputs.
+
+## The three inference cycles
+
+<CardGroup cols={3}>
+  <Card title="Short cycle: 30 seconds" icon="heart-pulse">
+    Acute anomaly detection, biometric feature extraction, and real-time state scoring.
+  </Card>
+
+  <Card title="Medium cycle: 15 minutes" icon="brain">
+    Emotional state classification, cortisol estimation, and stress level updates.
+  </Card>
+
+  <Card title="Long cycle: 24 hours" icon="scale-balanced">
+    Biological age estimation, cognitive baseline deviation, and circadian rhythm modeling.
+  </Card>
+</CardGroup>
+
+## Short cycle: acute anomaly detection
+
+Every 30 seconds, Vital32 processes a normalized biometric feature vector and runs the real-time anomaly detector. This cycle captures rapid physiological changes that could indicate an imminent emergency.
+
+Inputs include the most recent cardiac signals, motion data, skin temperature, galvanic skin response, and bioimpedance. The anomaly scoring pipeline outputs a score from 0 to 1. If the score exceeds 0.7, the system generates a soft alert. If it exceeds 0.9, an emergency protocol is dispatched to HollowRover.
+
+This cycle also outputs the `fall_detected` flag (derived from accelerometer freefall and impact detection), the `seizure_prob` value from the LSTM sequential model, and the `immune_alert` flag for immune-activation anomalies. While immune activation and pre-seizure detection are design goals rather than validated capabilities, the short cycle is the timescale at which they would surface.
+
+The short cycle also handles the Firebase upload of all raw and processed biometric fields, ensuring the shared state remains fresh.
+
+## Medium cycle: emotional and cortisol inference
+
+Every 15 minutes, SphereAI updates its trimodal emotional classification and the cortisol estimator refreshes its output.
+
+The emotional classifier fuses three streams: language (transcribed speech processed through DistilBERT sentiment analysis), voice (MFCCs, pitch, energy, and rhythm extracted via Librosa), and biology (live Vital32 biomarkers including heart rate variability and galvanic skin response). A dynamic weighted meta-classifier combines these streams with context-adaptive weights that shift depending on the prior emotional state. The outputs include `emotional_state`, `stress_level`, `loneliness_index`, and `cognitive_score`.
+
+Simultaneously, the cortisol estimator runs a Gradient Boosting model with 200 trees, taking RMSSD, GSR baseline, skin temperature, and sleep efficiency as inputs. The output feeds into HollowCore's environmental response rules. When the estimate exceeds 18.0, HollowCore triggers warm dim lighting and lowers the air conditioning temperature.
+
+This 15-minute cadence reflects the slower dynamics of emotional and endocrine states. Stress does not change meaningfully in seconds, but it can shift substantially over a quarter hour of accumulating pressure.
+
+## Long cycle: longitudinal health trajectories
+
+Every 24 hours, LifeSphere updates its deepest longitudinal models over a 30-day rolling window.
+
+The biological age clock, an ensemble of Random Forest and XGBoost models, outputs an estimated biological age in years. This is not the user's chronological age but rather a multi-sensor fusion estimate of how aged their physiological systems appear based on current biomarkers. The model compares the user to their own baseline rather than to population averages, which is a core design principle of the system.
+
+The cognitive tracker uses CUSUM (cumulative sum control chart) statistical drift detection to monitor deviation from the user's personal baseline. Inputs come from speech patterns over the preceding days: unique word ratio, topic repetition, and semantic coherence. A threshold of two standard deviations from baseline triggers a cognitive alert. This long-cycle tracking is the foundation for the design goal of early cognitive decline detection.
+
+The long cycle also maintains a personalized circadian rhythm model, correlating biometric patterns with time of day to improve the accuracy of sleep detection and activity forecasting.
+
+## Why three cycles instead of one
+
+A single inference rate cannot serve all biological monitoring needs. Running the full emotional classifier and biological age ensemble every 30 seconds would waste compute and battery without improving outcomes. Running anomaly detection only once per day would miss emergencies entirely.
+
+The multi-timescale approach is analogous to how clinical medicine works: continuous cardiac monitors catch arrhythmias in real time, nursing checks assess comfort every few hours, and annual labs track chronic trends. LifeSphere automates this temporal stratification across its AI stack.
+
+## How it connects to the rest of LifeSphere
+
+<AccordionGroup>
+  <Accordion title="Anomaly scoring">
+    The Isolation Forest and LSTM pipeline for short-cycle detection is detailed in <a href="/ai/isolation-forest">Anomaly Scoring</a> and <a href="/ai/pre-seizure-lstm">Pre-Seizure LSTM</a>.
+  </Accordion>
+
+  <Accordion title="Emotional classifier">
+    The trimodal fusion weights and meta-classifier are covered in <a href="/ai/emotional-classifier">Emotional Classifier</a>.
+  </Accordion>
+
+  <Accordion title="Cortisol estimator">
+    The Gradient Boosting model and HollowCore response thresholds are in <a href="/ai/cortisol-estimator">Cortisol Estimator</a>.
+  </Accordion>
+
+  <Accordion title="Biological age clock">
+    The ensemble model and daily update cycle are explained in <a href="/ai/biological-age-clock">Biological Age Clock</a>.
+  </Accordion>
+
+  <Accordion title="Cognitive tracker">
+    The CUSUM drift detection and speech-based inputs are described in <a href="/ai/cognitive-tracker">Cognitive Tracker</a>.
+  </Accordion>
+</AccordionGroup>
+
+## Limits
+
+The source does not specify how the cycles are synchronized or whether they share intermediate computations (for example, whether HRV computed for the short cycle is reused for the medium cycle). The 30-second upload cadence described in the firmware and the 30-second short-cycle inference described in the architecture section are presented as separate facts; this page preserves both without inventing reconciliation details. No accuracy metrics or validation results exist for any of the models at any timescale.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="AI Overview" icon="brain" href="/ai/overview">
+    The complete AI stack and model inventory.
+  </Card>
+
+  <Card title="Vital32 Predictions" icon="heart-pulse" href="/vital32/predictions/anomaly-scoring">
+    How the wearable feeds data into all three timescales.
+  </Card>
+
+  <Card title="SphereAI Understanding" icon="brain" href="/sphereai/understanding/meta-classifier">
+    The trimodal emotional classification pipeline.
+  </Card>
+
+  <Card title="Shared Biological State" icon="layer-group" href="/core/shared-biological-state">
+    Which fields update on which cycle.
+  </Card>
+</CardGroup>

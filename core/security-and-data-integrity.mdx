@@ -1,0 +1,84 @@
+---
+title: "Security and Data Integrity: Protecting Biometric Trust"
+sidebarTitle: "Security and Data Integrity"
+description: "LifeSphere encrypts biometric data in transit, stores face profiles locally, validates sensor readings against physical bounds, and requires authentication for database access."
+icon: "lock"
+---
+
+A system that continuously records an elderly person's heart rhythm, emotional state, home location, and financial transactions holds extraordinary sensitive data. Security in LifeSphere is not an afterthought layered on top of functionality. It is a set of structural guarantees that protect biological privacy, prevent false alerts from sensor faults, and ensure that autonomous actions cannot be hijacked.
+
+## Encryption in transit
+
+All biometric and personal data traveling between subsystems and Firebase uses TLS encryption. TLS (Transport Layer Security) is the standard cryptographic protocol that protects data as it moves across networks, preventing eavesdroppers from reading heart rates, emotional states, or location data even if they intercept the network traffic.
+
+This applies to all five subsystems. When Vital32 uploads a new biometric vector, when SphereAI publishes an emotional state update, when HollowCore reports relay status, and when EntryGuard sends an alert, the data is encrypted before it leaves the device and decrypted only by the authenticated recipient.
+
+## Local face profile storage
+
+Face recognition data is among the most sensitive biometric information a system can hold. LifeSphere stores all face recognition profiles locally on HollowRover and never transmits them to external servers. This means that even if Firebase or the broader internet connection is compromised, an attacker cannot extract the user's facial biometric template.
+
+The InsightFace service with the buffalo_sc model pack runs on ONNX Runtime locally on the rover. The FastAPI service processes camera feeds and compares faces against the locally stored profile database. Guardians reviewing intruder alerts receive MJPEG live streams, not stored face templates.
+
+## Sensor plausibility filtering
+
+Before any sensor reading enters an inference pipeline, it is validated against physical plausibility bounds. This filtering serves two purposes: it prevents hardware faults from triggering false biological alerts, and it protects against data injection attacks that might attempt to feed impossible values into the system.
+
+For example, a heart rate of 300 beats per minute or a skin temperature below 20 degrees Celsius would be flagged as physically implausible and discarded rather than fed into the anomaly detector. The source does not specify the exact bounds for every field, but the principle is applied across all sensor channels.
+
+This filtering is particularly important for the zero-interaction design. Because the user does not manually confirm readings, the system must be able to distinguish a detached sensor from a genuine medical emergency.
+
+## Authenticated database access
+
+Firebase Realtime Database access is restricted to authenticated clients only. Each subsystem authenticates with the database using credentials that limit it to specific branches of the JSON tree. Vital32 can write to `lifesphere/vital32` but cannot directly modify `lifesphere/hollowcore` fields. HollowCore can read from `lifesphere/vital32` but cannot write face profiles.
+
+This role-based separation prevents a compromised microcontroller from corrupting the entire shared state. If one node's credentials are exposed, the blast radius is limited to its own branch.
+
+## Intruder response authorization
+
+EntryGuard's intruder response pipeline includes a mandatory human authorization step before any defensive action. When an unregistered face is detected at a monitored chokepoint, the system simultaneously initiates three responses: the robotic arm blocks the pathway, an audible alarm sounds, and an instant push notification with live camera feed is sent to the guardian's phone.
+
+However, any escalation beyond this initial deterrent (such as physical contact, pursuit, or continued obstruction) requires explicit human authorization. The autonomous system is permitted to passively block and alarm, but it cannot autonomously decide to escalate against a person.
+
+## Why this matters
+
+For an elderly user and their family, trust in the system is as important as its functional capabilities. A breach of biometric data could expose intimate health details. A false alert from an unfiltered sensor fault could trigger an unnecessary emergency response. An unauthorized autonomous action against a visitor could cause injury and liability. Security and data integrity are the foundation upon which all other promises rest.
+
+## How it connects to the rest of LifeSphere
+
+<AccordionGroup>
+  <Accordion title="Human authorization">
+    The complete framework for autonomous versus human-gated actions is in <a href="/core/human-authorization">Mandatory Human Authorization</a>.
+  </Accordion>
+
+  <Accordion title="Fault tolerance">
+    How the system maintains security during failures is covered in <a href="/core/fault-tolerance">Fault Tolerance and Graceful Degradation</a>.
+  </Accordion>
+
+  <Accordion title="Privacy by design">
+    The ethical and architectural privacy principles are detailed in <a href="/design/privacy-by-design">Privacy by Design</a>.
+  </Accordion>
+</AccordionGroup>
+
+## Limits
+
+The source does not specify the exact TLS version or cipher suites used. It does not describe key management for Firebase authentication credentials on embedded devices. The plausibility bounds for each sensor are not numerically defined in the available documentation. The project has not undergone third-party security auditing, and the open-source nature of some dependencies means that vulnerabilities in upstream libraries could affect the system.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Human Authorization" icon="hand" href="/core/human-authorization">
+    The boundary between autonomous care and human-gated action.
+  </Card>
+
+  <Card title="Privacy by Design" icon="shield-halved" href="/design/privacy-by-design">
+    Ethical and architectural privacy principles.
+  </Card>
+
+  <Card title="EntryGuard Face Recognition" icon="eye" href="/entryguard/face-recognition">
+    How local face storage and recognition work.
+  </Card>
+
+  <Card title="Fault Tolerance" icon="battery-full" href="/core/fault-tolerance">
+    Maintaining function and security during failures.
+  </Card>
+</CardGroup>

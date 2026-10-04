@@ -1,0 +1,70 @@
+---
+title: "HollowRover Arm Safety Rules: Passive and Human-Controlled"
+sidebarTitle: "Safety Rules"
+description: "HollowRover's arm safety rules: passive barrier only, no contact, no autonomous defensive decisions, and mandatory human authorization before any escalation."
+icon: "scale-balanced"
+---
+
+The arm safety rules define the ethical and operational boundaries within which HollowRover's 6-DOF manipulator may act. These rules are not advisory; they are hard constraints encoded into the autonomous protocol layer. They exist because a mobile robot with a motorized arm, operating unsupervised in the home of a vulnerable elderly person, carries inherent risks that only strict policy can mitigate.
+
+<Warning>
+  The arm is strictly passive. It may not contact any person, grasp any person, restrain any person, or strike any person. It may not make autonomous defensive decisions beyond the three pre-programmed responses. Any escalation beyond these responses requires explicit human authorization.
+</Warning>
+
+## Passive barrier only
+
+In security mode, the arm functions exclusively as a passive barrier. Passive means the arm moves into a fixed pose and remains there. It does not track the intruder, thrust toward them, or attempt to push them back. The goal is spatial denial: the arm occupies the passage, making it inconvenient to proceed. If the intruder stops or retreats, no further action occurs. The arm does not close the gripper on clothing or limbs, and it does not adjust its pose based on the intruder's movements. The source explicitly states that the barrier never contacts humans.
+
+## No contact, no grasping, no restraining, no striking
+
+These four prohibitions are separate and deliberate. No contact rules out even incidental brushing. No grasping prevents the gripper from closing on a person or their belongings. No restraining means the arm cannot hold someone in place by encircling a limb or blocking exit. No striking eliminates any motion that could be interpreted as attack, such as swinging the forearm with speed or force. Each prohibition addresses a different failure mode: contact could cause bruising or loss of balance in an elderly occupant misidentified as intruder; grasping could trap clothing and pull someone down; restraining could unlawfully detain a visitor; striking could cause injury and legal liability.
+
+## No autonomous defensive decisions
+
+The rover may decide to deploy the three automatic responses: arm barrier, audible alarm, and guardian notification. It may not decide anything further. It may not autonomously decide to spray water, follow the intruder, lock doors, or call emergency services. These actions require a human in the loop. The source calls this a mandatory human authorization step before any defensive action beyond the automatic triad. Authorization is expected to come through the guardian's phone app, where the live camera feed and a set of permitted actions are presented; the source does not specify the exact UI or authentication flow.
+
+## Three automatic responses
+
+When face recognition returns unmatched, the system always executes exactly these three actions simultaneously:
+
+1. The arm raises into the barrier pose across the chokepoint.
+2. An audible alarm sounds from the rover's speaker.
+3. An instant push notification with live camera feed goes to the guardian's phone.
+
+These three are exhaustive for autonomous mode. They provide physical obstacle, audible warning, and remote human visibility. They do not escalate beyond presence and information.
+
+## Human authorization for escalation
+
+If the guardian, viewing the live feed, decides that further action is appropriate, they may issue a command through the LifeSphere app. The command is authenticated and transmitted to the rover via Firebase. Only then may the rover execute additional actions, such as speaking through SphereAI, moving away, or initiating a patrol. The source does not list the exact authorized actions, but the principle is clear: the autonomous system stops at information and obstacle; kinetic or communicative escalation requires an authenticated human decision.
+
+## Why these rules exist
+
+LifeSphere is built on the principle that technology must respond to the user's biology, not demand interaction from the user. Extending this principle to security means the system must also avoid imposing force on any human. An elderly person with dementia, a visiting nurse, or a family member whose face was not enrolled could all trigger an intruder alert. A robot that contacts or restrains them would violate their dignity and safety. The passive-only design errs on the side of non-interference, accepting the trade-off that a determined intruder could eventually bypass a static arm. The system compensates through deterrence, delay, and rapid human notification rather than through physical confrontation.
+
+## How it connects to the rest of LifeSphere
+
+The safety rules are enforced by the Manipulator controller firmware and checked by the RDK X5 protocol engine. EntryGuard's face recognition pipeline, running InsightFace locally, feeds the match/unmatch decision that gates the three automatic responses. HollowCore does not command the arm directly; it sends high-level mode commands to the rover, which then applies the safety rules before any servo actuation. SphereAI's verbal interactions are also constrained: it may speak calming phrases or announce the rover's presence, but it may not issue commands that would violate the safety rules, because the protocol engine filters all actuator requests.
+
+## Limits
+
+The source does not specify how the system behaves if the guardian is unreachable, if the phone notification fails, or if the intruder disables the rover. There is no discussion of tamper detection or backup escalation paths when network connectivity is lost. In general, a passive barrier is only as effective as the human response time it enables; if the guardian is asleep or traveling, the automatic triad may not prevent loss. The source also does not describe how caregivers or emergency responders are enrolled in the face database, which affects whether legitimate visitors trigger false barriers. The design assumes that these operational details are handled during installation and guardian onboarding.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Passive Barrier" icon="shield-halved" href="/hollowrover/arm/passive-barrier">
+    How the arm blocks chokepoints and what the barrier pose looks like in practice.
+  </Card>
+
+  <Card title="Trigger Pipeline" icon="route" href="/hollowrover/arm/trigger-pipeline">
+    Detection, recognition, and the decision point that leads to the three automatic responses.
+  </Card>
+
+  <Card title="Human Authorization" icon="lock" href="/core/human-authorization">
+    The system-wide principle that no defensive escalation proceeds without authenticated human approval.
+  </Card>
+
+  <Card title="LiDAR Occlusion" icon="eye" href="/hollowrover/arm/lidar-occlusion">
+    The physical constraint that keeps the arm stowed during navigation, preventing self-obstacle errors.
+  </Card>
+</CardGroup>

@@ -1,0 +1,186 @@
+---
+title: "LifeSphere Glossary: Key Terms and Concepts"
+sidebarTitle: "Glossary"
+description: "An alphabetical glossary of terms used across the LifeSphere caregiving ecosystem, from biosensing and robotics to AI inference and home automation."
+icon: "book"
+---
+
+LifeSphere integrates wearable health sensors, autonomous robotics, affective computing, perimeter security, and responsive home automation into a single ecosystem. This glossary defines the specialized terms you will encounter throughout these docs.
+
+## A
+
+**Ackermann steering**: A steering geometry where the inner wheel turns more sharply than the outer wheel during a turn. HollowRover uses this to minimize tire scrub and enable precise path following for SLAM navigation.
+
+**Anomaly score**: A value from 0 to 1 produced by the Isolation Forest model that indicates how unusual the user's current biometrics are compared to their personal baseline. A score above 0.7 triggers a soft alert; above 0.9 triggers an emergency protocol dispatch.
+
+## B
+
+**Barometric floor detection**: A method of determining which floor the user or rover is on by comparing current atmospheric pressure against calibrated baselines stored for each registered floor. This works because air pressure decreases predictably with altitude.
+
+**Biological age clock**: An AI model that estimates the user's biological age in years based on multi-sensor fusion. It updates once per day on a 24-hour inference cycle and compares the user to their own baseline rather than a population average.
+
+**BME688**: A sensor that measures volatile organic compounds (VOCs) and humidity. In LifeSphere it serves dual roles: environmental air quality monitoring on Vital32 and barometric floor detection on HollowRover and EntryGuard nodes.
+
+**BLE RSSI**: Bluetooth Low Energy Received Signal Strength Indication. A measure of radio signal strength used by HollowRover for coarse person-finding when the user is outside UWB coverage. The rover samples signal strength from multiple headings to estimate direction.
+
+## C
+
+**Central biological state**: The shared JSON tree in Firebase Realtime Database that all five LifeSphere subsystems read from and write to. It acts as the ecosystem's central nervous system, synchronizing data across hardware nodes with a target latency of 150 milliseconds.
+
+**CUSUM**: Cumulative sum control chart, a statistical method used by the cognitive tracker to detect gradual drift in speech patterns from the user's personal baseline. It flags when cumulative deviations exceed a threshold of two standard deviations.
+
+## D
+
+**DistilBERT**: A lightweight variant of the BERT language model used by SphereAI's language agent to analyze the sentiment and emotional content of transcribed speech.
+
+**DWM1000**: An ultra-wideband (UWB) radio module in the DW1000 family used for precise indoor positioning. Three anchors per floor enable 2D trilateration with accuracy to within about 10 centimeters.
+
+## E
+
+**ECG waveform**: Electrocardiogram, a recording of the heart's electrical activity. Vital32 includes ECG waveform acquisition as part of its multi-sensor array, contributing to cardiac signal analysis.
+
+**Emotional state**: One of five categories output by SphereAI's meta-classifier: calm, stressed, grief, isolated, or cognitive. The classification fuses language, voice, and biomarker streams with context-adaptive weights.
+
+**ESP32**: A family of low-cost Wi-Fi and Bluetooth microcontrollers used throughout LifeSphere in Vital32, EntryGuard nodes, HollowCore relay controllers, and the rover's subordinate motor and manipulator controllers.
+
+## F
+
+**Fall detection**: A two-stage algorithm on Vital32's accelerometer that identifies freefall followed by impact and near-zero movement, triggering the fall_detected flag and dispatching HollowRover's fall response protocol.
+
+**Firebase Realtime Database**: A cloud-hosted NoSQL database used as LifeSphere's central data backbone. All subsystems synchronize biometrics, emotional states, device commands, and alerts through this shared JSON tree.
+
+**Fusion weight table**: The set of coefficients that determine how much SphereAI trusts its language, voice, and biology agents for each emotional state. For example, in a stressed state, biology is weighted at 0.5 while language drops to 0.2.
+
+## G
+
+**Galvanic skin response (GSR)**: A measure of electrical conductance of the skin that rises with sympathetic nervous system activity, making it a useful proxy for stress and arousal. Vital32 uses a GSR sensor for this purpose.
+
+**Gradient Boosting**: A machine learning ensemble method used by the cortisol estimator. It combines 200 decision trees to predict estimated cortisol from RMSSD, GSR baseline, skin temperature, and sleep efficiency.
+
+## H
+
+**Heart rate variability (HRV)**: Variation in the time between consecutive heartbeats, derived from cardiac signals in Vital32. It is analyzed through RMSSD and LF/HF ratio to assess autonomic nervous system balance and stress.
+
+**HollowCore**: The biology-responsive home automation subsystem that controls lights, climate, locks, and an air purifier based on the user's biometric and emotional state, and handles financial anomaly detection.
+
+**HollowRover**: The autonomous physical response unit, a ROS2-based rover with a dedicated NPU for parallel AI and SLAM. It navigates the home, delivers medication, responds to falls, and acts as a physical presence.
+
+## I
+
+**ILITEK ILI9488**: A display controller chip used in the medication dispenser's 3.5-inch touchscreen, driven directly by an ESP32 microcontroller for manual schedule entry and review.
+
+**IMU**: Inertial measurement unit, a sensor combining accelerometer, gyroscope, and sometimes magnetometer. HollowRover carries a 9-axis IMU for orientation and motion sensing during navigation.
+
+**InsightFace**: A face recognition framework used by EntryGuard and HollowRover, running as a FastAPI service with the buffalo_sc model pack. Face profiles are stored locally and never transmitted to external servers.
+
+**Isolation Forest**: An unsupervised anomaly detection algorithm with 100 trees and a contamination parameter of 0.05. It learns the user's personal baseline during the first 30 days and outputs a real-time anomaly score.
+
+## L
+
+**Lifelong mapping**: A SLAM mode where the rover continuously updates its occupancy grid map as the environment changes, rather than using a fixed pre-built map.
+
+**Loneliness index**: A numerical output from SphereAI that estimates the user's social isolation level. The exact computation is not specified in the source, but it contributes to emotional modeling and caregiver alerts.
+
+**LSTM**: Long Short-Term Memory, a type of recurrent neural network used in the pre-seizure estimator. The model uses two LSTM layers with dropout, trained on 5-minute rolling windows of biometric features.
+
+## M
+
+**MAX30102**: A pulse oximetry and heart-rate sensor that uses photoplethysmography (PPG), measuring blood-volume changes with light, to produce pulse and SpO2 readings for Vital32.
+
+**Meta-classifier**: The fusion layer in SphereAI's TriAgent architecture that combines scores from the language, voice, and biology agents using dynamic weights, selecting the highest-scoring emotional state.
+
+**MFCC**: Mel-frequency cepstral coefficients, audio features extracted by Librosa from the user's voice. They capture the timbral quality of speech and feed into SphereAI's voice agent for emotional prosody analysis.
+
+**MLX90614**: An infrared non-contact temperature sensor on Vital32 that measures skin temperature without touching the user.
+
+**MQTT**: Message Queuing Telemetry Transport, a lightweight publish-subscribe protocol used for low-latency hardware-to-hardware commands within the local Wi-Fi network, running on a Mosquitto broker aboard the rover.
+
+**Multi-timescale inference**: LifeSphere's staggered AI pipeline with three cycles: 30 seconds for acute anomaly detection, 15 minutes for emotional and cortisol estimation, and 24 hours for biological age and cognitive baseline modeling.
+
+## N
+
+**Nav2**: The ROS2 navigation framework used by HollowRover for path planning, obstacle avoidance, and goal execution. It operates at a controller frequency of 20 Hz with a maximum forward speed of 0.3 meters per second.
+
+**NEMA17**: A standard stepper motor form factor used in the medication dispenser's 20-slot carousel. It provides precise angular control for positioning medication slots.
+
+**NPU**: Neural processing unit, dedicated AI acceleration silicon. HollowRover's RDK X5 includes a 10 TOPS NPU that runs speech, sentiment, and face recognition inference independently from SLAM and navigation tasks.
+
+## P
+
+**Passive barrier**: A safety design principle for HollowRover's robotic arm. When an unregistered person is detected at a monitored chokepoint, the arm swings to block the pathway without making contact. It never grasps, restrains, or strikes.
+
+**Personal baseline**: The user's own healthy-state data collected over the first 30 days of normal use. All LifeSphere AI models compare current readings against this individual baseline rather than generic population thresholds.
+
+**Photoplethysmography (PPG)**: An optical technique that measures blood-volume changes in tissue using light. Vital32's pulse oximeter uses PPG to derive pulse rate and blood oxygen saturation.
+
+**PPG**: See photoplethysmography.
+
+## R
+
+**RDK X5**: The main compute board on HollowRover, an 8-core Cortex-A55 device with 4 GB RAM, 10 TOPS NPU, Wi-Fi 6, and Bluetooth 5.4. It runs ROS2 Humble on Ubuntu 22.04.
+
+**RMSSD**: Root mean square of successive differences between RR intervals. It quantifies short-term heart rate variability and is computed over a 2-minute rolling window in Vital32.
+
+**ROS2**: Robot Operating System 2, the open-source middleware framework that manages HollowRover's SLAM, navigation, sensor drivers, and actuator control.
+
+## S
+
+**Shared state**: The unified data model in Firebase where all subsystems publish and subscribe. Fields include vital32.heart_rate, sphereai.emotional_state, hollowrover.battery, entryguard.intruder_detected, and hollowcore.ac_temp.
+
+**SLAM**: Simultaneous localization and mapping, the process of building a map of an unknown environment while simultaneously tracking the rover's position within it. HollowRover uses SLAM Toolbox with an STL-19P LiDAR.
+
+**SphereAI**: The affective computing layer of LifeSphere that interprets emotional and cognitive state through a tri-modal fusion of language, voice, and live biomarkers.
+
+**SpO2**: Peripheral capillary oxygen saturation, the percentage of oxygen-bound hemoglobin measured by pulse oximetry. Vital32 reports this continuously and HollowCore can trigger an air purifier when it drops below 94 percent.
+
+**STL-19P**: A time-of-flight LiDAR sensor with 12-meter range and 5000 Hz sampling used by HollowRover for 2D occupancy grid mapping and navigation.
+
+## T
+
+**TFLuna**: A single-point time-of-flight distance sensor mounted on HollowRover's robotic arm, with a range of 0.2 to 8 meters. It detects presence at chokepoints to trigger the face recognition pipeline for the passive barrier.
+
+**TMC2209**: A stepper motor driver used in the medication dispenser. In general, drivers of this class are valued for quiet operation and precise current control, though the specific design rationale is not documented.
+
+**TriAgent architecture**: SphereAI's three-agent design comprising a language agent (Whisper plus DistilBERT), a voice agent (Librosa audio features), and a biology agent (live Vital32 biomarkers), fused by a dynamic weighted meta-classifier.
+
+**Trilateration**: A positioning method that calculates a point in 2D space from distances to three known anchor locations. HollowRover uses UWB trilateration with three non-collinear anchors per floor.
+
+## U
+
+**UWB**: Ultra-wideband radio, a short-range wireless technology that enables highly precise indoor positioning. LifeSphere uses DWM1000 UWB modules for floor-aware localization to within about 10 centimeters.
+
+## V
+
+**Vital32**: The primary wearable biosensing layer of LifeSphere, worn by the user and continuously streaming biometric data to the shared state without requiring any interaction.
+
+**VOC**: Volatile organic compounds, airborne chemicals that can indicate air quality. The BME688 sensor on Vital32 monitors VOCs alongside humidity.
+
+## W
+
+**Wake-word engine**: A lightweight always-listening speech model running locally on an ESP32-S3. It detects a spoken wake word and signals the main rover computer over UART to activate full speech processing, enabling hands-free interaction without cloud dependency.
+
+**Whisper**: OpenAI's speech recognition model used by SphereAI to transcribe user speech into text for sentiment and emotional analysis.
+
+## X
+
+**XGBoost**: A gradient boosting framework used alongside Random Forest in the biological age clock ensemble. It contributes to the daily updated age estimate from multi-sensor fusion.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Subsystem Comparison" icon="layer-group" href="/reference/subsystem-comparison">
+    See how the five LifeSphere subsystems differ in purpose, hardware, and AI.
+  </Card>
+
+  <Card title="Trigger-to-Response Table" icon="route" href="/reference/trigger-response">
+    Every automated trigger and the physical response it initiates across the ecosystem.
+  </Card>
+
+  <Card title="Shared State Fields" icon="database" href="/reference/state-field-dictionary">
+    A complete dictionary of every field path in the biological state backbone.
+  </Card>
+
+  <Card title="FAQ" icon="circle-question" href="/reference/faq">
+    Common questions about privacy, offline operation, predictions, and safety.
+  </Card>
+</CardGroup>

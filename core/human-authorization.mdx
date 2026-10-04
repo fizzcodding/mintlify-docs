@@ -1,0 +1,122 @@
+---
+title: "Mandatory Human Authorization: Autonomous Care, Accountable Action"
+sidebarTitle: "Human Authorization"
+description: "LifeSphere distinguishes between autonomous responses that affect only the user and actions that impact other people, requiring explicit human approval before any defensive or financial escalation."
+icon: "hand"
+---
+
+LifeSphere is designed to act autonomously on behalf of an elderly person who cannot manage technology. Yet autonomy in caregiving must have boundaries. The system can adjust a thermostat, play calming audio, or retrieve a dropped pill without asking permission. But when an action could affect another person, cause physical harm, or commit a financial transaction, human authorization is mandatory. This page defines the boundary between autonomous care and human-gated action.
+
+## Autonomous actions: no permission needed
+
+The following actions are fully autonomous. They execute without human confirmation because they affect only the user and carry minimal risk of harm.
+
+<CardGroup cols={2}>
+  <Card title="Environmental comfort" icon="temperature-half">
+    Adjusting lights, temperature, fan speed, or air purifier based on cortisol, SpO2, skin temperature, or sleep state.
+  </Card>
+
+  <Card title="Emotional support" icon="brain">
+    Adjusting conversational tone, playing calming audio, or initiating companionship dialogue based on biomarker and emotional cues.
+  </Card>
+
+  <Card title="Medication delivery" icon="pills">
+    Dispensing and delivering pre-scheduled medications at confirmed dosages. The schedule itself is human-verified during setup.
+  </Card>
+
+  <Card title="Fall response" icon="person-falling">
+    Dispatching the rover to the user's location after fall detection, providing physical presence and two-way communication.
+  </Card>
+
+  <Card title="Health alerts" icon="heart-pulse">
+    Notifying guardians of anomaly scores, biometric thresholds, or predictive alerts.
+  </Card>
+
+  <Card title="Object retrieval" icon="robot">
+    Picking up dropped items, handing water or medication to the user at an accessible height.
+  </Card>
+</CardGroup>
+
+These actions share three characteristics: they benefit the user directly, they pose no risk to others, and they are reversible or low-consequence if mistaken.
+
+## Human-gated actions: explicit approval required
+
+The following actions require explicit human authorization before execution. The system may prepare, suggest, or initiate preliminary steps, but it cannot complete the action without guardian confirmation.
+
+<AccordionGroup>
+  <Accordion title="Intruder deterrence escalation">
+    EntryGuard's initial response to an unregistered face is autonomous: the robotic arm blocks the pathway, an audible alarm sounds, and a push notification with live camera feed is sent to the guardian. Any escalation beyond this passive barrier (such as physical contact, continued pursuit, or advanced deterrence) requires explicit human authorization.
+  </Accordion>
+
+  <Accordion title="Financial transaction authorization">
+    HollowCore's financial monitoring flags suspicious transactions using an Isolation Forest trained on the user's historical spending. For any new high-risk transaction or subscription, the system requires biometric transaction authorization: facial recognition (via the EntryGuard/HollowRover camera), fingerprint scan, and Vital32 proximity confirmation. The source does not specify what thresholds define "high-risk."
+  </Accordion>
+
+  <Accordion title="Defensive physical response">
+    The robotic arm is designed as a passive barrier only. It never contacts any person, never grasps, restrains, or strikes. The system initiates no autonomous defensive decision beyond blocking a pathway. Any proposal to breach this rule requires human authorization.
+  </Accordion>
+</AccordionGroup>
+
+## Why the distinction matters
+
+Autonomy without boundaries can become dangerous. A system that autonomously detains a visitor, freezes a bank account, or administers an unscheduled medication crosses from assistance into liability. The zero-interaction principle does not mean zero accountability.
+
+The mandatory authorization framework protects three interests simultaneously:
+
+1. **The user's safety:** Autonomous care responses happen immediately, without delays that could worsen a medical emergency.
+2. **Other people's rights:** Visitors, caregivers, and family members are protected from autonomous physical or financial action.
+3. **Guardian oversight:** Family members retain meaningful control over consequential decisions without being burdened by routine automation.
+
+## How authorization is requested
+
+The primary authorization channel is push notification to the guardian's phone. EntryGuard alerts include a live camera feed so the guardian can assess the situation before approving action. Financial alerts include transaction details and one-tap freeze or dispute options.
+
+The source does not specify timeout behavior, that is, what happens if a guardian does not respond within a certain window. This is documented as an unresolved design question. The system is conservative by default: if authorization is not granted, the action does not proceed.
+
+## Why this matters
+
+Trust in an autonomous caregiving system depends on predictable behavior. Users and their families must know what the system will do on its own and what it will never do without asking. The mandatory authorization framework makes this boundary explicit and enforceable.
+
+## How it connects to the rest of LifeSphere
+
+<AccordionGroup>
+  <Accordion title="Security and data integrity">
+    The technical protections that prevent unauthorized action are in <a href="/core/security-and-data-integrity">Security and Data Integrity</a>.
+  </Accordion>
+
+  <Accordion title="EntryGuard passive barrier">
+    The robotic arm's safety rules are detailed in <a href="/hollowrover/arm/passive-barrier">Passive Barrier</a>.
+  </Accordion>
+
+  <Accordion title="Financial anomaly detection">
+    HollowCore's Isolation Forest monitoring is covered in <a href="/hollowcore/financial-anomaly-detection">Financial Anomaly Detection</a>.
+  </Accordion>
+
+  <Accordion title="Zero-interaction principle">
+    The design philosophy that drives autonomous care is in <a href="/core/zero-interaction-principle">Zero-Interaction Principle</a>.
+  </Accordion>
+</AccordionGroup>
+
+## Limits
+
+The source does not specify guardian response timeouts, multi-guardian consensus rules, or what happens when no guardian is reachable. It also does not describe how the system behaves if authorization is requested during a rapid emergency where seconds matter. These are documented gaps in the current design.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Security and Data Integrity" icon="lock" href="/core/security-and-data-integrity">
+    Encryption, local storage, and plausibility filtering.
+  </Card>
+
+  <Card title="Zero-Interaction Principle" icon="hand" href="/core/zero-interaction-principle">
+    The philosophy of technology responding to biology.
+  </Card>
+
+  <Card title="Passive Barrier" icon="shield-halved" href="/hollowrover/arm/passive-barrier">
+    The robotic arm's safety rules and contactless design.
+  </Card>
+
+  <Card title="Financial Anomaly Detection" icon="scale-balanced" href="/hollowcore/financial-anomaly-detection">
+    How transactions are flagged and what triggers authorization.
+  </Card>
+</CardGroup>

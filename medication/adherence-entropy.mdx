@@ -1,0 +1,103 @@
+---
+title: "Adherence Entropy: Measuring Regularity in Medication Timing"
+sidebarTitle: "Adherence Entropy"
+description: "Learn how LifeSphere uses information entropy to quantify medication schedule regularity, distinguishing consistent habits from irregular timing that may signal broader health drift."
+icon: "calculator"
+---
+
+Taking a medication at the same time every day is a stronger health indicator than taking it at all. Irregular dosing can signal memory problems, emotional distress, disrupted sleep, or emerging cognitive decline. LifeSphere quantifies this regularity with a metric called adherence entropy, drawn from information theory. This page explains the formula, provides an illustrative example, and interprets what high and low values mean in the context of elderly care.
+
+## What entropy measures
+
+In information theory, entropy measures the unpredictability of a random variable. A truly random schedule, where dosing times are scattered uniformly across the day, has high entropy. A perfectly regular schedule, where every dose occurs at exactly the same minute, has zero entropy. LifeSphere applies this concept to the distribution of actual dosing times within defined time windows.
+
+The source does not specify the exact time windows or outcome categories used for grouping dosing events. In general, a system might divide the day into morning, afternoon, and evening slots, or it might use hourly bins. The formula itself is independent of bin size.
+
+## The formula
+
+Adherence entropy is defined as:
+
+$$H(X) = -\sum_{i} p(x_i) \log_2 p(x_i)$$
+
+Where:
+
+- $$X$$ is the random variable representing the dosing event category (e.g., time slot or day segment)
+- $$p(x_i)$$ is the probability that a dose falls into category $$i$$
+- The sum runs over all categories
+- The logarithm is base 2, so the result is in bits
+
+Each category $$x_i$$ represents a bin into which a dose can fall. The probabilities are estimated from the observed frequency of doses in each bin over a sliding window of recent history. The source does not state the window length or the bin definitions.
+
+A plain-language reading: if every dose lands in the same bin, one probability is 1 and the rest are 0, so $$H(X) = 0$$. If doses are spread evenly across four bins, each probability is 0.25, and $$H(X) = -4 \times 0.25 \times \log_2(0.25) = 2$$ bits. More spread means more bits, which means less predictable timing.
+
+## Illustrative example
+
+Consider a user who takes one daily medication. We divide the day into four time slots for analysis:
+
+| Time slot | Doses observed (7 days) | Probability $$p(x_i)$$ |
+| --- | --- | --- |
+| Morning (06:00 to 10:00) | 5 | $$5/7 \approx 0.714$$ |
+| Midday (10:00 to 14:00) | 1 | $$1/7 \approx 0.143$$ |
+| Afternoon (14:00 to 18:00) | 1 | $$1/7 \approx 0.143$$ |
+| Evening (18:00 to 22:00) | 0 | $$0$$ |
+
+$$H(X) = -\left(0.714 \times \log_2 0.714 + 0.143 \times \log_2 0.143 + 0.143 \times \log_2 0.143 + 0\right)$$
+
+$$H(X) \approx -(0.714 \times (-0.485) + 0.143 \times (-2.807) + 0.143 \times (-2.807))$$
+
+$$H(X) \approx 0.346 + 0.401 + 0.401 \approx 1.15 \text{ bits}$$
+
+This is a moderate entropy value. Most doses land in the morning, but two are scattered into midday and afternoon, suggesting mild irregularity. In a second week, if all seven doses fall in the morning slot, the entropy drops to exactly 0 bits, indicating highly consistent timing.
+
+This example is purely illustrative. The actual binning, window length, and thresholds used by LifeSphere are not specified.
+
+## High entropy vs. low entropy
+
+| Entropy level | Interpretation | Possible follow-up |
+| --- | --- | --- |
+| Low (near 0) | Highly regular timing; strong routine | Baseline established; no action needed |
+| Moderate | Some drift in timing; worth monitoring | SphereAI may prompt gentle conversation about sleep or schedule |
+| High | Highly irregular or missed doses | May correlate with cognitive drift, emotional distress, or external disruption; flagged for guardian attention |
+
+The source does not state specific entropy thresholds that trigger alerts. It also does not describe whether entropy is tracked per medication or aggregated across all medications. In general, per-medication tracking would be more clinically informative, while aggregate tracking would be a simpler summary metric.
+
+## Why this matters
+
+A single missed dose is an event. A pattern of drifting doses is a signal. Adherence entropy turns a stream of timestamps into a single number that can be plotted over weeks or months. A rising trend may appear before a guardian notices confusion or emotional withdrawal in phone calls. Because the metric is objective and computed continuously, it supports early intervention without requiring subjective judgment.
+
+The metric also respects the zero-interaction principle. The user does nothing special to generate the score. It is derived from existing dispenser logs and wearable timing data.
+
+## How it connects to the rest of LifeSphere
+
+- **SphereAI**: rising entropy may trigger companionship conversations, memory-support prompts, or check-ins. The AI can compare recent linguistic patterns to historical baselines to see if irregular medication correlates with cognitive or emotional drift.
+- **Vital32**: poor sleep, high cortisol, or low HRV may explain irregular dosing. Combining biomarker trends with entropy gives a fuller picture than either metric alone.
+- **HollowCore**: if entropy spikes during a period of environmental change (a move, a visitor, a heat wave), HollowCore can adjust lighting and climate to re-stabilize routine cues.
+- **Guardian app**: entropy trends can be surfaced in the LifeSphere app, though the source does not explicitly describe how they are presented.
+
+## Limits
+
+- The source does not specify outcome categories, time bins, or the observation window for entropy calculation.
+- It does not state whether entropy is computed per drug, per user, or across the entire medication set.
+- No threshold values are given for what constitutes "high" or "concerning" entropy.
+- The relationship between entropy and clinical outcomes is hypothesized, not validated. Longitudinal user studies are future work.
+- Missed doses may be treated as a separate category or excluded from the distribution; the source does not clarify.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Medication Overview" icon="pills" href="/medication/overview">
+    The complete prescription-to-dose pipeline and its connection to adherence.
+  </Card>
+
+  <Card title="Reminders and Adherence" icon="bell" href="/medication/reminders-and-adherence">
+    How reminders fire, how doses are delivered, and how events are logged.
+  </Card>
+
+  <Card title="Cognitive Tracker" icon="brain" href="/ai/cognitive-tracker">
+    How speech-pattern drift detection complements medication regularity metrics.
+  </Card>
+
+  <Card title="Biological Age Clock" icon="heart-pulse" href="/ai/biological-age-clock">
+    How multi-sensor fusion estimates biological age, a related longitudinal metric.
+  </Card>
+</CardGroup>

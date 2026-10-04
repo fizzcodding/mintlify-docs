@@ -1,0 +1,63 @@
+---
+title: "Pulse and SpO2: Cardiac Signal Capture on Vital32"
+sidebarTitle: "Pulse and SpO2"
+description: "Vital32 derives pulse, blood oxygen, heart rhythm, and heart-rate variability from PPG pulse oximetry and ECG waveform acquisition for real-time caregiving inference."
+icon: "lungs"
+---
+
+Vital32 captures cardiac information through two complementary channels: a MAX30102 pulse oximetry module and an ECG waveform signal path. The system derives heart rhythm and variability from its cardiac signals. These outputs feed anomaly scoring, cortisol estimation, seizure risk modeling, and environmental automation rules in HollowCore.
+
+PPG (photoplethysmography, measuring blood-volume changes with light) shines red and infrared LEDs through tissue and measures how much light is absorbed by pulsing blood. SpO2 (peripheral oxygen saturation) is computed from the ratio of absorbed red to infrared light. The same signal contains a pulsatile waveform that gives pulse rate. The ECG path records the electrical depolarization of the heart muscle. Together, the optical and electrical channels provide both mechanical and electrical views of cardiac activity.
+
+## What the system measures
+
+The MAX30102 outputs pulse rate and SpO2 as primary metrics. The ECG path contributes to rhythm analysis. The system derives heart rhythm and variability from its cardiac signals: RR intervals (the time between successive beats) are extracted, and from these the compute layer calculates HRV (heart-rate variability) metrics such as RMSSD and the LF/HF ratio. These are not direct sensor outputs. They are computed features that quantify autonomic nervous system balance.
+
+| Output | Meaning | Update Rate |
+| --- | --- | --- |
+| Pulse rate | Beats per minute from PPG | 1 Hz |
+| SpO2 | Blood oxygen saturation percentage | 1 Hz |
+| RR intervals | Beat-to-beat timing from cardiac signals | Derived each second |
+| RMSSD | Short-term HRV over 2 min rolling window | Derived each second |
+| LF/HF | Sympathetic / parasympathetic balance | Derived each second |
+
+## How the data is used
+
+Pulse and SpO2 are uploaded to the shared biological state as `heart_rate` and `spo2`. HollowCore monitors `spo2` with a threshold rule: when SpO2 drops below 94.0, the air purifier relay activates automatically. This rule assumes that sustained low oxygen saturation warrants improved air quality, though the source does not specify the clinical basis for the 94.0 threshold.
+
+RR intervals and HRV features feed three downstream models. The anomaly detector treats RMSSD deviation as a biometric feature. The cortisol estimator uses RMSSD as one of its four inputs. The pre-seizure LSTM receives HRV, motion, and skin temperature features in 5-minute rolling windows. Sleep detection also relies on HRV combined with accelerometer immobility.
+
+## Why two cardiac channels
+
+PPG is convenient and low power but can be noisy during motion or poor perfusion. ECG provides a cleaner electrical timing reference for rhythm and interval analysis. The source does not describe explicit sensor fusion between the two channels, but the phrasing "the system derives heart rhythm and variability from its cardiac signals" implies that both contribute to the RR interval extraction. In general, multi-lead or multi-modal cardiac sensing reduces the rate of missed beats and false rhythm classifications.
+
+## How it connects to the rest of LifeSphere
+
+- **HollowCore**: `spo2 < 94.0` triggers the air purifier.
+- **SphereAI**: HRV-driven stress estimates weight the emotional classifier when the prior state is "stressed."
+- **HollowRover**: A sustained `anomaly_score > 0.9` derived partly from cardiac features triggers emergency protocol dispatch.
+- **EntryGuard**: The wearable's BLE beacon aids person-finding, with pulse and SpO2 confirming the wearer is the same individual.
+
+## Limits
+
+The source does not state the accuracy of the MAX30102 SpO2 reading under varying skin tones, perfusion levels, or ambient light. The ECG path is referenced but its acquisition front-end (gain, filtering, lead configuration) is not described. The 94.0 SpO2 threshold is presented as a system rule, not a clinical recommendation. Pulse oximetry in general is less reliable during motion, cold extremities, or nail polish; the source does not describe artifact rejection specifically for these conditions.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Sensor Array" icon="microchip" href="/vital32/components/sensor-array">
+    Full multi-sensor overview
+  </Card>
+
+  <Card title="Heart Rate Variability" icon="wave-square" href="/vital32/sensing/heart-rate-variability">
+    RMSSD, LF/HF, and what they mean
+  </Card>
+
+  <Card title="Anomaly Scoring" icon="scale-balanced" href="/vital32/predictions/anomaly-scoring">
+    How cardiac features enter Isolation Forest
+  </Card>
+
+  <Card title="Pre-Seizure Estimation" icon="brain" href="/vital32/predictions/pre-seizure-estimation">
+    LSTM inputs and design goals
+  </Card>
+</CardGroup>

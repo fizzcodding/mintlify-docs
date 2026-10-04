@@ -1,0 +1,90 @@
+---
+title: "HollowRover Design Decisions: NPU, Controllers, Steering, More"
+sidebarTitle: "Design Decisions"
+description: "Key engineering choices behind HollowRover, from NPU isolation and Ackermann steering to passive suspension, S-curve wheels, and the carousel dispenser."
+icon: "gears"
+---
+
+HollowRover's design reflects a series of deliberate trade-offs between safety, autonomy, cost, and manufacturability. This page explains why the team chose specific architectures over alternatives.
+
+## NPU separation: AI and SLAM on different silicon
+
+The D-Robotics RDK X5 contains an 8-core CPU and a dedicated neural processing unit (NPU) capable of 10 TOPS. The design places AI inference workloads, including Whisper speech-to-text, DistilBERT sentiment classification, and face recognition, on the NPU. SLAM scan matching, occupancy grid updates, and Nav2 path planning remain on the CPU.
+
+In general, when a single processor handles both heavy AI and real-time robotics, tasks can starve each other. A long speech-to-text inference might delay a navigation controller cycle, causing the robot to drift or react late to obstacles. By giving AI its own silicon, both pipelines run in parallel. This separation is one of the five stated technical contributions of the LifeSphere project.
+
+## Dual controller split: drivetrain versus manipulator
+
+The rover uses two ESP32 WROOM-32 microcontrollers instead of one. The drivetrain controller handles motors, steering, UWB ranging, ultrasonic sensing, BLE scanning, barometric reading, and the 9-axis IMU. The manipulator controller handles arm servos, the TF-Luna ToF sensor, and the medication dispenser.
+
+The split exists because servo PWM signals generate electrical noise and timing jitter. If a single controller drives both servos and UWB ranging, the precise timing windows required for UWB distance measurement can be disrupted. Likewise, BLE communication and motor encoder interrupts are latency-sensitive. Isolating them on a dedicated controller protects timing-critical tasks from the variable load of servo motion.
+
+## Ackermann steering over skid-steer
+
+The original design used a fixed-axle skid-steer layout, where wheels on each side spin at different speeds to turn. This was replaced with four-wheel independent steering via an Ackermann linkage actuated by two MG995 servos. Ackermann geometry means the inner wheel turns at a sharper angle than the outer wheel during a turn, keeping all wheels aligned to their individual turning radii.
+
+Ackermann steering reduces tire scrub, improves path following accuracy, and produces smoother trajectories. These qualities matter for SLAM accuracy because wheel odometry is cleaner, and for user safety because the rover turns predictably without sliding. The machined steering knuckles at each corner convert servo motion into precise wheel angles.
+
+## Passive rocker suspension
+
+The suspension uses two rocker arms, one per side, pivoting on a spring-loaded central mount. A differential bar linking left and right rocker arms keeps the chassis pitch balanced when one side encounters an obstacle, such as a doorway lip or a floor transition. Spring-loaded pivots maintain wheel ground contact over uneven surfaces.
+
+This design is passive: there are no active dampers, motors, or sensors controlling suspension height. Passive suspension is simpler, lighter, and draws no power. It trades ultimate terrain adaptability for reliability and cost reduction, which aligns with the project's goal of accessible hardware.
+
+## Barometric versus UWB separation
+
+UWB anchors provide horizontal position to within 10 cm, but their vertical axis is not reliable enough to distinguish floors. Rather than increasing anchor count or using complex 3D multilateration, the design assigns vertical floor identification to a barometric pressure sensor. Each floor stores a calibrated baseline, and the rover selects the closest match.
+
+This separation keeps the UWB system simple (only three anchors per floor, 2D trilateration) while still enabling multi-floor autonomy. It trades a small additional sensor for a large reduction in anchor infrastructure and computational complexity.
+
+## Arm stow rule: navigation and defense are mutually exclusive
+
+The 6-DOF arm is stowed below the LiDAR scan plane during movement. It rises only when the rover is stationary and in security-response mode. This rule ensures the arm never occludes the LiDAR field of view during navigation, which would create phantom obstacles or blind spots. It also prevents the arm from striking door frames or furniture while the rover is in motion.
+
+The mutual exclusion between navigation and defense is a hard safety constraint. It means the rover cannot block a pathway while driving, and it cannot drive while blocking. The state machine enforces this transition cleanly.
+
+## Printed S-curve wheels
+
+The wheels are 5.6-inch diameter, 3D-printed in PLA+ as a single piece with a sinusoidal S-curve spoke design and chevron tread lugs. Eight or more geometry iterations led to a cost-optimized design of roughly 905 taka per wheel. The wheels were stress tested and flex slightly under heavy load but hold shape.
+
+Using 3D-printed wheels rather than molded rubber tires reduces per-unit cost and enables rapid design iteration. The S-curve spokes act as compliant structures, absorbing minor impacts and helping maintain traction on uneven indoor floors. A dedicated printed shaft coupler with M4 printed threads joins each wheel to its Dake DK-37R gear motor.
+
+## Carousel dispenser
+
+The medication dispenser uses a 20-slot carousel driven by a NEMA17 stepper motor through a 100-tooth ring gear with an implied 5:1 reduction. An AS5600 magnetic encoder provides closed-loop position feedback. A TMC2209 stepper driver controls the motor, and an MG995 servo opens a shutter to release each dose.
+
+With 20 slots, each slot requires 18 degrees of carousel rotation. At 50 steps per slot and 20 slots per revolution, the motor makes 1000 steps per carousel revolution. This matches 200 full motor steps times the 5:1 gear ratio, consistent with the standard 1.8-degree step angle of a typical NEMA17 stepper. The closed-loop encoder ensures the carousel stops at the correct slot even if the motor skips a step.
+
+A custom two-layer PCB designed in EasyEDA Pro powers the dispenser electronics from a 7.4 V 2S LiPo battery. The design integrates three power rails, though their specific voltages are not stated.
+
+## Why this matters
+
+Each decision above reflects a priority: safety (arm stow rule, passive barrier only), autonomy (NPU separation, dual controllers), floor agility (barometric + UWB split), cost (printed wheels, passive suspension), or precision (Ackermann, carousel encoder). Together they produce a robot that can navigate a real home, deliver medication, respond to falls, and deter intruders without requiring laboratory conditions or premium components.
+
+## How it connects to the rest of LifeSphere
+
+The controller split, NPU isolation, and communication layers are described in more detail on the [Software Stack](/hollowrover/software-stack) page. The suspension and wheels are covered in the [Rocker Suspension](/hollowrover/components/rocker-suspension) and [Wheels Overview](/hollowrover/wheels/overview) pages. The dispenser mechanics are detailed across the Medication subsystem pages, beginning with [Dispenser Overview](/medication/dispenser-overview).
+
+## Limits
+
+The source does not specify how the suspension performs on thick carpets or steep ramps. Wheel durability under continuous daily use is not quantified. The dispenser slot capacity and pill size limits are not stated. Microstepping settings for the stepper driver are not given.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Software Stack" icon="microchip" href="/hollowrover/software-stack">
+    ROS2 Humble, Nav2, MQTT, Firebase, and AI services that run on the RDK X5.
+  </Card>
+
+  <Card title="Rocker Suspension" icon="circle-question" href="/hollowrover/components/rocker-suspension">
+    How passive suspension balances chassis pitch and keeps wheels in contact.
+  </Card>
+
+  <Card title="S-Curve Spokes" icon="circle-question" href="/hollowrover/wheels/s-curve-spokes">
+    The sinusoidal spoke geometry and why it was chosen for printed wheels.
+  </Card>
+
+  <Card title="Passive Barrier" icon="shield-halved" href="/hollowrover/arm/passive-barrier">
+    The security deterrent rule set and why the arm never contacts humans.
+  </Card>
+</CardGroup>

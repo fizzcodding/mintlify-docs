@@ -1,0 +1,69 @@
+---
+title: "Prescription Reading: How LifeSphere Turns Paper into Data"
+sidebarTitle: "Prescription Reading"
+description: "Understand how LifeSphere preprocesses a photographed prescription with grayscale conversion and adaptive thresholding, then feeds the image to Tesseract OCR for initial text extraction."
+icon: "file-lines"
+---
+
+LifeSphere begins medication management by reading a paper prescription through the companion mobile app. The image is not sent directly to a text recognizer; it is first preprocessed to remove noise, boost contrast, and isolate ink from paper. This page explains both preprocessing stages and why they matter for doctor handwriting.
+
+## Why preprocessing is necessary
+
+A photograph taken in home lighting contains uneven brightness, shadows from folds, and color noise from the camera sensor. Tesseract OCR, the open-source engine LifeSphere uses, works best on high-contrast binary images: black text on a white background. Without preprocessing, wrinkles, stains, and variable lighting produce false characters or missed lines. The two-stage pipeline described in the source, grayscale conversion followed by adaptive Gaussian thresholding, is a standard computer-vision approach for exactly this problem.
+
+## Stage one: grayscale conversion
+
+Color carries no useful information for text recognition on a prescription. Converting the image from red-green-blue (RGB) to grayscale collapses three channels into one intensity channel. This halves the data size and removes color artifacts that can confuse edge-detection algorithms inside the OCR engine.
+
+In general, grayscale conversion is the first step in most document-processing pipelines because it simplifies the image while preserving the shapes of letters and numbers. LifeSphere applies this on the phone before any network transmission, keeping the data footprint small and the processing local.
+
+## Stage two: adaptive Gaussian thresholding
+
+Thresholding turns the grayscale image into pure black and white. A simple global threshold would use one cutoff value for the entire image, but home lighting is rarely uniform. A corner lit by a window might be bright while the opposite edge sits in shadow. A global threshold would either erase faint text on the dark side or turn bright paper gray on the light side.
+
+Adaptive thresholding solves this by calculating a separate threshold for each small neighborhood of pixels. In the Gaussian variant, the threshold for each pixel is a weighted average of the surrounding region, with weights following a Gaussian (bell-shaped) curve that emphasizes nearby pixels. The result is a binary image where local variations in lighting are flattened out and the text remains readable even across creases and stains.
+
+This is especially important for prescriptions, which are often folded in a wallet or pocket before photography. The adaptive method preserves faint strokes in pen or pencil that a global threshold would discard.
+
+## Tesseract OCR
+
+After preprocessing, the cleaned binary image is passed to Tesseract. Tesseract is an open-source optical character recognition engine that analyzes the shapes of glyphs (individual printed or written characters) and matches them against trained models. It emits raw text strings, preserving approximate line order.
+
+The source does not specify which Tesseract language model is used, whether additional training was performed for medical terminology, or how the engine is configured for handwriting versus printed text. In general, Tesseract performs well on clean printed documents and acceptably on neat handwriting, but cursive or heavily stylized doctor scripts remain a challenge for any OCR system. This limitation is why LifeSphere follows OCR with a language-model extraction stage rather than trusting raw text directly.
+
+## Why this matters
+
+For an elderly user or a busy caregiver, typing a full prescription into a phone is slow and mistake-prone. A single dosage typo, a missed "twice daily" instruction, or a misread decimal point can lead to weeks of incorrect alerts. Preprocessing and OCR reduce the data-entry burden from minutes to seconds. The remaining errors are caught in the review stage that follows.
+
+The pipeline is also privacy-friendly in its early stages. Grayscale and thresholding happen on the phone. The image leaves the device only after initial cleaning, and even then the source does not state whether the LLM stage runs locally or in the cloud.
+
+## How it connects to the rest of LifeSphere
+
+The output of prescription reading is a raw text block, not a structured schedule. That text moves to the LLM extraction stage, which fills fields like medicine name and dosage. Once confirmed by a human, the schedule enters Firebase as `med_schedule`. HollowRover subscribes to that path and updates its local dispenser. Vital32 does not participate directly in prescription reading, but anomalies detected by the wearable can later trigger schedule adjustments or alert escalation if a dose is missed during a health event.
+
+## Limits
+
+- The source states the OCR language is English. It does not describe behavior with Bengali script or mixed-language prescriptions, which are common in Bangladesh.
+- No preprocessing parameters are specified, such as Gaussian kernel size or threshold offset.
+- The source does not mention handling of damaged, wet, or partially obscured prescriptions.
+- Tesseract alone is not sufficient for reliable medical data extraction. The LLM stage is essential.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Medication Overview" icon="pills" href="/medication/overview">
+    The full pipeline from prescription photograph to physical dose delivery.
+  </Card>
+
+  <Card title="LLM Extraction" icon="brain" href="/medication/llm-extraction">
+    How a language model turns raw OCR into structured medication fields.
+  </Card>
+
+  <Card title="Review and Confirmation" icon="clipboard-check" href="/medication/review-and-confirmation">
+    Why human review is mandatory and how manual entry works as a fallback.
+  </Card>
+
+  <Card title="Touchscreen Fallback" icon="hand" href="/medication/touchscreen-fallback">
+    Entering medications manually on the dispenser's local touchscreen.
+  </Card>
+</CardGroup>

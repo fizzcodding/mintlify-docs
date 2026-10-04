@@ -1,0 +1,73 @@
+---
+title: "EntryGuard Fire and Gas Detection: Always-On Environmental Alerts"
+sidebarTitle: "Fire and Gas"
+description: "EntryGuard monitors for fire and gas hazards around the clock using dedicated sensors, local buzzers, and alert payloads that carry floor and zone references for rover dispatch."
+icon: "fire"
+---
+
+Fire and gas dangers can escalate in minutes, and an elderly person living alone may not smell, see, or hear the early signs. EntryGuard addresses this with two dedicated environmental sensors that operate continuously, independent of the system mode that gates motion alerts. When a hazard is detected, the node triggers a local buzzer and sends an annotated alert so the rover and guardian can respond.
+
+## Flame Detection (KY-026)
+
+The KY-026 is a flame sensor module that detects infrared radiation in the wavelength band emitted by open fire. It uses a small phototransistor sensitive to near-infrared light. When exposed to a flame, the sensor output changes, and the module produces an analog voltage that rises with flame intensity.
+
+Because it responds to radiant heat rather than smoke particles, the KY-026 can in some cases detect an open flame faster than a conventional smoke detector. This is useful when a stove burner is left on or a candle falls. The node compares the sensor reading against a threshold. When the reading is above that threshold, the node triggers a fire alert.
+
+## Gas Detection (MQ-2)
+
+The MQ-2 is a chemiresistive gas sensor. It contains a heated metal-oxide filament. Combustible gases such as liquefied petroleum gas, propane, methane, hydrogen, and smoke cause a measurable change in the filament's surface resistance. The sensor outputs an analog voltage proportional to gas concentration.
+
+The sensor requires a brief warm-up period after power-on to reach stable operating temperature. Once stable, it continuously measures the air. If the concentration crosses a threshold, the node triggers a gas alert. The source does not specify the exact numerical thresholds for either flame or gas.
+
+## Alert Behavior
+
+Unlike motion alerts, fire and gas detection is always active. The system does not gate these alerts by mode because environmental hazards are dangerous regardless of whether the resident is home or away, awake or asleep.
+
+When a threshold is crossed, two things happen simultaneously:
+
+1. A local buzzer on the node sounds an audible alarm. This provides immediate local warning even if the network is temporarily down.
+2. The node builds an alert payload and publishes it. The payload carries the alert type (fire or gas), the sensor value, the node identity, a UWB zone reference, and a barometric pressure reference.
+
+The alert travels to Firebase and over the local MQTT broker so the rover and other subsystems can act immediately.
+
+## What the Rover Does
+
+When the rover receives a fire or gas alert, it uses the floor pressure reference and UWB zone ID to select the correct floor map and navigate to the affected area. The rover does not attempt to extinguish a fire or stop a gas leak; those tasks exceed its capabilities and would be unsafe. Instead, its role is to:
+
+- Provide a physical presence at the scene
+- Stream live annotated video to the guardian's phone
+
+## Why This Matters
+
+In Bangladesh, fire and gas incidents in residential buildings are a significant risk, especially in older construction. Traditional alarms only sound locally; if no one is nearby, the danger grows unchecked. EntryGuard gives every environmental alert a precise location and a networked response path, cutting the time between detection and human awareness.
+
+## How It Connects to the Rest of LifeSphere
+
+- **HollowRover** dispatches to the zone, streams video, and may use its speaker to issue verbal guidance.
+- **SphereAI** can provide calm, clear spoken instructions to help the resident move to safety without panic.
+- **HollowCore** may activate an air purifier relay if the alert is gas-related, though the source does not confirm this behavior.
+- **Vital32** continues monitoring the resident's heart rate and stress biomarkers during the event, providing data on physiological impact.
+
+## Limits
+
+The source does not specify the exact fire or gas thresholds. These depend on ambient temperature, humidity, and local building conditions. The KY-026 can give false positives from direct sunlight or hot lamps. The MQ-2 responds to multiple gas types and cannot distinguish between them; it reports total combustible concentration. EntryGuard does not unlock doors or activate ventilation automatically; any physical environmental control must be configured separately.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Intrusion Detection" icon="user-secret" href="/entryguard/intrusion-detection">
+    How motion and distance alerts are gated by system mode.
+  </Card>
+
+  <Card title="Floor-Aware Dispatch" icon="layer-group" href="/entryguard/floor-aware-dispatch">
+    How alerts carry floor and zone data for precise rover navigation.
+  </Card>
+
+  <Card title="Threat Classification" icon="circle-question" href="/entryguard/threat-classification">
+    How the system interprets different alert types.
+  </Card>
+
+  <Card title="Components" icon="microchip" href="/entryguard/components">
+    Full hardware breakdown of the sensors in each node.
+  </Card>
+</CardGroup>

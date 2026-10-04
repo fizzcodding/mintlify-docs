@@ -1,0 +1,80 @@
+---
+title: "Vital32 Limits and Ethics: Honest Boundaries of Predictive Care"
+sidebarTitle: "Limits and Ethics"
+description: "Vital32's predictive goals are design targets, not validated results. This page states what is unproven, what hardware limits exist, and how ethics shape sensor use."
+icon: "shield-halved"
+---
+
+Vital32 is designed to catch health deterioration before it becomes an emergency. That ambition must be paired with honesty about what is built, what is hoped for, and what remains unknown. This page lists the limits of the hardware, the unvalidated nature of its predictive claims, and the ethical considerations that guide its use.
+
+## Predictive goals are not proven results
+
+The source describes several predictive capabilities as design goals. None have been validated with accuracy figures, clinical trials, or longitudinal user studies. It is essential to treat them as aspirations rather than guarantees.
+
+| Claim | What the source says | What is known |
+| --- | --- | --- |
+| Immune activation detection | 24 to 48 hours before symptom onset | Design goal; specific immune-detection features and thresholds are not specified |
+| Pre-seizure estimation | 30 minutes before onset | Design goal; LSTM trained on public EEG datasets, not wearable data; gap between training and inference signals is not addressed |
+| Biological age | Continuous estimate via multi-sensor fusion | Daily update; no accuracy or ground-truth comparison reported |
+| Early cognitive decline | Drift detection on speech metrics | Long-cycle CUSUM tracker; no clinical validation described |
+
+<Warning>
+  No AUC, sensitivity, specificity, or false-alert rates are reported for any model. The source does not claim these predictors work in real-world deployment. They are described as trained offline and intended to learn personal baselines.
+</Warning>
+
+## Hardware limits
+
+- **Battery life**: the source does not state expected runtime for the 3.7 V 1000 mAh LiPo. Continuous Wi-Fi, UWB broadcast, and 50 Hz motion sampling consume significant power. Daily charging may be required.
+- **Wrist placement**: the wrist is convenient but physiologically noisy. Motion artifacts, poor skin contact during sleep, and variable blood perfusion all reduce signal quality compared to chest or finger placement.
+- **Bus contention**: although a scheduler mitigates conflicts, a shared bus remains a single point of timing stress. The source does not describe fallback behavior if a sensor hangs or returns corrupt data.
+- **Plausibility bounds**: the filter exists conceptually, but no numerical bounds are given. We do not know how aggressively it rejects samples or what false-negative rate it might introduce.
+- **Source inconsistency**: the source document is not fully consistent on some hardware details, so this site uses generic wording for them.
+
+## Model and data limits
+
+- **Personal baselines**: all models are trained on the user's own first 30 days. This is philosophically sound (democratizing predictive healthcare by comparing the user to themselves), but it requires a full month of normal data before predictions become meaningful.
+- **Training data gaps**: the pre-seizure LSTM was trained on CHB-MIT scalp EEG and Epilepsy iEEG prediction datasets. These are brain-signal recordings. Vital32 inputs are HRV, accelerometer, and skin temperature. The source does not explain how a model trained on EEG generalizes to wearable biomarkers.
+- **No population baselines**: while avoiding population thresholds is a stated contribution, it also means the system cannot flag congenital or lifelong conditions that appear in the first 30 days.
+
+## Ethical use of sensors
+
+- **Consent**: the wearable monitors continuously. Informed consent from the user or a legally authorized representative is essential, especially for users with cognitive impairment.
+- **Data transmission**: biometric data is sent to Firebase Realtime Database over TLS. The architecture assumes the user accepts cloud storage of health data.
+- **Guardian access**: the shared state is readable by authorized guardians. The boundary between necessary caregiver oversight and surveillance is not defined in the source.
+- **No opt-out on body**: because the device is zero-interaction, there is no simple "pause" button on the wearable itself. A user experiencing discomfort or anxiety from monitoring cannot easily disable it without caregiver intervention.
+
+## Why this matters
+
+Trust in caregiving technology is fragile. Exaggerating capabilities can lead to delayed medical care if families assume the system will catch everything. Understating limits can cause unnecessary alarm. This page exists to keep the documentation aligned with what is actually built, while clearly separating that from what the team hopes to achieve in future work.
+
+## How it connects to the rest of LifeSphere
+
+- **Status and roadmap**: the honest-limits page tracks which claims are validated and which remain future work.
+- **Security and data integrity**: overlaps with ethical concerns about who can access shared-state biomarkers.
+- **SphereAI limits**: similar honesty pages exist for the emotional classifier and cognitive tracker.
+
+## Limits
+
+- This page cannot resolve the training-data gap for the seizure model. That is a research-level limitation.
+- User-study protocols, institutional review board approval, and regulatory pathways are not mentioned in the source.
+- Longitudinal wear studies (for example, skin irritation over months of continuous use) are future work.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Status and Roadmap" icon="route" href="/status/status-and-roadmap">
+    What is built, what is tested, and what comes next
+  </Card>
+
+  <Card title="Honest Limits" icon="shield-halved" href="/status/honest-limits">
+    Cross-subsystem boundary between proven features and design goals
+  </Card>
+
+  <Card title="Security and Data Integrity" icon="lock" href="/core/security-and-data-integrity">
+    How data is protected in transit and at rest
+  </Card>
+
+  <Card title="Anomaly Scoring" icon="shield-halved" href="/vital32/predictions/anomaly-scoring">
+    The one model whose thresholds are specified, even without accuracy data
+  </Card>
+</CardGroup>

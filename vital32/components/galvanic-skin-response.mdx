@@ -1,0 +1,61 @@
+---
+title: "Galvanic Skin Response: Stress and Arousal on Vital32"
+sidebarTitle: "Galvanic Skin Response"
+description: "Vital32 measures galvanic skin response as a proxy for sympathetic nervous system activity, feeding emotional classification, cortisol estimation, and climate automation in LifeSphere."
+icon: "droplet"
+---
+
+Vital32 includes a galvanic skin response sensor to track sympathetic nervous system arousal. GSR (galvanic skin response, also called electrodermal activity) measures the electrical conductance of the skin. When the sympathetic nervous system activates, eccrine sweat glands secrete moisture, which lowers skin resistance and increases conductance. This happens before the wearer is consciously aware of stress, making GSR a leading indicator of physiological arousal.
+
+The wearable uses either a Grove GSR v1.0 module or a custom two-electrode design. Two electrodes make contact with the skin surface, a small alternating voltage is applied, and the resulting current is measured. Higher current means higher conductance, which maps to greater arousal. The sensor is read every second and the result is published as `gsr` in the shared biological state.
+
+## What GSR reveals
+
+GSR does not distinguish between positive excitement and negative stress. It measures arousal magnitude, not valence. A surprise gift and an unexpected fall both produce conductance increases. The system resolves this ambiguity through context: the same GSR spike paired with low HRV and elevated cortisol estimate is weighted toward stress, while paired with normal cardiac signals and motion suggesting activity may be interpreted differently.
+
+The source lists GSR as an input to three downstream functions:
+
+| Downstream | Role | Trigger / Update |
+| --- | --- | --- |
+| Cortisol estimator | Feature input | Every 15 minutes in `C_est = f(RMSSD, GSR_baseline, T_skin, sleep_efficiency)` |
+| Emotional classifier | Biology agent score | Medium cycle, weighted higher when prior state is "stressed" |
+| HollowCore climate | Audio calm trigger | `gsr > 0.6` publishes `play_calming_audio` to SphereAI |
+
+## HollowCore audio rule
+
+When `gsr` exceeds 0.6, HollowCore publishes a command to SphereAI's speaker channel to play calming audio. This is an immediate environmental intervention: the wearable detects rising sympathetic arousal, the home responds with soothing sound through the same speaker used for conversation and reminders. The 0.6 threshold is a system parameter; the source does not state how it was calibrated or how it generalizes across users with naturally high or low baseline conductance.
+
+## Why GSR matters in a caregiving context
+
+Elderly individuals living alone often experience chronic stress, anxiety, and loneliness without external signs. GSR offers an objective channel for internal state that does not require self-reporting. The user does not need to describe feelings. The sensor reads biology directly. This aligns with LifeSphere's core principle: technology responds to the user's biology, not the other way around.
+
+## How it connects to the rest of LifeSphere
+
+- **SphereAI**: The biology agent uses GSR as one of its three fused streams. When the prior emotional state is "stressed," biology weight rises to 0.5, making GSR the dominant input.
+- **HollowCore**: The `gsr > 0.6` rule triggers audio calming, which may also dim lights depending on other concurrent rules.
+- **Anomaly detector**: GSR deviation from the user's 30-day baseline contributes to `anomaly_score`.
+- **Cortisol estimator**: GSR baseline is a direct feature in the 15-minute cortisol update.
+
+## Limits
+
+The source does not specify GSR accuracy, electrode placement, or skin-type compensation. Dry skin, electrode gel degradation, and temperature variation all affect conductance readings in general, but these factors are not addressed. The 0.6 threshold for calming audio is presented without individualization context, raising the possibility of false triggers for users with naturally high conductance. GSR alone cannot separate stress from physical exertion or thermal sweating; fusion with HRV and motion is needed, but the exact fusion weights for GSR-specific disambiguation are not given.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Sensor Array" icon="microchip" href="/vital32/components/sensor-array">
+    All sensors and their roles
+  </Card>
+
+  <Card title="Cortisol Estimation" icon="droplet" href="/vital32/predictions/cortisol-estimation">
+    Gradient Boosting model inputs
+  </Card>
+
+  <Card title="Emotional Classifier" icon="brain" href="/sphereai/understanding/meta-classifier">
+    How biology, voice, and language fuse
+  </Card>
+
+  <Card title="HollowCore Climate" icon="sun" href="/hollowcore/lighting-and-climate">
+    Biometric rules for home environment
+  </Card>
+</CardGroup>

@@ -1,0 +1,76 @@
+---
+title: "EntryGuard Face Recognition: Registered vs Unregistered Classification"
+sidebarTitle: "Face Recognition"
+description: "EntryGuard uses InsightFace with MediaPipe and ONNX Runtime to classify faces as registered residents or unregistered individuals, with all profile data stored locally on HollowRover."
+icon: "eye"
+---
+
+Face recognition is the layer that lets EntryGuard distinguish between a familiar resident and an unknown visitor. This capability is essential for chokepoint security and for biometric transaction authorization elsewhere in LifeSphere. The pipeline runs as a FastAPI service using the InsightFace library, and all face profile data is stored locally; no biometric templates leave the home.
+
+## The Pipeline
+
+The face recognition system operates in several stages. When a person appears at a monitored chokepoint, the camera feed is captured and processed through the following chain:
+
+1. **Detection** - A face is located within the video frame.
+2. **Landmark alignment** - Facial landmarks are identified to normalize the face geometry.
+3. **Feature extraction** - A deep neural network converts the aligned face into a compact numerical template.
+4. **Comparison** - The template is compared against the set of locally stored registered profiles.
+5. **Decision** - The system outputs a match or no-match result.
+
+## Technologies Used
+
+The face recognition service is built on several open-source components:
+
+- **InsightFace** is an open-source deep face analysis library. It provides face detection, alignment, and recognition models. EntryGuard uses the `buffalo_sc` model pack, which is a compact, pre-trained configuration suitable for edge deployment.
+- **MediaPipe** is a cross-platform machine learning framework from Google. In this pipeline, it helps with face detection and landmark extraction, providing a robust first stage before the recognition network runs.
+- **ONNX Runtime** is an open inference engine that runs trained neural network models efficiently across different hardware. It allows the face recognition model to execute on the local compute unit without dependencies on cloud APIs or proprietary frameworks.
+- **FastAPI** is a modern Python web framework for building APIs. The face recognition logic is exposed as an API service so that other subsystems, such as the rover's decision engine or HollowCore's authorization logic, can request face classification over the local network.
+
+## Registered vs Unregistered
+
+The system maintains a database of registered residents. These profiles are created during setup, when the caregiver or resident provides reference images. The deep network extracts a template from each reference image and stores it locally on HollowRover. When a new face appears, the network extracts its template and computes similarity scores against all registered templates.
+
+If the highest similarity score exceeds a decision threshold, the face is classified as registered. If no score crosses the threshold, the face is classified as unregistered. An unregistered classification at a protected chokepoint triggers the passive barrier response: the rover's arm swings to block the pathway, an audible alarm sounds, and a push notification with a live camera feed is sent to the guardian's phone.
+
+## Privacy and Local Storage
+
+A core principle of LifeSphere is that biometric data should not leave the home. Face profile templates are stored locally on HollowRover and are never transmitted to external servers. This means:
+
+- There is no cloud biometric database to breach.
+- Recognition works even during an internet outage.
+- The resident retains full physical control over their biometric data.
+
+## Why This Matters
+
+For elderly individuals, recognizing a visitor or an intruder can be cognitively difficult, especially at night or when hearing or vision is impaired. Automating this classification removes the burden from the resident and gives the caregiver immediate, actionable information about who is in the home.
+
+## How It Connects to the Rest of LifeSphere
+
+- **HollowRover** hosts the face recognition service and stores the profile database. It also executes the physical response when an unregistered person is detected.
+- **HollowCore** uses face recognition as one factor in the biometric transaction authorization pipeline. A high-risk financial transaction may require facial verification through the EntryGuard or rover camera.
+- **EntryGuard nodes** at chokepoints provide the camera feeds that feed the pipeline. The TF-Luna sensor triggers the capture when a presence is detected.
+- **SphereAI** may adjust its verbal response based on whether the detected person is registered or not, offering a greeting to a family member or a warning challenge to a stranger.
+
+## Limits
+
+The source does not specify which camera feeds the face recognition pipeline at entry points, nor which machine physically hosts the FastAPI service beyond the general statement that profiles are stored on HollowRover. Recognition accuracy depends on lighting, camera angle, and face orientation. The source does not specify the exact similarity threshold or the number of profiles that can be stored. Performance under low light or with partial face occlusion is not detailed.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Intrusion Detection" icon="user-secret" href="/entryguard/intrusion-detection">
+    How motion and distance sensing trigger the face-check pipeline.
+  </Card>
+
+  <Card title="Video Streaming" icon="camera" href="/entryguard/video-streaming">
+    How annotated live video reaches the guardian's phone.
+  </Card>
+
+  <Card title="Threat Classification" icon="circle-question" href="/entryguard/threat-classification">
+    How thesystem interprets face-match results as part of threat assessment.
+  </Card>
+
+  <Card title="Components" icon="microchip" href="/entryguard/components">
+    Hardware breakdown of EntryGuard nodes, including camera inputs.
+  </Card>
+</CardGroup>

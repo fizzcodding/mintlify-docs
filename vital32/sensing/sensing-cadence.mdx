@@ -1,0 +1,97 @@
+---
+title: "Sensing Cadence: How Often Vital32 Reads and Reports"
+sidebarTitle: "Sensing Cadence"
+description: "The dual timeline of Vital32 data collection: firmware sampling rates for each sensor and the AI inference cycles that turn streams into predictions across three timescales."
+icon: "wave-square"
+---
+
+Vital32 collects data from a multi-sensor array, but not every sensor is read at the same speed. Some signals change in milliseconds and need rapid sampling. Others drift slowly and can be checked less often. Separately, the AI inference pipeline operates on its own schedule. This page presents both timelines side by side without inventing a reconciliation between them.
+
+## Firmware sampling rates
+
+The firmware reads sensors on staggered intervals to avoid bus contention. The source gives the following cadence:
+
+| Interval | Sensors and tasks |
+| --- | --- |
+| 50 Hz (every 20 ms) | MPU6050 accelerometer and gyroscope for fall detection |
+| Every 1 second | Pulse waveform, skin temperature, GSR (galvanic skin response), HRV computation, anomaly scoring, OLED display update |
+| Every 5 seconds | Environmental (VOC and humidity), UV exposure, bioelectrical impedance, seizure probability model |
+| Every 30 seconds | Biological age model computation, Firebase upload of the full shared-state snapshot |
+
+### Why these rates differ
+
+- **Motion at 50 Hz**: a fall completes in under half a second. To catch freefall and impact, the accelerometer must sample faster than the event itself. At 50 Hz, the system gets up to 25 readings during a 500 ms fall.
+- **Cardiac signals every second**: heart rate, SpO2, and GSR change over seconds to minutes, not milliseconds. Once-per-second sampling is sufficient for clinical-quality pulse oximetry and for GSR trends.
+- **Environmental every 5 seconds**: temperature, humidity, and volatile organic compounds shift with room conditions and user metabolism. These are slow variables.
+- **Biological age and upload every 30 seconds**: age estimation is a long-timescale inference. Uploading to Firebase every 30 seconds balances real-time awareness with battery and bandwidth use.
+
+## AI inference cycles
+
+The architecture section describes inference on three distinct timescales. These are driven by the data accumulated through the firmware sampling, but the source does not state exactly how the two timelines align.
+
+| Cycle | Duration | What runs |
+| --- | --- | --- |
+| Short | 30 seconds | Normalized biometric feature vector for acute anomaly detection |
+| Medium | 15 minutes | Emotional state and cortisol estimation |
+| Long | 24 hours | Biological age clock, cognitive baseline deviation score, personalized circadian rhythm model over a 30-day rolling window |
+
+### Short cycle: anomaly detection
+
+Every 30 seconds, Vital32 assembles a normalized feature vector from recent sensor streams and feeds it to the Isolation Forest anomaly detector. The output is an `anomaly_score` from 0 to 1. Scores above 0.7 trigger a soft alert; scores above 0.9 dispatch the rover emergency protocol.
+
+### Medium cycle: emotional and cortisol inference
+
+Every 15 minutes, the system updates:
+
+- `cortisol_est`: a Gradient Boosting estimate using RMSSD, GSR baseline, skin temperature, and sleep efficiency
+- Mental-state inputs that SphereAI consumes, including stress-level and emotional-state fields derived from biomarker trends
+
+### Long cycle: age, cognition, and circadian rhythm
+
+Once per day, the system updates:
+
+- `bio_age`: the biological age clock, an ensemble of Random Forest and XGBoost
+- Cognitive drift score via CUSUM statistical control charts on speech metrics from SphereAI
+- A personalized circadian model accumulated over the last 30 days
+
+## Two timelines, one reality
+
+The firmware samples some sensors every second and uploads every 30 seconds. The AI short cycle also runs every 30 seconds. It is reasonable to assume the short-cycle model uses the most recent uploaded snapshot, but the source does not confirm this. The medium and long cycles clearly consume aggregated or historical data rather than single samples.
+
+Importantly, both timelines are presented here exactly as described. No reconciliation, interpolation method, or buffer logic is documented.
+
+## Why this matters
+
+Sampling rate determines what events you can see. A 1-second cadence cannot catch a 200-millisecond cardiac arrhythmia. A 30-second cadence can miss a brief stress spike. The design spreads sensors across rates to balance sensitivity, battery life, and bus bandwidth. Understanding the cadence helps interpret what the system can and cannot detect in real time.
+
+## How it connects to the rest of LifeSphere
+
+- **Firebase Realtime Database** receives a full snapshot every 30 seconds. HollowCore, SphereAI, and HollowRover all react to this stream within the target 150 ms latency.
+- **SphereAI** consumes medium-cycle outputs (stress, emotional state) to adjust tone and content.
+- **HollowCore** reads short-cycle vital signs to trigger immediate environment changes, such as air purifier activation on low SpO2.
+
+## Limits
+
+- The source does not explain how the firmware cadence maps into the AI inference cycles. The two tables above are presented side by side as documented facts.
+- Battery life implications of 50 Hz motion sampling versus 1-second cardiac sampling are not specified.
+- No validation data is provided for whether the 30-second short cycle is fast enough to catch acute events before they become emergencies.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Signal Processing" icon="wave-square" href="/vital32/sensing/signal-processing">
+    How raw data becomes the features that feed each cycle
+  </Card>
+
+  <Card title="Anomaly Scoring" icon="shield-halved" href="/vital32/predictions/anomaly-scoring">
+    What the 30-second short cycle produces and how thresholds work
+  </Card>
+
+  <Card title="Cortisol Estimation" icon="droplet" href="/vital32/predictions/cortisol-estimation">
+    The 15-minute medium-cycle model that estimates stress hormones
+  </Card>
+
+  <Card title="Biological Age" icon="heart-pulse" href="/vital32/predictions/biological-age">
+    The 24-hour long-cycle clock that estimates aging pace from multi-sensor fusion
+  </Card>
+</CardGroup>

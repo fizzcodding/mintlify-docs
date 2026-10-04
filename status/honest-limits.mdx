@@ -1,0 +1,77 @@
+---
+title: "Honest Limits"
+description: "Current constraints of the LifeSphere system including stair navigation, night vision, unspecified thresholds, and the absence of validated performance results."
+sidebarTitle: "Honest Limits"
+icon: "circle-exclamation"
+---
+
+Every engineering system operates within boundaries. This page documents the known limits of LifeSphere so that readers can evaluate its current capabilities accurately.
+
+## Stair navigation
+
+The HollowRover uses a wheeled chassis with four independently driven wheels and Ackermann steering. It can navigate flat floors, doorway transitions, and small obstacles due to its rocker suspension. It cannot climb stairs. Multi-floor deployment requires an accessible path between floors, such as a lift, ramp, or manual relocation of the rover.
+
+The source document explicitly addresses this as a design limit, not a temporary bug. Future work may explore legged locomotion for true multi-floor autonomy, but no such mechanism is currently implemented.
+
+## Night vision
+
+The rover's main front camera is an SC230AI stereo depth camera. The source document states that night vision requires a separate IR fill light, and that this component is still unresolved. In low-light conditions, the camera may not provide reliable depth or visual data for face recognition, SLAM, or obstacle detection. The MLX90640 thermal camera is present in the sensor suite but its specific integration for night operation is not described.
+
+## No validated performance results
+
+No accuracy figures, AUC values, confusion matrices, or clinical outcomes are reported anywhere in the source document. The AI models, including the Isolation Forest anomaly detector, the pre-seizure LSTM, the cortisol estimator, the biological age clock, and the cognitive tracker, are described by architecture and design goal but not by measured performance.
+
+This absence is structural, not accidental. The models are trained offline on datasets that may not match the real input distribution. The pre-seizure LSTM, for example, is trained on public EEG datasets (CHB-MIT and Epilepsy iEEG Prediction) while the wearable inputs are cardiac, motion, and temperature signals. The gap between training data and deployment data is acknowledged in the source. Longitudinal user studies are listed as future work.
+
+## Unspecified thresholds
+
+Several operational thresholds are referenced but not given as fixed numbers:
+
+- Fire and gas alert thresholds for EntryGuard sensors are described as "above a fire threshold" and "above a gas threshold" without numerical values.
+- The criteria for "high-risk" transactions in the financial anomaly detection pipeline are not specified.
+- The tremor detection algorithm for MPU6050 is listed as a capability but no threshold or classification method is given.
+- The immune activation detection features and alert threshold are not specified.
+- The exact microstepping settings and current limits for the TMC2209 stepper driver in the medication dispenser are not described.
+
+In general, the source does not specify many fine-grained calibration parameters. This is common in a research document focused on architecture rather than deployment tuning, but it means that operationalizing the system would require additional empirical calibration.
+
+## Generic wording for hardware details
+
+The source document is not fully consistent on some hardware details, so this site uses generic wording for them. Examples include the dual H-bridge motor driver stage, the 9-axis IMU, and the BLE RSSI module. The specific models or revisions are not stated uniformly enough to document with confidence.
+
+## Single-point-of-failure gaps
+
+While the architecture is designed for distributed intelligence with no single point of failure for user monitoring, some dependencies remain. Firebase Realtime Database serves as the central synchronization layer. If Firebase suffers an outage and the local Wi-Fi network is also down, the GSM fallback via SIM800L is the remaining channel, but its bandwidth and reliability in this integrated role are not quantified. The rover can become a local Wi-Fi hotspot during outages, preserving Vital32 transmission, but this assumes the rover itself is powered and within range.
+
+## Environmental and physical limits
+
+- The UWB positioning system achieves 10 cm accuracy but requires three fixed non-collinear anchors per floor, which must be installed at known positions.
+- The BLE RSSI person-finding is coarser than UWB and provides only directional estimation, not precise position.
+- The water spray module purpose is not further specified beyond its physical components.
+- The bioimpedance sensor measures tissue hydration but the relationship between its readings and clinical dehydration assessment is not validated.
+
+## How these limits shape evaluation
+
+These constraints do not invalidate the project. They define its current horizon. A wheeled rover that cannot climb stairs can still serve a single-floor apartment or a multi-floor home with a lift. A night vision system awaiting an IR fill light is incomplete but not inoperable during daylight. Unspecified thresholds are a normal part of research-to-deployment transition.
+
+The appropriate standard is whether the architecture and built components establish a credible foundation for addressing the stated problem, not whether every subsystem is consumer-ready today.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Status and Roadmap" icon="road" href="/status/status-and-roadmap">
+    See what is built, designed, and planned for future work.
+  </Card>
+
+  <Card title="Unvalidated Claims" icon="triangle-exclamation" href="/status/unvalidated-claims">
+    Review which predictive capabilities are design goals rather than proven results.
+  </Card>
+
+  <Card title="Fault Tolerance" icon="shield-halved" href="/core/fault-tolerance">
+    Understand how the system mitigates failures within its design limits.
+  </Card>
+
+  <Card title="Deployment Scope" icon="location-dot" href="/core/deployment-scope">
+    Learn where and how the system is designed to operate.
+  </Card>
+</CardGroup>

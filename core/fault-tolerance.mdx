@@ -1,0 +1,103 @@
+---
+title: "Fault Tolerance and Graceful Degradation"
+sidebarTitle: "Fault Tolerance"
+description: "LifeSphere buffers data, carries backup power, maintains local hotspots, and uses independent watchdog timers so that failures cascade into reduced service, not silence."
+icon: "shield-halved"
+---
+
+A caregiving system that promises continuous monitoring must be prepared for the real world's constant small failures: power outages, router reboots, cloud hiccups, hardware glitches, and batteries running low. LifeSphere is designed so that these events reduce capability rather than eliminate it. The system degrades gracefully, preserving the most critical functions first and restoring full service automatically when conditions improve.
+
+## Backup power for critical operations
+
+HollowRover carries an 11.1 V 3S 5000 mAh LiPo battery, described in the source as both main power and backup power. This large battery maintains all rover operations during a home power outage, including navigation, AI inference, medication dispensing, and local Wi-Fi hotspot hosting. The substantial capacity reflects the rover's role as the local communication hub; if the rover loses power, the MQTT broker, local maps, and hotspot all disappear.
+
+Vital32 runs on a much smaller 3.7 V 1000 mAh LiPo, sufficient for hours of continuous biosensing away from a charger. The wearable's low power consumption, enabled by spreading sensor reads across time and using a scheduler to avoid bus contention, lets it outlast typical household outages.
+
+The source does not specify backup power duration for EntryGuard nodes or HollowCore relays. In general, these nodes depend on household power, though their low computational requirements make them candidates for small uninterruptible power supplies in future iterations.
+
+## Local data buffering
+
+When connectivity is lost, Vital32 stores the last 24 hours of vital data on its SD card. This is not merely raw sensor dumps but processed biometric features, anomaly scores, and timestamps. Once connectivity returns, the buffered data can be backfilled into the shared state for longitudinal model continuity.
+
+The 24-hour window is a design choice that balances storage capacity against the likelihood of extended outages. For most real-world scenarios, internet service returns within this window, preserving the continuity of the user's baseline models.
+
+## Local Wi-Fi hotspot during outages
+
+During a Wi-Fi outage, HollowRover becomes a local Wi-Fi hotspot. This allows Vital32 to continue transmitting data to local subscribers even when the home router and internet connection are down. The rover's local MQTT broker also remains accessible, so HollowCore can still receive automation commands.
+
+This hotspot capability is particularly important because it maintains the local loop between sensing and response. The user may not be able to reach the internet, but their home can still respond to their biology.
+
+## GSM fallback for guardian alerts
+
+When even local Wi-Fi is unavailable, the rover's SIM800L GSM module provides cellular SMS and data connectivity. Guardian notifications, emergency alerts, and status updates can still escape the home through the cellular network. The source does not specify details of the GSM plan, message format, or latency, but the module's presence ensures that the user is never fully disconnected from human oversight.
+
+## Watchdog timers on every node
+
+All five subsystems have independent watchdog timers. A watchdog timer is a hardware or software mechanism that reboots or reconnects a device if it becomes unresponsive. In LifeSphere, each node monitors its own health:
+
+- If a Firebase connection drops, the node attempts reconnection automatically
+- If a node fails to check in within an expected interval, the watchdog triggers guardian notification
+- If a local process hangs, the watchdog restarts it
+
+Because each subsystem has its own watchdog, no central monitoring service is required. This aligns with the distributed intelligence principle: the nodes watch themselves so that a failure in one does not prevent another from detecting trouble.
+
+## Graceful degradation patterns
+
+<Tabs>
+  <Tab title="Rover charging">
+    When HollowRover docks to charge, it stops patrolling and dispensing but continues hosting the local MQTT broker and hotspot. Vital32, EntryGuard, and HollowCore continue their independent functions.
+  </Tab>
+  <Tab title="Vital32 bus contention">
+    If multiple sensors attempt to use the shared bus simultaneously, Vital32's scheduler spreads reads across time. No sensor is dropped; timing is adjusted to maintain all measurements.
+  </Tab>
+  <Tab title="Internet outage">
+    Firebase updates pause. Local MQTT continues. Vital32 buffers to SD card. GSM alerts still reach guardians. When internet returns, buffered data uploads automatically.
+  </Tab>
+  <Tab title="EntryGuard node failure">
+    A failed EntryGuard node stops contributing perimeter data, but other EntryGuard nodes continue. HollowRover patrols can partially compensate for blind spots.
+  </Tab>
+</Tabs>
+
+## Why this matters
+
+An elderly user cannot troubleshoot a failed subsystem. They may not even know a failure has occurred. Fault tolerance must be invisible to the user and automatic in its recovery. By distributing backup power, data buffering, local networking, and self-monitoring across every node, LifeSphere ensures that the user remains protected even when the world around them is unreliable.
+
+## How it connects to the rest of LifeSphere
+
+<AccordionGroup>
+  <Accordion title="Distributed intelligence">
+    The architectural foundation for fault tolerance is explained in <a href="/core/distributed-intelligence">Distributed Intelligence</a>.
+  </Accordion>
+
+  <Accordion title="Communication channels">
+    The dual-channel model that enables fallback is detailed in <a href="/core/communication-channels">Communication Channels</a>.
+  </Accordion>
+
+  <Accordion title="Security">
+    How data integrity is preserved during failures is covered in <a href="/core/security-and-data-integrity">Security and Data Integrity</a>.
+  </Accordion>
+</AccordionGroup>
+
+## Limits
+
+The source does not specify automatic failover duration, that is, how long the system waits before declaring a node failed and alerting guardians. It also does not describe behavior during extended multi-day outages when both main power and internet are lost, beyond the 24-hour SD card buffer. The GSM fallback depends on cellular coverage, which is not guaranteed in all deployment areas.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Distributed Intelligence" icon="brain" href="/core/distributed-intelligence">
+    Why no single failure stops the ecosystem.
+  </Card>
+
+  <Card title="Communication Channels" icon="wifi" href="/core/communication-channels">
+    Firebase, MQTT, and GSM fallback paths.
+  </Card>
+
+  <Card title="Security and Data Integrity" icon="lock" href="/core/security-and-data-integrity">
+    Protecting biometric data during transmission and failure.
+  </Card>
+
+  <Card title="Human Authorization" icon="hand" href="/core/human-authorization">
+    Ensuring humans remain in control during autonomous recovery.
+  </Card>
+</CardGroup>

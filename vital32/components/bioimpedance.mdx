@@ -1,0 +1,55 @@
+---
+title: "Bioelectrical Impedance: Hydration Sensing on Vital32"
+sidebarTitle: "Bioelectrical Impedance"
+description: "Vital32 uses an AD5933 impedance converter to measure tissue hydration through bioelectrical impedance analysis, adding a metabolic context channel to the biological state."
+icon: "droplet"
+---
+
+Vital32 includes an AD5933 impedance converter for bioelectrical impedance analysis. This technique measures the opposition that body tissue offers to the flow of a small alternating electrical current. Different tissues, fluid compartments, and cell membranes impede current differently. By sampling at specific frequencies, the system can estimate tissue hydration, which is the amount of water in bodily tissues relative to their total mass.
+
+The AD5933 outputs a complex impedance value, which has both a resistive and a reactive component. In general bioimpedance analysis, low-frequency current tends to flow around cell membranes (extracellular water), while higher frequencies penetrate cells (total body water). The source does not specify the exact frequencies used or the hydration model applied, but the principle is that impedance magnitude and phase shift correlate with fluid status.
+
+## What bioimpedance adds
+
+Most consumer wearables stop at pulse, steps, and sleep. Bioimpedance goes deeper into metabolic state. Dehydration is common among elderly individuals, especially those on diuretic medications or those who forget to drink water. Subtle dehydration can precipitate falls, confusion, and kidney stress. A continuous or frequent impedance channel provides an objective metabolic signal that supplements cardiac and neural measurements.
+
+The sensor is read every 5 seconds alongside environmental, UV, and seizure model inputs. This places it in the slowest routine sampling tier, appropriate because tissue hydration changes on timescales of minutes to hours rather than seconds. The output is not given a dedicated named field in the shared state example, but it is listed as part of the multi-sensor array and is presumed to feed into the multi-sensor fusion models such as biological age and anomaly detection.
+
+## How the measurement works
+
+Bioelectrical impedance analysis requires at least two electrodes. A small, harmless alternating current, typically at microampere levels, is injected through the tissue. The resulting voltage is measured, and Ohm's law in complex form gives impedance. The AD5933 automates frequency sweeping, digital demodulation, and magnitude/phase extraction, presenting a digital result to the ESP32 over a standard interface. The source does not describe electrode placement, current amplitude, or calibration against reference hydration measurements.
+
+## How it connects to the rest of LifeSphere
+
+- **Anomaly detector**: Impedance deviation from baseline may contribute to `anomaly_score` as a metabolic outlier.
+- **Biological age clock**: Multi-sensor fusion likely includes tissue composition as a feature; the source does not detail which sensors feed this model.
+- **HollowRover**: Severe dehydration inferred from impedance trends could, in principle, trigger hydration reminders or medication delivery, though the source does not state this explicitly.
+- **SphereAI**: Longitudinal impedance trends might inform conversation context, such as prompting the user to drink water.
+
+## Why this matters
+
+Hydration is a silent risk factor. It does not produce dramatic symptoms until it is advanced. A wearable that measures only steps and heart rate will miss it entirely. Bioimpedance adds a metabolic layer to the biological state that is otherwise absent from consumer-grade elderly care devices. Combined with environmental humidity from the BME688, the system has both internal fluid status and external drying factors, though the source does not specify whether these two channels are explicitly fused.
+
+## Limits
+
+The source does not specify the accuracy of the AD5933 for hydration estimation in this form factor. Bioimpedance in general is sensitive to electrode placement, skin temperature, recent food or fluid intake, and body position. These confounders are not addressed. There is no mention of calibration against a gold-standard hydration method such as isotope dilution or even body-weight tracking. The exact frequency sweep range, electrode geometry, and hydration model are not provided. Whether impedance data feeds a dedicated shared-state field or only internal fusion models is unclear from the source.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Sensor Array" icon="microchip" href="/vital32/components/sensor-array">
+    All sensors and their roles
+  </Card>
+
+  <Card title="Environmental and UV" icon="sun" href="/vital32/components/environmental-and-uv">
+    External environmental context
+  </Card>
+
+  <Card title="Biological Age Clock" icon="brain" href="/ai/biological-age-clock">
+    Multi-sensor fusion for aging estimation
+  </Card>
+
+  <Card title="Anomaly Scoring" icon="scale-balanced" href="/vital32/predictions/anomaly-scoring">
+    How outliers are detected across all channels
+  </Card>
+</CardGroup>

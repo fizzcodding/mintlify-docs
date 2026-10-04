@@ -1,0 +1,75 @@
+---
+title: "Multi-Floor Map Switching: Per-Floor Maps and Anchors"
+sidebarTitle: "Multi-Floor Maps"
+description: "HollowRover registers each floor with its own SLAM map, three UWB anchors, and a barometric baseline, switching between them automatically."
+icon: "layer-group"
+---
+
+HollowRover is not restricted to a single floor. Each registered floor stores a dedicated SLAM map, a set of three fixed UWB anchors, and a calibrated barometric pressure baseline. The rover detects its floor, loads the matching resources, and continues autonomous navigation.
+
+## What a floor registration includes
+
+During setup, a floor is registered with three pieces of data:
+
+1. A SLAM occupancy grid built by driving the rover around that floor.
+2. Three UWB anchors at known fixed positions, placed non-collinearly.
+3. A barometric pressure baseline measured at a reference location on that floor.
+
+These three items are tightly coupled. The map describes where walls and furniture are. The anchors provide the coordinate system for localization. The pressure baseline tells the rover when it should use this particular map and anchor set.
+
+## The switching sequence
+
+When the rover powers on or crosses between floors, the switching logic operates in this order:
+
+1. The barometric sensor reads current pressure.
+2. The rover compares this reading against all registered floor baselines and selects the closest match.
+3. It loads that floor's SLAM map into SLAM Toolbox and activates that floor's three-anchor UWB set.
+4. UWB trilateration begins, localizing the rover horizontally within the map frame.
+5. Nav2 becomes active with that map's obstacle inflation and path planner.
+
+Steps 1 and 2 confirm vertical context. Steps 3 through 5 establish horizontal context. Only after both are confirmed does the rover accept navigation goals.
+
+## EntryGuard confirmation
+
+EntryGuard nodes are distributed across floors and carry both UWB modules and barometric sensors. When a node triggers an alert, its payload includes a node identity, a UWB zone reference, and a floor pressure reference. The rover receives this payload and performs two independent confirmations:
+
+- The pressure reference confirms which floor the event occurred on.
+- The UWB zone reference confirms which horizontal region within that floor.
+
+With both confirmed, the rover selects the correct floor map, localizes against the correct anchors, and plans a route to the alerting zone. This dual confirmation reduces the chance of responding on the wrong floor.
+
+## Why this matters
+
+An elderly person's home may include a ground-floor living area and an upstairs bedroom. A fall near the upstairs bed must trigger a response on the second floor, not the first. A gas alert in the kitchen must send the rover to the kitchen map. Multi-floor registration ensures the autonomous response is spatially correct.
+
+## How it connects to the rest of LifeSphere
+
+The [Barometric Floor Detection](/hollowrover/navigation/barometric-floor-detection) page explains the pressure comparison logic. The [UWB Positioning](/hollowrover/navigation/uwb-positioning) page explains the horizontal trilateration math. [Mapping and SLAM](/hollowrover/navigation/mapping-and-slam) describes how each floor's occupancy grid is built.
+
+Vital32's wearable UWB tag also operates within the same floor reference system, so the person's position and the rover's position share a common coordinate frame when both are on the same floor.
+
+## Limits
+
+The rover is wheeled and does not climb stairs. Moving between floors requires an accessible path such as a lift, ramp, or manual relocation by a caregiver. If a lift is available, the source does not specify whether the rover can autonomously enter, ride, and exit a lift. Until that capability exists, floor changes are either ramp-based or human-assisted.
+
+The source notes future work on legged locomotion for true multi-floor navigation.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Barometric Floor Detection" icon="temperature-half" href="/hollowrover/navigation/barometric-floor-detection">
+    How pressure baselines identify the rover's current floor before any map loads.
+  </Card>
+
+  <Card title="UWB Positioning" icon="location-dot" href="/hollowrover/navigation/uwb-positioning">
+    True three-anchor 2D trilateration for precise horizontal localization on each floor.
+  </Card>
+
+  <Card title="Mapping and SLAM" icon="map" href="/hollowrover/navigation/mapping-and-slam">
+    Building and maintaining the per-floor occupancy grids that Nav2 consumes.
+  </Card>
+
+  <Card title="Path Planning and Safety" icon="route" href="/hollowrover/navigation/path-planning">
+    Safe navigation at 0.3 m/s with obstacle inflation and ultrasonic backup sensing.
+  </Card>
+</CardGroup>

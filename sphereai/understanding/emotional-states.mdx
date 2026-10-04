@@ -1,0 +1,86 @@
+---
+title: "Emotional States in SphereAI: What Each State Means"
+sidebarTitle: "Emotional States"
+description: "The five emotional states recognized by SphereAI (calm, stressed, grief, isolated, cognitive), what they mean, how they are detected, and what they trigger."
+icon: "sun"
+---
+
+SphereAI classifies a user's emotional condition into one of five states. Each state is a category output from the Meta-Classifier's weighted fusion of language, voice, and biology. Understanding what each state means and what it triggers is essential to understanding how LifeSphere responds to its user.
+
+## The five states
+
+### Calm
+
+Calm is the baseline state. It indicates that the user's language, voice, and biology are all within their personal normal ranges, with no significant deviations detected. This does not mean the user is happy; it means the system does not detect elevated stress, sadness, withdrawal, or cognitive drift.
+
+When the prior state is calm, the weight profile gives language the highest trust (0.4), as calm speech is generally reliable and informative. The system monitors continuously but does not trigger interventions. A sustained calm state is an indicator of good emotional equilibrium relative to the user's established 30-day baseline.
+
+### Stressed
+
+Stressed indicates elevated sympathetic nervous system activation, typically accompanied by elevated GSR, reduced heart rate variability, higher estimated cortisol, tense vocal prosody, or verbally expressed anxiety. Stress in elderly users often precedes more serious health events: hypertension spikes, poor sleep, skipped meals, or medication mistakes.
+
+When detected, the stressed state triggers multiple ecosystem responses. HollowCore may lower lighting temperature and reduce the AC setpoint to create a physically calming environment. SphereAI itself adjusts its conversational tone to be gentler. If cortisol_est exceeds 18.0, HollowCore also publishes a `play_calming_audio` command to the SphereAI speaker. HollowRover may prepare a stress-relief protocol, which could involve approaching the user, offering conversation, or providing physical comfort items.
+
+### Grief
+
+Grief is an emotional state of loss, bereavement, or deep sadness. It is distinguished from general stress by vocal and linguistic markers: flat affect in speech, sighs, references to loss, topic fixation on a deceased person or the past, and biological patterns that differ from acute stress (for example, lower energy expenditure rather than elevated arousal).
+
+The Meta-Classifier assigns the highest weight to voice (0.4) in the grief state, because vocal prosody is considered the most distinctive channel for this emotion. Grief detection enables specific caregiving responses: SphereAI may adjust its tone to one of quiet support, avoid cheerful or energetic exchanges, and offer culturally appropriate spiritual comfort (adhkar). The system may also reduce interaction frequency to avoid overwhelming a grieving user who needs solitude more than stimulation.
+
+### Isolated
+
+Isolated indicates social and emotional withdrawal: reduced interaction with family, neighborhood, or the SphereAI agent itself. This is one of the most dangerous states for elderly people living alone, as isolation accelerates cognitive decline, depression, and physical deterioration.
+
+The isolated state profile gives biology the highest weight of any state (0.6), because withdrawn users may speak little or show flattened vocal affect. The system relies on biological rhythms: reduced HRV variability over the day, altered sleep architecture, reduced GSR event rate (less reactivity to stimuli), and reduced BLE proximity events (less movement around the home). When isolated is detected, SphereAI may proactively initiate conversation, HollowRover may approach and offer companionship, and the loneliness_index field is updated. The cognitive_score may also be monitored more closely, as isolation and cognitive decline are strongly linked.
+
+### Cognitive
+
+Cognitive is not a direct measure of memory ability but a classification based on linguistic and behavioral markers associated with cognitive change. It draws on the cognitive monitoring pipeline: unique word ratio (vocabulary diversity), topic repetition (fixation on the same subjects), and semantic coherence (logical flow between sentences).
+
+The cognitive state profile gives language the highest weight (0.5), because the core evidence comes from how the user structures their speech over time. A high cognitive_score (within the 0 to 1 range, with higher being better) indicates normal cognitive function. The cognitive tracker uses CUSUM (cumulative sum control chart) drift detection with a 2-sigma threshold to flag sustained deviation from the user's personal baseline. When the cognitive state is detected or the deviation score crosses threshold, the system may notify a guardian, increase monitoring frequency, and simplify its conversational prompts to reduce cognitive load.
+
+## System outputs beyond the state label
+
+The Meta-Classifier does not output only the emotional_state string. It also produces three scalar values that accompany the state:
+
+- **`stress_level`**: A continuous value from 0 to 1 representing the system's confidence in sympathetic activation, regardless of the discrete state. High stress_level can occur even in the calm state if transient stress is detected.
+- **`loneliness_index`**: A continuous value from 0 to 1 measuring social withdrawal and isolation risk. Example shared-state value: 0.15.
+- **`cognitive_score`**: A continuous value from 0 to 1 measuring linguistic cognitive health. Example shared-state value: 0.94.
+
+The source does not specify the exact computation formulas for stress_level and loneliness_index. They are additional AI model outputs that provide granular information beyond the discrete five-state classification.
+
+## How it connects to the rest of LifeSphere
+
+The emotional state and its three scalar outputs are written to the `sphereai` namespace in the shared Firebase state. All other subsystems subscribe and respond:
+
+- **Vital32** continues monitoring regardless of state, but anomaly thresholds may be implicitly influenced by context (for example, elevated heart rate during a "stressed" classification is less alarming than the same heart rate during a "calm" classification).
+- **HollowCore** applies biometric-mapping rules based on `cortisol_est`, `gsr`, `spo2`, and sleep detection. It also uses the emotional state to modulate lighting and climate tone.
+- **HollowRover** selects protocols based on `fall_detected`, `anomaly_score`, `seizure_prob`, and the emotional state. A "stressed" or "isolated" user may receive a companionship or de-escalation protocol.
+- **EntryGuard** remains in its security mode independent of emotional state, though a guardian notification about emotional state change may include a camera feed link.
+
+## Limits
+
+- The five-state model is a simplification of human emotion. Real emotional experience is continuous, layered, and context-dependent. A user could be both grieving and stressed, or isolated and cognitively intact, but the winner-take-all classifier assigns exactly one state.
+- The source does not report any validation of these states against clinical instruments such as the Geriatric Depression Scale or Mini-Mental State Examination.
+- The computation of `stress_level` and `loneliness_index` is not specified beyond their 0 to 1 range.
+- A state may persist longer than the user's actual emotional condition if the 15-minute update cycle lags behind rapid mood changes.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Dynamic Weighting" icon="layer-group" href="/sphereai/understanding/dynamic-weighting">
+    How each state's detection profile assigns trust to the three sensory streams
+  </Card>
+
+  <Card title="Meta-Classifier" icon="brain" href="/sphereai/understanding/meta-classifier">
+    The mathematical fusion that decides which state wins
+  </Card>
+
+  <Card title="Cognitive Monitoring" icon="scale-balanced" href="/sphereai/understanding/cognitive-monitoring">
+    How language metrics feed the cognitive state classification
+  </Card>
+
+  <Card title="Loneliness Index" icon="person-falling" href="/sphereai/understanding/loneliness-index">
+    The withdrawal metric and its connection to the isolated state
+  </Card>
+</CardGroup>

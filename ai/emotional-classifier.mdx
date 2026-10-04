@@ -1,0 +1,130 @@
+---
+title: "Emotional Classifier: Fusing Language, Voice, and Biology"
+description: "LifeSphere's emotional state classifier merges three signal streams, language, voice, and wearable biomarkers, with context-adaptive weights to detect stress, grief, isolation, and cognitive load."
+sidebarTitle: "Emotional Classifier"
+icon: "masks-theater"
+---
+
+LifeSphere's emotional classifier does not rely on a single signal to guess how a user feels. It listens to what they say, how they say it, and what their body reports, then fuses these three streams into a single emotional state.
+
+## What It Answers
+
+The classifier answers: "What is the user's dominant emotional state right now, and how stressed, lonely, or cognitively loaded are they?" The output feeds SphereAI's tone adaptation, HollowCore's environmental responses, and the long-term emotional and cognitive health record.
+
+## The Three Agents
+
+The model is built from three concurrent agents, each analyzing a different channel.
+
+### Language Agent
+
+This agent converts speech to text, then analyzes the text for sentiment and semantic content.
+
+- **Whisper** (OpenAI's speech recognition model) transcribes the user's spoken words
+- **DistilBERT** (a lightweight version of BERT, a transformer model for natural language understanding) classifies the sentiment of the transcript as positive, negative, or neutral, with attention to emotional keywords
+
+In general, transformer models like BERT learn contextual word relationships from large text corpora. DistilBERT retains most of BERT's accuracy with roughly half the computation, making it suitable for local inference on hardware with limited resources.
+
+### Voice Agent
+
+This agent analyzes the acoustic properties of speech, independent of the words themselves. It uses the Python library **Librosa** to extract:
+
+- **MFCC (mel-frequency cepstral coefficients)**: a compact representation of the spectral shape of the voice, capturing timbre and tone quality
+- **Pitch**: the perceived fundamental frequency of the voice; higher variation may indicate emotional arousal
+- **Energy**: the loudness or intensity of the speech signal
+- **Tempo**: the speaking rate, measured in syllables or beats per minute
+- **Zero-crossing rate**: how often the audio waveform crosses zero amplitude; higher values often correspond to breathy or tense speech
+
+These features together form a description of vocal prosody: the rhythm, stress, and intonation that carry emotional information beyond literal meaning.
+
+### Biology Agent
+
+This agent reads live biomarkers from Vital32:
+
+- Heart rate and HRV (heart rate variability)
+- Galvanic skin response (GSR)
+- Skin temperature
+- Cortisol estimate
+
+The biology agent does not interpret these values in isolation. It compares them to the user's personal baseline to decide whether the body is in a state that aligns with calm, stress, grief, or another emotional category.
+
+## The Meta-Classifier: Dynamic Weighted Fusion
+
+The three agents produce three scores. The meta-classifier combines them with weights that change depending on which emotional state was most recent.
+
+For each candidate state, the fused score is:
+
+$$
+S(\text{state}) = w_{\text{lang}} \cdot L + w_{\text{voice}} \cdot V + w_{\text{bio}} \cdot B
+$$
+
+where $$L$$, $$V$$, and $$B$$ are the normalized scores from the Language, Voice, and Biology agents, and the weights depend on the prior emotional state:
+
+| Prior State | Weights (Language / Voice / Biology) |
+| --- | --- |
+| Calm | 0.4 / 0.3 / 0.3 |
+| Stressed | 0.2 / 0.3 / 0.5 |
+| Grief | 0.3 / 0.4 / 0.3 |
+| Isolated | 0.2 / 0.2 / 0.6 |
+| Cognitive | 0.5 / 0.3 / 0.2 |
+| Unknown | 0.4 / 0.3 / 0.3 (calm weights) |
+
+The state with the highest fused score wins. This means the system's trust in each signal is context-dependent.
+
+### Why the Weights Shift
+
+- When the prior state is **stressed**, biology gets the highest weight (0.5) because the body often reveals stress before conscious language does
+- When the prior state is **isolated**, biology rises even higher (0.6), reflecting the assumption that isolation may suppress speech while physiological markers still register affect
+- When the prior state is **cognitive**, language rises to 0.5, because word choice, topic repetition, and semantic coherence are direct measures of cognitive load
+- The **calm** baseline is more evenly split, treating all three streams as equally informative
+
+The source document does not specify how the weights were derived. They may be heuristic, learned from data, or designed by the researcher.
+
+## Outputs
+
+| Output / Cycle | Description |
+| --- | --- |
+| `emotional_state` (15 min) | Dominant category: calm, stressed, grief, isolated, cognitive |
+| `stress_level` (15 min) | Continuous stress indicator (0 to 1, from example) |
+| `loneliness_index` (15 min) | Estimated isolation level (0 to 1, from example) |
+| `cognitive_score` (15 min) | Speech-based cognitive health metric (0 to 1, from example) |
+
+The exact computation of `stress_level`, `loneliness_index`, and `cognitive_score` beyond the fused emotional state is not specified.
+
+## Why This Matters
+
+An elderly person living alone may not report loneliness until it has become severe depression. They may not notice their own cognitive drift. By combining language, voice tone, and body signals, LifeSphere attempts to detect these states early enough for gentle intervention: a warmer tone from SphereAI, calming audio from HollowCore, or a notification to a family member.
+
+## How It Connects to the Rest of LifeSphere
+
+- **Vital32** supplies the biology agent's live biomarkers every second
+- **SphereAI** uses the emotional state to select tone, conversation topics, and whether to play adhkar (Islamic remembrance phrases)
+- **HollowCore** responds to stress and grief states with warm lighting, lower AC temperature, or calming audio playback
+- **HollowRover** may approach for companionship if the loneliness index is elevated
+
+## Limits
+
+- The model does not account for language barriers or dialect variation in Bengali speech
+- The cognitive assessment relies on a user who speaks often; a silent user produces weak language and voice signals
+- The weight table is fixed; the source does not describe online weight adaptation
+- No validation data or accuracy metrics are reported
+- Cultural expression of emotion varies; a weight set derived from one cultural context may misread another
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="AI Overview" icon="brain" href="/ai/overview">
+    All six models and the three inference timescales.
+  </Card>
+
+  <Card title="Cortisol Estimator" icon="bolt" href="/ai/cortisol-estimator">
+    The biology agent's stress hormone input, estimated from HRV and GSR.
+  </Card>
+
+  <Card title="SphereAI Overview" icon="robot" href="/sphereai/overview">
+    How SphereAI uses emotional state to shape interaction.
+  </Card>
+
+  <Card title="Cognitive Tracker" icon="head-side-brain" href="/ai/cognitive-tracker">
+    Long-term drift detection in speech patterns.
+  </Card>
+</CardGroup>

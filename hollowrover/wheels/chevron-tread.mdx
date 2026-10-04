@@ -1,0 +1,74 @@
+---
+title: "Chevron Tread: Indoor Grip for Smooth Floors and Thresholds"
+sidebarTitle: "Chevron Tread"
+description: "HollowRover wheels use chevron tread lugs for traction on smooth indoor floors. Learn how angled lug patterns improve grip and help the robot climb small obstacles."
+icon: "shoe-prints"
+---
+
+HollowRover wheels feature chevron tread lugs: angled rubber-like ridges arranged in a V-shaped pattern around the outer circumference of the wheel. This tread pattern is designed specifically for the smooth indoor floors typical of Bangladeshi homes: polished tile, marble, concrete, and laminate, with occasional threshold lips and transitions between rooms.
+
+## What Chevron Tread Is
+
+A chevron pattern consists of repeating V-shaped ridges that point in alternating or consistent directions around the tire. The pointed ends of the V meet the ground first, creating a series of small biting edges that dig into the contact surface. Unlike horizontal circumferential ribs, which provide pure rolling resistance, or knobby off-road patterns designed for mud and gravel, chevron lugs are optimized for directional grip on hard, flat surfaces.
+
+The chevron is one of the oldest and most widely used tread patterns in tire engineering. It appears on agricultural tires, aircraft tires, and some industrial vehicle tires. In each case, the pattern serves a similar purpose: to channel debris, maximize edge contact, and provide consistent grip in the primary direction of travel.
+
+## How Chevron Lugs Improve Indoor Traction
+
+Smooth indoor floors present a traction challenge for small robots. Tile and polished concrete have low coefficients of friction, especially when dry and clean. A smooth wheel surface can slide rather than roll predictably, causing the rover to drift during Nav2 path execution. Even small angular errors in steering accumulate into large position errors over hallway distances, degrading SLAM localization.
+
+Chevron lugs address this by introducing geometric edges into the contact patch. When the wheel rolls forward, the angled face of each lug presses into the floor at an oblique angle. This creates a localized normal force component that resists lateral sliding. In simpler terms, the edges "bite" the floor slightly, providing grip without requiring a soft rubber compound that would mark or scuff the surface.
+
+The directionality of the chevron also helps during acceleration and deceleration. When the rover starts moving forward, the trailing edges of the V lugs provide resistance to backward slip. When braking, the leading edges provide resistance to forward slip. This bidirectional grip is useful for a robot that must start, stop, and turn precisely in narrow corridors.
+
+## Threshold and Lip Climbing
+
+One of the most common obstacles in indoor environments is the threshold lip: a raised strip of metal, wood, or tile at the boundary between rooms. These lips are typically 3 to 10 millimeters high. A smooth wheel rolling toward a lip at low speed may stall or spin in place if the lip angle is steep and the floor is slippery.
+
+Chevron tread improves threshold climbing in two ways. First, the lug edges can hook the lip slightly as the wheel approaches, giving the wheel a mechanical advantage to pull itself up. The angled face of the lug acts like a ramp, gradually lifting the wheel rather than requiring it to climb abruptly. Second, the gaps between lugs reduce the contact area during the approach, concentrating the rover's weight onto the lugs that are touching the lip and increasing the local pressure that helps the wheel grip.
+
+This is especially important for HollowRover because the passive rocker suspension keeps all four wheels grounded, but it does not actively lift wheels over obstacles. The wheel itself must generate the traction to climb. The chevron tread provides that climbing grip without requiring active suspension actuators.
+
+## Lateral Stability During Turns
+
+HollowRover uses four-wheel independent Ackermann steering. During a turn, the inner and outer wheels follow different radius arcs, and each wheel experiences lateral forces that try to push it sideways against the floor. On a smooth floor, these lateral forces can cause the wheel to slide rather than roll, producing a wider turn radius than Nav2 planned and potentially bringing the rover closer to obstacles than intended.
+
+Chevron lugs resist lateral slip because the V orientation presents angled surfaces to lateral forces. When a lateral force acts on a chevron lug, it resolves into components parallel and perpendicular to the lug face. The perpendicular component generates a grip reaction that resists sliding. In general tire design, this is why chevron patterns are sometimes preferred for directional stability on hard surfaces compared to symmetric block patterns.
+
+## Connection to the Rest of HollowRover
+
+The chevron tread connects to the rover's navigation accuracy through the encoder odometry system. Nav2's controller expects wheels to roll without longitudinal or lateral slip. If a wheel slips, the encoder counts do not match the actual distance traveled, and the rover's estimated position drifts. The tread pattern reduces slip events, especially during turns and threshold crossings, which improves odometry consistency and therefore SLAM accuracy.
+
+The tread also connects to user perception. A robot that slips and corrects repeatedly appears jerky and uncertain. A robot that tracks smoothly appears deliberate and trustworthy. For an elderly user who may be unaccustomed to autonomous machines, smooth, predictable motion is an important comfort factor.
+
+## General Background on Tread Pattern Engineering
+
+In general, tread pattern design is a mature field of mechanical engineering. The pattern must balance competing requirements: grip versus rolling resistance, wear versus traction, noise versus vibration, and water channeling versus dry performance. For indoor robot wheels, water channeling is irrelevant, but the other trade-offs remain. Chevron patterns are often selected when the primary requirement is directional traction on hard, dry surfaces with minimal rolling resistance penalty.
+
+## Why This Matters
+
+For a caregiving robot, traction is not a performance specification, it is a safety parameter. A robot that loses traction while carrying medication or water may drop its payload, stop in a doorway blocking egress, or fail to reach a user who has fallen. The chevron tread is one of several design choices, including the Ackermann steering geometry and the passive rocker suspension, that together ensure the rover remains mobile and predictable under normal indoor conditions.
+
+## Limits
+
+The source document does not specify lug height, lug angle, lug density, or the expected wear rate of the PLA+ tread on various floor surfaces. The chevron pattern is optimized for dry, hard floors and may perform differently on wet, waxed, or carpeted surfaces. Whether the lugs eventually flatten with use is not stated. The source does not compare the chevron pattern to alternative patterns that were tested during the eight-plus iteration process.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Wheel Design Overview" icon="truck" href="/hollowrover/wheels/overview">
+    The complete wheel assembly and how each part contributes to mobility.
+  </Card>
+
+  <Card title="S-Curve Spokes" icon="wave-square" href="/hollowrover/wheels/s-curve-spokes">
+    How spoke compliance works with tread grip for smooth, stable rolling.
+  </Card>
+
+  <Card title="Rocker Suspension" icon="truck" href="/hollowrover/design-decisions">
+    How the passive suspension system maintains wheel-ground contact for the tread to grip.
+  </Card>
+
+  <Card title="Ackermann Steering" icon="route" href="/hollowrover/design-decisions">
+    How independent steering geometry coordinates with wheel traction for precise turns.
+  </Card>
+</CardGroup>

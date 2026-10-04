@@ -1,0 +1,102 @@
+---
+title: "Vital32 Design Decisions: Why This Hardware and Architecture"
+sidebarTitle: "Design Decisions"
+description: "Key engineering choices behind the Vital32 wearable, from ESP32 compute and sensor selection to bus scheduling, zero-interaction constraints, and cost trade-offs."
+icon: "gears"
+---
+
+Vital32 is the biological heartbeat of LifeSphere. Every design choice, from the microcontroller to the sensor layout, was made to support continuous, zero-interaction health monitoring at an accessible cost point. This page explains the rationale behind the hardware platform, the multi-sensor array, the scheduling strategy, and the physical form factor.
+
+## ESP32 WROOM-32 as the compute core
+
+The source specifies an ESP32 WROOM-32 microcontroller. This chip was chosen because it integrates Wi-Fi and Bluetooth on a single low-cost module, has enough GPIO (general-purpose input/output pins) for multiple sensors, and runs FreeRTOS well enough to schedule staggered reads across a shared bus.
+
+In general, the ESP32 family is widely used in wearable and IoT projects because of its balance of connectivity, power management, and community tooling. It is not the most powerful edge-AI chip available, but Vital32 does not run large models locally. Heavy inference, such as the pre-seizure LSTM and biological age clock, is trained offline and the wearable uploads raw and processed features for cloud or rover-side execution.
+
+## Multi-sensor array without naming a count
+
+Vital32 uses a multi-sensor array. The source groups the sensors by biological target:
+
+- Cardiac signals: ECG waveform acquisition (a real part of the array; chip not named) and pulse-based sensing via MAX30102 pulse oximetry (PPG, measuring blood-volume changes with light)
+- Motion: MPU6050 accelerometer and gyroscope
+- Temperature: MLX90614 infrared non-contact skin temperature
+- Stress response: galvanic skin response (Grove GSR v1.0 or custom two-electrode) and AD5933 impedance converter for tissue hydration
+- Environment: BME688 for volatile organic compounds and humidity, plus VEML6075 UV sensor
+
+The decision to combine ECG and PPG is notable. ECG provides precise beat timing for HRV. PPG provides pulse rate and SpO2. Together they create redundancy: if one signal degrades due to motion or poor contact, the other may still yield usable data. The source does not specify a fusion algorithm between the two cardiac streams, but their co-presence increases robustness.
+
+## Bus scheduling to avoid contention
+
+Multiple sensors share a bus. If two sensors try to communicate at the same instant, data collide and both readings corrupt. Vital32 solves this with a scheduler that spreads reads across time rather than polling everything simultaneously.
+
+This is a systems-level decision with a real trade-off:
+
+- **Benefit**: no contention, lower peak power draw, predictable timing
+- **Cost**: slightly delayed samples for some sensors, more complex firmware logic
+
+The cadence table on the sensing cadence page shows the result: motion at 50 Hz, cardiac at 1 Hz, environmental at 0.2 Hz, and upload at 1/30 Hz.
+
+## Zero-interaction as a hard constraint
+
+LifeSphere does not require the user to interact with technology. It requires technology to respond to the user's biology. Vital32 embodies this principle in several ways:
+
+- No buttons, no touchscreen, no voice commands on the wearable itself
+- The OLED displays status but does not demand acknowledgment
+- Charging is the only maintenance step the user must perform, and even that is simplified through a USB-C connector with a TP4056 charging module
+- The UWB tag and BLE beacon operate passively, requiring no pairing action from the user during normal use
+
+This constraint ruled out more accurate but user-dependent sensors. For example, a chest-strap ECG would give cleaner cardiac data but requires deliberate donning. A fingertip pulse oximeter is more accurate than wrist PPG but demands stillness and conscious placement. Vital32 accepts slightly noisier data in exchange for continuous wear.
+
+## Power and form factor
+
+The wearable runs on a 3.7 V 1000 mAh LiPo battery with a TP4056 charging module and an AMS1117-3.3 regulator. The battery size is a compromise: larger batteries last longer but make the device heavier and less comfortable for elderly users with thin wrists. The source does not state expected battery life, so runtime is an unknown.
+
+The OLED is a 0.96-inch 128x64 display. It is small enough to keep the device unobtrusive, yet large enough for caregiver diagnostics or alert icons. The source does not describe what appears on screen during normal operation.
+
+## UWB and BLE for localization
+
+Vital32 carries a UWB (ultra-wideband) tag for floor-aware positioning and acts as a BLE (Bluetooth Low Energy) beacon for person-finding. These are not medical sensors, but they make the wearable useful to HollowRover and EntryGuard.
+
+- UWB ranging gives the rover horizontal position within roughly 10 cm when three anchors are visible.
+- BLE RSSI provides a coarser, longer-range fallback when the user is outside the UWB anchor set.
+- BLE proximity confirmation is also used as one factor in HollowCore's financial transaction authorization.
+
+Adding these radios increases power consumption and antenna complexity, but the benefit is integration: one worn device serves health, navigation, and security simultaneously.
+
+## Why this matters
+
+Design decisions are not neutral. Choosing wrist placement over chest placement changes what diseases you can detect. Choosing a scheduler over parallel buses changes how quickly you can update AI models. Every compromise in Vital32 was made to keep the system wearable, affordable, and invisible.
+
+## How it connects to the rest of LifeSphere
+
+- **HollowRover** depends on Vital32's UWB and BLE for user localization during fall response and medication delivery.
+- **SphereAI** depends on the cardiac and GSR streams for emotional and cognitive inference.
+- **HollowCore** reacts to Vital32's temperature, SpO2, and sleep flags in real time.
+- **EntryGuard** and **financial authorization** use the BLE beacon for proximity confirmation.
+
+## Limits
+
+- The source is not fully consistent on some hardware details, so this site uses generic wording for them.
+- Battery life is not specified. Continuous Wi-Fi, UWB, and BLE broadcast may limit daily wear time.
+- ECG and PPG fusion logic is not described. It is unclear whether the system selects the better signal or averages both.
+- No ergonomic or dermatological testing is reported for the wrist-worn form factor.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Sensor Array" icon="microchip" href="/vital32/components/sensor-array">
+    The full set of sensors and what each one measures
+  </Card>
+
+  <Card title="Zero Interaction Principle" icon="hand" href="/core/zero-interaction-principle">
+    The core philosophy that shaped every hardware choice
+  </Card>
+
+  <Card title="Sensing Cadence" icon="wave-square" href="/vital32/sensing/sensing-cadence">
+    How the scheduler translates hardware into timed data streams
+  </Card>
+
+  <Card title="Limits and Ethics" icon="shield-halved" href="/vital32/limits-and-ethics">
+    Honest limits including unvalidated predictive claims
+  </Card>
+</CardGroup>

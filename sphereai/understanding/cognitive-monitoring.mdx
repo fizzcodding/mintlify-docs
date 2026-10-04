@@ -1,0 +1,88 @@
+---
+title: "Cognitive Monitoring: Language and Memory Signals"
+sidebarTitle: "Cognitive Monitoring"
+description: "How SphereAI tracks cognitive health through unique word ratio, topic repetition, and semantic coherence, using CUSUM drift detection with a 2-sigma threshold."
+icon: "scale-balanced"
+---
+
+Cognitive Monitoring in SphereAI tracks how the user's speech changes over time to detect early indicators of cognitive decline. It operates on the long inference cycle (24 hours) and produces the `cognitive_score` and a deviation signal that can trigger guardian notifications.
+
+## What cognitive monitoring measures
+
+The system extracts three linguistic metrics from transcripts produced by the Language Agent's Whisper pipeline:
+
+### Unique word ratio
+
+The unique word ratio measures vocabulary diversity during a given time window. It is computed as the number of distinct words divided by the total number of words spoken. A high ratio means the user is using a rich, varied vocabulary. A declining ratio over weeks or months may indicate word-finding difficulty or reduced expressive range. This metric is sensitive to total speech volume, so the system likely normalizes it per conversation or per day rather than using raw counts.
+
+In general, reduced lexical diversity is one of the earliest detectable linguistic markers of cognitive change. Researchers have linked declining type-token ratios (the academic term for unique word ratio) to progression from healthy aging to mild cognitive impairment.
+
+### Topic repetition
+
+Topic repetition measures how often the user returns to the same subjects across multiple conversations. It is typically computed by clustering utterances into semantic topics and measuring transition probabilities or recurrence rates. A user who repeatedly brings up the same concern, memory, or story may be experiencing reduced working memory capacity, perseveration, or anxiety-driven fixation.
+
+In SphereAI, topic repetition is likely computed using the DistilBERT embeddings from the Language Agent. By comparing the semantic vectors of successive utterances, the system can detect when the user is circling back to previously discussed themes with unusual frequency.
+
+### Semantic coherence
+
+Semantic coherence measures how logically connected the sentences within an utterance or conversation are. It captures whether the user's speech follows a clear, understandable logical thread or drifts between unrelated concepts. Reduced coherence is a hallmark of several neurological conditions that affect executive function and language planning.
+
+In general, semantic coherence can be measured by computing the cosine similarity between consecutive sentence embeddings. High similarity means the user is staying on topic and maintaining logical flow. Low or erratic similarity suggests topic switching, circumlocution, or loss of narrative structure. DistilBERT sentence embeddings provide the raw vectors for this computation.
+
+## How drift is detected: CUSUM
+
+The three metrics feed into a drift detection algorithm called CUSUM (cumulative sum control chart). CUSUM is a statistical process control method originally developed for manufacturing quality control. In general, it works by accumulating deviations from a target mean over time. Small deviations accumulate gradually. When the cumulative sum exceeds a threshold, the algorithm signals that a meaningful shift has occurred, even though individual daily measurements might still appear within the normal range.
+
+In SphereAI, the user's first weeks of interaction establish a personal baseline for each of the three linguistic metrics. The CUSUM tracker monitors subsequent values. The threshold is set at 2-sigma, meaning two standard deviations from the personal baseline:
+
+$$\text{Deviation signal} = \text{true when cumulative drift exceeds } 2\sigma$$
+
+This choice is conservative enough to avoid noise from normal day-to-day variation but sensitive enough to catch sustained decline. When the threshold is crossed, the system may update the emotional_state toward "cognitive" and notify a guardian.
+
+## Why this matters
+
+Early cognitive decline is often missed in elderly people living alone. Family members visit occasionally and may not notice gradual changes. Standard medical screens happen at annual or semi-annual intervals. By analyzing speech patterns continuously and passively, SphereAI aims to detect deviation weeks or months before it would be visible to casual observation or scheduled appointments.
+
+This is a design goal, not a validated outcome. The source explicitly presents early cognitive decline detection as an aspiration. No accuracy figures, clinical validation, or longitudinal study results are provided. The CUSUM approach is sound in principle and non-invasive in practice, but its real-world performance in this specific elderly caregiving context is unproven.
+
+## How it connects to the rest of LifeSphere
+
+The cognitive monitoring pipeline produces the `cognitive_score` (example value from shared state: 0.94), which is written to the `sphereai` namespace. This score contributes to the Meta-Classifier's "cognitive" state decision. The cognitive state profile gives language the highest weight (0.5), because the evidence for this state comes primarily from linguistic metrics.
+
+When cognitive drift is detected or suspected:
+
+- The Meta-Classifier may shift emotional_state to "cognitive"
+- SphereAI may simplify its conversation patterns and reduce cognitive load in prompts
+- A guardian notification may be triggered, especially if the 2-sigma CUSUM threshold is crossed
+- HollowCore may adjust the environment to reduce sensory complexity (for example, dimming lights or reducing background audio)
+- The medication system may be flagged for review, as medication errors are a known consequence of cognitive decline
+
+The 24-hour long cycle means cognitive monitoring is intentionally slow and careful. It looks for sustained trends, not momentary confusion that could be caused by fatigue, medication, or a bad night of sleep.
+
+## Limits
+
+- The exact formulas for unique word ratio, topic repetition, and semantic coherence are not specified. The descriptions above reflect general knowledge of natural language processing; the specific implementation details are unknown.
+- CUSUM requires a stable baseline period. If the user's first 30 days are already affected by early decline, the baseline will be biased and later drift may be underestimated.
+- Speech-based cognitive monitoring obviously requires the user to speak. A user who becomes non-verbal or reduces speech due to physical illness, depression, or choice will produce sparse or absent data for this pipeline.
+- The 2-sigma threshold is a standard statistical choice, but its appropriateness for elderly speech variability is not validated. Personal baselines may naturally be noisier than industrial process baselines.
+- No accuracy, sensitivity, specificity, or clinical correlation data is reported. Longitudinal user studies are listed as future work.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Language Agent" icon="message" href="/sphereai/understanding/language-agent">
+    The Whisper and DistilBERT pipeline that produces the transcripts for cognitive tracking
+  </Card>
+
+  <Card title="Emotional States" icon="sun" href="/sphereai/understanding/emotional-states">
+    How the cognitive state fits into the five-state classification
+  </Card>
+
+  <Card title="Meta-Classifier" icon="brain" href="/sphereai/understanding/meta-classifier">
+    How the cognitive score feeds into the weighted fusion
+  </Card>
+
+  <Card title="Loneliness Index" icon="person-falling" href="/sphereai/understanding/loneliness-index">
+    The companion withdrawal metric that correlates with cognitive decline
+  </Card>
+</CardGroup>

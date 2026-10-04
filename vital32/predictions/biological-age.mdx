@@ -1,0 +1,86 @@
+---
+title: "Biological Age Clock: Daily Multi-Sensor Aging Estimate"
+sidebarTitle: "Biological Age"
+description: "Vital32 estimates biological age daily using Random Forest and XGBoost to track how lifestyle and health factors affect the body's aging trajectory."
+icon: "calendar"
+---
+
+Vital32 calculates a daily biological age estimate that may differ from your chronological age, combining signals from across its multi-sensor array into a single number that reflects how your body is aging based on your own patterns rather than population averages.
+
+This page explains what biological age means in this context, how the model works at a high level, why the estimate is a design goal rather than a validated clinical metric, and how it supports long-term caregiving strategy within LifeSphere.
+
+## What biological age means
+
+Your chronological age is simply the number of years since you were born. Your biological age, in general, is an attempt to measure how aged your body's systems actually are based on physiological function. Two people who are both 75 years old chronologically might have very different biological ages: one might have the cardiovascular profile of someone in their sixties, while the other shows accelerated decline due to chronic stress, poor sleep, or unmanaged inflammation.
+
+For elderly people living alone, tracking biological age over time offers a way to see whether daily habits, medication adherence, sleep quality, and social engagement are slowing or accelerating the aging process. A decreasing or stable biological age suggests that the caregiving ecosystem is working. A rising trend might prompt family members or healthcare providers to investigate underlying causes.
+
+## How the estimate is produced
+
+The biological age clock is an ensemble of two machine learning models: Random Forest and XGBoost. In general, a Random Forest builds many decision trees on random subsets of data and averages their predictions, which reduces overfitting and handles mixed data types well. XGBoost, like the Gradient Boosting used in the cortisol estimator, builds trees sequentially to correct errors, with additional regularization that often improves accuracy on structured data.
+
+The ensemble combines these two approaches to produce a single age estimate in years. The output appears in the shared biological state as `bio_age` under `lifesphere/vital32/bio_age`. An example value given in the source is 68.4, though the user's actual chronological age is not stated alongside it.
+
+The model runs on the long inference cycle, updating once every 24 hours using a 30-day rolling window of multi-sensor data. This means each daily estimate is informed by roughly a month of continuous monitoring. The specific feature set and training data are not described in the source.
+
+## Inputs and what they might reflect
+
+Because the exact feature weights are unpublished, we can only infer the likely contributors from the sensors Vital32 carries and their known physiological correlates:
+
+| Vital32 sensor | Likely relevance to biological age |
+| --- | --- |
+| Cardiac signals (PPG and related) | Vascular stiffness, autonomic health, recovery capacity |
+| Heart rate variability | Overall resilience and parasympathetic tone |
+| Skin temperature | Thermoregulatory efficiency, metabolic rate |
+| Galvanic skin response | Chronic sympathetic load, stress accumulation |
+| Bioelectrical impedance | Tissue hydration and body composition shifts |
+| Environmental exposure (VOC, humidity) | Chronic indoor air quality effects |
+| UV exposure | Outdoor activity level, vitamin D synthesis |
+| Accelerometer | Physical activity, fall history, mobility trends |
+
+The model learns your personal baseline during the initial 30-day period, then compares each new 24-hour window against that baseline to detect acceleration or deceleration in biological aging. This is consistent with the system-wide principle of learning individual baselines rather than applying generic thresholds.
+
+## Why this matters
+
+Biological age tracking shifts caregiving from reactive crisis management to proactive lifestyle optimization. Instead of waiting for a fall, a missed medication episode, or a hospitalization, family members and caregivers can observe trends. If the biological age estimate rises during a week of poor sleep and social isolation, the ecosystem can respond with enhanced SphereAI companionship, adjusted HollowCore sleep lighting, and proactive HollowRover wellness checks.
+
+It also provides a single interpretable metric for remote family members who cannot review raw biometric data continuously. One number, tracked over months, tells a story about whether their parent is thriving or declining.
+
+## How it connects to the rest of LifeSphere
+
+The `bio_age` field is part of the shared biological state. The source does not describe specific automated triggers tied to it. Likely connections include:
+
+- **SphereAI** may use long-term age trajectory as context for conversational depth and cognitive monitoring intensity.
+- **HollowCore** could theoretically adjust environmental defaults, such as lighting warmth or air quality targets, based on whether the system detects accelerated aging trends.
+- **Medication management** might prioritize adherence enforcement during periods of rising biological age, though this linkage is not specified.
+- **Guardian notifications** could include trend summaries as part of regular updates, but the specific format and cadence are not detailed in the source.
+
+Because the 24-hour cycle is the slowest inference layer, biological age functions as a strategic signal rather than a tactical alert. It informs care planning more than immediate response.
+
+## Limits
+
+No validation study compares Vital32's biological age estimates against established epigenetic clocks, telomere assays, or comprehensive clinical geriatric assessments. The output is a design goal and a research feature, not a diagnostic tool.
+
+The source does not state which sensors contribute most to the estimate, how the Random Forest and XGBoost predictions are blended, or whether the model has been trained on elderly South Asian populations. Diet, climate, and genetic factors specific to Bangladesh may not be represented in the training data.
+
+Longitudinal user studies to validate whether the biological age clock accurately predicts functional decline, morbidity, or mortality are listed as future work.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Biological Age Clock Deep Dive" icon="brain" href="/ai/biological-age-clock">
+    Learn how the Random Forest and XGBoost ensemble is trained and how it integrates with the broader AI stack.
+  </Card>
+
+  <Card title="Anomaly Scoring" icon="chart-line" href="/vital32/predictions/anomaly-scoring">
+    See how daily deviation detection works on the short inference cycle.
+  </Card>
+
+  <Card title="Cortisol Estimation" icon="droplet" href="/vital32/predictions/cortisol-estimation">
+    Understand how stress chemistry is inferred and how it may feed into long-term aging estimates.
+  </Card>
+
+  <Card title="Multi-Timescale Inference" icon="layer-group" href="/core/multi-timescale-inference">
+    Explore how the 24-hour long cycle supports strategic health monitoring.
+  </Card>
+</CardGroup>

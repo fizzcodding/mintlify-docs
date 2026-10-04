@@ -1,0 +1,66 @@
+---
+title: "Immune Activation Detection: Predictive Goal in Vital32"
+sidebarTitle: "Immune Activation"
+description: "Vital32's design goal to detect immune activation 24 to 48 hours before symptom onset, using personal biometrics and the shared biological state backbone."
+icon: "shield-halved"
+---
+
+Vital32 is designed to raise an `immune_alert` flag before you feel sick, aiming to detect the earliest physiological shifts of immune activation roughly one to two days before symptoms become noticeable.
+
+This page explains what immune activation means in plain language, why early detection matters for elderly people living alone, how the system approaches it, and what remains unknown because the specific detection features and thresholds have not been published.
+
+## What immune activation means
+
+When your body detects an infection, such as from a virus or bacteria, your immune system does not wait for you to feel ill before it begins working. In general, immune activation refers to the cascade of chemical and cellular changes that occur as your body mobilizes defenses. These changes include shifts in heart rate variability, subtle increases in skin temperature, changes in sleep architecture, and alterations in autonomic nervous system tone that can be measured through galvanic skin response.
+
+Long before you experience a fever, cough, or fatigue, your cardiovascular and thermal regulation systems are already adjusting to the metabolic demands of an immune response. Vital32 is designed to sense these preclinical signals through its multi-sensor array and raise an alert while you are still asymptomatic, giving the ecosystem time to act.
+
+## Why early detection matters
+
+For elderly people living alone, the gap between the start of an infection and the first noticeable symptom is a dangerous window. Dehydration, missed medication, and social isolation can worsen outcomes quickly. If the system can flag that your body is mounting a defense while you still feel fine, family members can check in, medication schedules can be adjusted preventively, and HollowRover can ensure hydration and comfort protocols are active.
+
+This is especially significant in Bangladesh and similar regions, where healthcare access may be limited and transportation to clinics is not immediate. A 24 to 48 hour head start turns a potential emergency into a manageable, supervised recovery.
+
+## How Vital32 approaches it
+
+The design goal is to infer immune activation from the same biometric streams used for anomaly scoring and cortisol estimation. The inputs likely include heart rate variability metrics such as RMSSD and LF/HF ratio, skin temperature trends, galvanic skin response baseline shifts, and possibly accelerometer-derived sleep efficiency changes. These are the physiological channels most likely to reflect autonomic and thermoregulatory changes during early infection.
+
+The `immune_alert` field appears in the shared biological state as a boolean flag under `lifesphere/vital32/immune_alert`. When true, other subsystems can respond: HollowCore could raise the room temperature slightly to support immune function, SphereAI could increase conversational check-ins to detect subjective changes, and HollowRover could prioritize hydration delivery.
+
+The source does not specify which exact sensor combination or model computes the immune alert, what threshold converts a trend into a flag, or how the prediction is validated against ground-truth illness episodes.
+
+## Connection to the broader ecosystem
+
+Immune activation detection is where Vital32's predictive ambition becomes most visible. It sits at the intersection of the 15-minute cortisol estimation cycle and the 24-hour biological age monitoring cycle, because immune stress affects both stress chemistry and long-term physiological load. The flag is not an isolated alarm: it feeds into the same shared state that controls lighting, climate, conversation, and rover dispatch.
+
+In a unified caregiving ecosystem, an immune alert could trigger a chain like this: Vital32 detects thermal and autonomic shifts, raises `immune_alert`, SphereAI shifts to gentler voice pacing, HollowCore warms the room, and HollowRover prepares a comfort station with water and medication within reach. The user never interacts with technology. The technology responds to their biology.
+
+## Why this is still a design goal
+
+The 24 to 48 hour pre-symptom detection claim is an engineering target, not a validated clinical result. No accuracy figures, sensitivity, or specificity are reported. Longitudinal user studies that correlate `immune_alert` flags with later-confirmed infections are listed as future work. The underlying biological mechanisms are plausible, but translating them into a reliable wearable inference pipeline requires data that the source does not state has been collected.
+
+## Limits
+
+Without published feature weights or thresholds, caregivers should treat `immune_alert` as an early warning signal requiring human verification, not as a medical diagnosis. The system could also flag non-infectious immune triggers, such as autoimmune flares, allergic responses, or intense physical stress, because these share some autonomic signatures with infection.
+
+The wearable does not measure biomarkers such as C-reactive protein or white blood cell count directly. It infers immune state through proxy signals, which adds uncertainty.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Anomaly Scoring" icon="chart-line" href="/vital32/predictions/anomaly-scoring">
+    See how general biometric deviation detection feeds into the same alert pipeline.
+  </Card>
+
+  <Card title="Cortisol Estimation" icon="droplet" href="/vital32/predictions/cortisol-estimation">
+    Explore stress chemistry inference, which overlaps with immune activation signatures.
+  </Card>
+
+  <Card title="AI Overview" icon="brain" href="/ai/overview">
+    Understand how all predictive models are trained offline on personal baselines.
+  </Card>
+
+  <Card title="Multi-Timescale Inference" icon="layer-group" href="/core/multi-timescale-inference">
+    Learn how short, medium, and long inference cycles support different prediction horizons.
+  </Card>
+</CardGroup>

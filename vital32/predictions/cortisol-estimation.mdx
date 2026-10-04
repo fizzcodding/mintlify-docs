@@ -1,0 +1,82 @@
+---
+title: "Cortisol Estimation: Stress Chemistry from Biometrics"
+sidebarTitle: "Cortisol Estimation"
+description: "Vital32 estimates cortisol every 15 minutes from HRV, galvanic skin response, skin temperature, and sleep efficiency to trigger calming home responses."
+icon: "droplet"
+---
+
+Vital32 produces an estimated cortisol value every 15 minutes by combining heart rhythm, skin conductance, temperature, and sleep data, giving LifeSphere a proxy for physiological stress that requires no blood draw and no user action.
+
+This page explains what cortisol represents, how the estimate is constructed, why it is explicitly not a laboratory measurement, and how HollowCore and SphereAI use the result to change your environment and emotional support in real time.
+
+## What cortisol means for caregiving
+
+Cortisol is a hormone that your adrenal glands release in response to stress. In general, elevated cortisol raises heart rate, increases skin conductivity through sweat gland activation, elevates core temperature, and disrupts sleep architecture. These are precisely the signals that Vital32 measures continuously. While a blood or saliva test gives a direct cortisol reading, the wearable infers it from correlated biometrics using a machine learning model trained to recognize the physiological cascade that cortisol produces.
+
+For elderly people living alone, sustained high cortisol is associated with anxiety, loneliness, poor sleep, and suppressed immune function. Detecting it early allows LifeSphere to intervene with environmental calm and conversational support before stress compounds into more serious health deterioration.
+
+## How the estimate is built
+
+The cortisol estimator uses Gradient Boosting with 200 trees. In general, Gradient Boosting builds an ensemble of weak prediction models, typically decision trees, where each new tree corrects the errors of the previous ones. This makes it effective for capturing complex, nonlinear interactions between physiological inputs.
+
+The model accepts four inputs:
+
+| Input | Source | What it reflects |
+| --- | --- | --- |
+| RMSSD | Vital32 cardiac signals | Parasympathetic nervous system tone; drops under stress |
+| GSR baseline | Grove galvanic skin response sensor | Sympathetic activation via sweat gland activity |
+| Skin temperature | MLX90614 infrared sensor | Thermoregulatory shifts from stress hormones |
+| Sleep efficiency | HRV plus accelerometer immobility | Restorative sleep quality, degraded by elevated cortisol |
+
+The output is labeled `cortisol_est` in the shared biological state and is measured in estimated nanograms per deciliter. It is important to emphasize that this is an estimate. It correlates with true cortisol but is not a substitute for clinical laboratory testing. The training data source for the model is not specified in the documentation.
+
+## The 15-minute cycle and HollowCore response
+
+Cortisol estimation runs on the medium inference cycle, updating every 15 minutes alongside emotional state classification. This frequency balances responsiveness with computational load. When `cortisol_est` exceeds 18.0, HollowCore triggers a stress-relief protocol:
+
+- Lighting shifts to warm, dim tones, which in general promote parasympathetic calming
+- Air conditioning temperature is lowered slightly, since cooler environments can reduce physiological arousal
+- A `play_calming_audio` command is published over MQTT to SphereAI, which plays soothing sounds or adhkar through its speaker
+
+If galvanic skin response independently exceeds 0.6, HollowCore may also publish the calming audio command even before cortisol reaches the 18.0 threshold, providing a faster sympathetic-activation response.
+
+## Why this matters
+
+The cortisol bridge is one of LifeSphere's most integrated features. It turns a hidden hormonal state into visible environmental action. An elderly user does not need to recognize their own stress, ask for help, or operate any device. The room darkens, the temperature drops, and a calming voice speaks, all because the wearable detected a shift in skin conductivity and heart rhythm variability.
+
+This exemplifies the zero-interaction principle: technology responds to biology, not the other way around.
+
+## How it connects to other subsystems
+
+The `cortisol_est` field is consumed by multiple subsystems simultaneously:
+
+- **HollowCore** maps it directly to lighting, climate, and audio commands through relay and MQTT rules.
+- **SphereAI** uses it as a contextual input for tone adjustment. When cortisol is elevated, the companion agent speaks more slowly and chooses calmer topics.
+- **HollowRover** can execute a cortisol-de-escalation protocol, which may include physical presence, retrieval of comfort items, or hydration delivery.
+- **Biological age clock** may incorporate chronic cortisol elevation as a factor in long-term aging estimates, though the source does not specify exactly which features enter the daily age model.
+
+## Limits
+
+The cortisol estimate is not clinically validated against blood or saliva measurements. Individual variation in baseline GSR, skin temperature regulation, and sleep architecture means the model may systematically overestimate or underestimate for some users. The 18.0 threshold is a fixed design parameter, not derived from population pharmacokinetic data.
+
+Because the model is trained offline and the training data source is unspecified, its generalization to elderly Bangladeshi users, who may have different thermoregulatory norms and dietary patterns than typical training populations, is unknown. Longitudinal calibration studies are listed as future work.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Cortisol Estimator Deep Dive" icon="brain" href="/ai/cortisol-estimator">
+    Explore the Gradient Boosting architecture, feature engineering, and model training approach.
+  </Card>
+
+  <Card title="HollowCore Biometric Mapping" icon="temperature-half" href="/hollowcore/biometric-mapping">
+    Learn how HollowCore converts shared state fields into physical home responses.
+  </Card>
+
+  <Card title="SphereAI Biology Agent" icon="lungs" href="/sphereai/understanding/biology-agent">
+    See how live biomarkers feed into the trimodal emotional classifier.
+  </Card>
+
+  <Card title="Multi-Timescale Inference" icon="layer-group" href="/core/multi-timescale-inference">
+    Understand where the 15-minute medium cycle sits in the overall inference architecture.
+  </Card>
+</CardGroup>

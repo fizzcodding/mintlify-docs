@@ -1,0 +1,67 @@
+---
+title: "LifeSphere Shutter and Release: Controlled Dose Delivery"
+sidebarTitle: "Shutter and Release"
+description: "LifeSphere's MG995 servo opens a mechanical shutter to release exactly one medication dose after the carousel is confirmed in position."
+icon: "lock"
+---
+
+After the medication carousel has rotated to the correct slot and the encoder has confirmed precise alignment, the dose is still trapped inside the dispenser body. The final mechanical action that separates the stored medication from the user is the opening of a shutter. The LifeSphere dispenser uses an MG995 servo, a metal-gear actuator, to move this shutter. This page explains how the shutter functions, why a servo was chosen over a solenoid or motor, and how the release timing is coordinated with the rest of the dispensing sequence.
+
+## The shutter's role
+
+The shutter is a simple mechanical gate positioned directly beneath the active slot. In its closed state it supports the weight of the pills above it and seals the compartment against dust and moisture. In its open state it creates a narrow channel through which a single dose falls into a collection tray. The shutter does not meter or count pills; it assumes the caregiver has loaded the correct quantity into the slot during refill. Its only job is to open when the controller is certain the right slot is overhead, and to close afterward.
+
+This simplicity is intentional. Complex pill-counting mechanisms add failure modes: photocells can be fooled by translucent capsules, weighing scales drift over time, and mechanical counters jam. The LifeSphere design sidesteps these problems by trusting the human loader for quantity accuracy and using the shutter purely as a binary gate.
+
+## Why an MG995 servo
+
+The MG995 is a widely used metal-gear servo with sufficient torque for small mechanical gates. A servo differs from a standard DC motor in that it moves to a commanded angular position and holds there under internal feedback. When the controller sends a pulse width corresponding to "open," the servo rotates to that angle and resists external force trying to push it closed. When the pulse changes to "close," it returns to the sealed position.
+
+In general, metal gears are preferred over plastic gears in applications where repeated load cycles cause wear. A dispenser may open and close dozens of times per week, so gear durability matters. The MG995 also operates at modest current draw, which is important in the HollowRover where the battery must simultaneously supply the compute board, motors, lights, and communication modules.
+
+## Sequence and timing
+
+The shutter does not operate in isolation. It is the last step in a rigidly ordered sequence:
+
+1. HollowRover's schedule engine identifies the due dose and its slot index.
+2. The stepper motor rotates the carousel.
+3. The AS5600 encoder confirms the carousel has reached the target angle.
+4. Only after confirmation does the MG995 servo receive the open command.
+5. A short dwell time allows gravity to move the dose through the chute.
+6. The servo closes the shutter.
+7. The robotic arm retrieves the dose from the collection tray and presents it to the user.
+
+This gated sequence prevents accidental release during rotation. If the shutter opened while the carousel was still turning, medications from adjoining slots could spill. The encoder verification step guarantees positional stability before the shutter moves.
+
+## How it connects to the rest of LifeSphere
+
+The shutter is the mechanical boundary between the dispenser's internal storage and the outside world:
+
+- **SphereAI** times its verbal reminder to coincide with the servo opening, so the user knows a dose is being prepared.
+- **HollowCore** tracks dispenser state in the shared biological state, allowing caregivers to see whether scheduled doses have been released.
+- **Vital32** proximity confirmation can, in the future, validate that the user was near the rover when the dose was handed over, supporting adherence logging.
+- **The robotic arm** depends on the shutter being closed and sealed during navigation, so no pills rattle loose while the rover moves between rooms.
+
+## Limits
+
+The source does not specify the exact dimensions of the shutter opening, the material of the gate, or whether it is spring-assisted for fail-safe closure. It also does not state how the system handles a stuck pill or a partial blockage. The MG995 is a standard hobby servo, not a medical-grade actuator, so its long-term reliability under continuous cycling has not been quantified in this context. If the servo fails in the open position, medications could be exposed to humidity; if it fails in the closed position, no doses can be released until manual intervention.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Dispenser Mechanism Overview" icon="pills" href="/medication/dispenser-overview">
+    The full sequence from schedule to dose handoff, placing the shutter in context.
+  </Card>
+
+  <Card title="Closed-Loop Encoder Feedback" icon="wave-square" href="/medication/encoder-feedback">
+    How positional confirmation guarantees the shutter only opens over the correct slot.
+  </Card>
+
+  <Card title="Stepper Driver Choice" icon="microchip" href="/medication/stepper-driver">
+    General traits of stepper drivers and how they enable the precise rotation that precedes the shutter.
+  </Card>
+
+  <Card title="Custom PCB and Electronics" icon="layer-group" href="/medication/custom-pcb">
+    The custom board that hosts the servo control, stepper driver, and encoder interface.
+  </Card>
+</CardGroup>

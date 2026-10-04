@@ -1,0 +1,63 @@
+---
+title: "SphereAI Language Agent: Whisper + DistilBERT"
+sidebarTitle: "Language Agent"
+description: "How SphereAI converts speech to text with OpenAI Whisper, then analyzes sentiment with DistilBERT, to capture meaning and emotional tone from the user's words."
+icon: "message"
+---
+
+The Language Agent in SphereAI is the subsystem that turns what the user says into usable emotional data. It runs in two stages: first, Whisper converts the audio signal into written words; then, DistilBERT scores the sentiment and tone of those words.
+
+## How Whisper works
+
+Whisper is a general-purpose speech-to-text model developed by OpenAI. It was trained on a large and diverse set of audio examples from the internet, which means it understands many accents, speaking styles, and background noise conditions without needing custom training on the user's voice. In general, modern speech-to-text systems like Whisper use a neural network architecture called a transformer (the same family used for text generation and translation). The model listens to short audio windows and predicts the most likely sequence of text tokens (words and punctuation) that correspond to the sounds it hears.
+
+In LifeSphere, Whisper runs on the rover's compute hardware, the D-Robotics RDK X5. The RDK X5 has a dedicated NPU (neural processing unit), so Whisper can run without slowing down other tasks such as SLAM navigation. The wake-word engine on the ESP32-S3 triggers the full pipeline. When the wake word is detected, the ESP32-S3 sends a signal over UART to the RDK X5, which then activates Whisper processing on the captured audio.
+
+Whisper is important here because SphereAI needs to understand not just the literal words but the full sentence structure of spoken language. The emotional tone of "I'm fine" versus "I'm... fine" is different, but the distinction depends on having an accurate transcript to analyze in the next stage.
+
+## How DistilBERT works
+
+BERT (Bidirectional Encoder Representations from Transformers) is a language understanding model developed by Google. The original BERT reads an entire sentence in both directions at once (left to right and right to left), allowing it to understand context deeply. DistilBERT is a smaller, faster version that was trained to reproduce BERT's behavior with fewer parameters. It is well suited for a real-time caregiving environment where inference latency matters.
+
+In general, transformer-based models like DistilBERT work by converting each word into a numerical vector (an embedding) and then running those vectors through many layers of self-attention. Self-attention means each word can "look at" every other word in the sentence to decide how it should be interpreted. For sentiment analysis, the model adds a final classification layer that maps the sentence representation to sentiment categories such as positive, negative, or neutral.
+
+In SphereAI, DistilBERT analyzes the Whisper transcript and produces a sentiment score L. This score contributes to the meta-classifier that decides the user's emotional state. The Language Agent is most trusted when the user is calm or speaking in a cognitively normal way; the weight table in the dynamic weighting system reflects this.
+
+## Why this matters
+
+Words carry explicit information about how a person feels. A user might say "I miss my daughter" or "I do not want to eat today." These statements are direct signals of grief or distress that biology alone might not reveal with the same clarity. The Language Agent gives SphereAI access to the user's self-reported emotional state in natural language.
+
+Because LifeSphere is designed as a zero-interaction system, the user does not need to press a button or open an app to talk to it. The wake-word system is always listening locally on the ESP32-S3. This means the Language Agent can capture emotional information passively, without adding cognitive burden to someone who may already be confused, exhausted, or distressed.
+
+## How it connects to the rest of LifeSphere
+
+The Language Agent does not work alone. Its output L is one of three inputs (alongside V from the Voice Agent and B from the Biology Agent) fed into the meta-classifier. The final emotional state, stress level, loneliness index, and cognitive score are written to the shared Firebase state under the `sphereai` namespace. Other subsystems read these values and respond: HollowCore may dim the lights if the state is "grief," or HollowRover may play calming audio if the stress level is high.
+
+The Language Agent also contributes to cognitive monitoring. The transcript feeds three metrics: unique word ratio (vocabulary diversity), topic repetition (whether the user keeps returning to the same subjects), and semantic coherence (how logically connected the sentences are). These feed a CUSUM-based drift detector that flags possible cognitive decline.
+
+## Limits
+
+- The source does not specify whether Whisper is run in a particular model size (base, small, medium, etc.) or whether it can handle Bengali as well as English. This is a deployment consideration for Bangladesh.
+- DistilBERT sentiment is trained on general internet text, not specifically on elderly caregiving conversations. The system does not report retraining or fine-tuning on domain-specific emotional language.
+- Speech analysis obviously requires the user to speak. A withdrawn, silent user may register as emotionally "unknown" if there is insufficient recent transcript data, even though biology and voice prosody may still provide signals.
+- No accuracy, word-error rate, or sentiment agreement metrics are reported in the source.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Voice Agent" icon="wave-square" href="/sphereai/understanding/voice-agent">
+    How vocal prosody and acoustic features feed the biological stream
+  </Card>
+
+  <Card title="Biology Agent" icon="heart-pulse" href="/sphereai/understanding/biology-agent">
+    What vital signs tell SphereAI about emotional state
+  </Card>
+
+  <Card title="Meta-Classifier" icon="brain" href="/sphereai/understanding/meta-classifier">
+    How the three agent scores fuse into a single emotional state
+  </Card>
+
+  <Card title="Cognitive Monitoring" icon="scale-balanced" href="/sphereai/understanding/cognitive-monitoring">
+    Measuring language and memory signals over time
+  </Card>
+</CardGroup>

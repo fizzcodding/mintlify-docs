@@ -1,0 +1,106 @@
+---
+title: "Heart Rate Variability: RMSSD and LF/HF Explained"
+sidebarTitle: "Heart Rate Variability"
+description: "How Vital32 measures HRV through RMSSD and the LF/HF ratio, what these metrics reveal about autonomic nervous system balance, and how they feed stress and seizure models."
+icon: "heart-pulse"
+---
+
+Heart rate variability (HRV) is one of the most informative signals Vital32 extracts from its multi-sensor array. Unlike heart rate, which counts beats per minute, HRV measures the millisecond-level differences between consecutive beats. This page explains the two metrics Vital32 computes, how they are calculated, and why they matter for caregiving.
+
+## What HRV actually means
+
+If your heart beats at exactly 60 beats per minute, one beat every 1000 milliseconds, your HRV is zero. A healthy heart does not beat like a metronome. The gaps vary slightly with every breath, thought, and hormone shift. Those variations reflect the tug-of-war between the sympathetic nervous system (which speeds the heart) and the parasympathetic nervous system (which slows it). HRV is therefore a window into stress, recovery, fatigue, and early health drift.
+
+## How Vital32 derives HRV
+
+Vital32 derives heart rhythm and variability from its cardiac signals. The firmware detects beat-to-beat timing, stores the series of RR intervals (the gaps between R-peaks in the cardiac cycle), and then computes two standardized metrics over sliding windows.
+
+## RMSSD: short-term recovery
+
+RMSSD stands for root mean square of successive differences. It is the most common time-domain HRV metric and is especially sensitive to parasympathetic activity.
+
+### Formula
+
+$$
+\text{RMSSD} = \sqrt{ \frac{1}{N-1} \sum_{i=1}^{N-1} (RR_{i+1} - RR_i)^2 }
+$$
+
+Here, ( RR_i ) is the ( i )-th RR interval in milliseconds, and ( N ) is the number of intervals in the window. The steps are:
+
+1. Subtract each interval from the next to get the successive difference.
+2. Square every difference so positive and negative deviations count equally.
+3. Average those squared differences.
+4. Take the square root to return to the original millisecond scale.
+
+Vital32 computes RMSSD over a 2-minute rolling window. This means the metric updates continuously as new beats arrive and old beats roll out, giving a recent picture of vagal tone.
+
+### What it tells you
+
+In general, a higher RMSSD suggests better parasympathetic tone and recovery capacity. A sustained drop in RMSSD over days can signal accumulated stress, poor sleep, or illness before symptoms appear. Vital32 uses RMSSD as an input to its cortisol estimator and its anomaly detector.
+
+## LF/HF: autonomic balance
+
+The LF/HF ratio is a frequency-domain metric. It splits the RR interval series into two frequency bands and compares their power.
+
+### Frequency bands
+
+| Band | Frequency range | General interpretation |
+| --- | --- | --- |
+| LF (low frequency) | 0.04 to 0.15 Hz | Mixed sympathetic and parasympathetic influence |
+| HF (high frequency) | 0.15 to 0.40 Hz | Primarily parasympathetic, linked to respiratory rhythm |
+
+### How Vital32 computes it
+
+The firmware applies Welch power spectral density estimation to a 256-sample RR window. Welch's method splits the window into overlapping segments, computes a periodogram for each, and averages them to reduce noise. The power in each band is summed, and the ratio is:
+
+$$
+\text{LF/HF} = \frac{P_{LF}}{P_{HF}}
+$$
+
+( P\_{LF} ) is the total power between 0.04 and 0.15 Hz. ( P\_{HF} ) is the total power between 0.15 and 0.40 Hz.
+
+### What it tells you
+
+In general, a higher LF/HF ratio is associated with greater sympathetic dominance: stress, physical exertion, or mental load. A lower ratio suggests more parasympathetic relaxation. The ratio is not a pure stress score, because LF contains both branches, but trends in LF/HF over time are clinically useful when paired with other biomarkers.
+
+<Note>
+  Because the HF band aligns with breathing rate (about 3 to 6 breaths per minute falls inside 0.15 to 0.40 Hz), shallow or rapid breathing can shift HF power even without a true autonomic change. Vital32 does not currently correct for respiration, so LF/HF is best interpreted as a longitudinal trend rather than an absolute snapshot.
+</Note>
+
+## How these metrics feed the ecosystem
+
+- **Cortisol estimation**: the cortisol model combines RMSSD, GSR baseline, skin temperature, and sleep efficiency into a 15-minute updated estimate.
+- **Anomaly detection**: sudden deviations in either HRV metric from the user's 30-day baseline raise the anomaly score.
+- **Pre-seizure LSTM**: HRV features enter the 5-minute rolling window used by the seizure probability model.
+- **Sleep detection**: HRV combined with accelerometer immobility determines whether the user is asleep, which triggers HollowCore's sleep protocol.
+
+## Why this matters
+
+HRV is one of the few biomarkers that can change days before a person feels sick. By tracking personal baselines rather than population averages, Vital32 aims to catch early drift: immune activation, stress accumulation, or seizure prodrome. The metrics are non-invasive, continuous, and require zero interaction from the user.
+
+## Limits
+
+- HRV is sensitive to sensor placement, motion artifacts, and beat-detection errors. The source does not specify the beat-detection algorithm or its validation.
+- LF/HF interpretation assumes the user is at rest and breathing normally. During activity or conversation, the ratio can be misleading.
+- No accuracy figures are reported for HRV extraction against a gold-standard ECG.
+- The 256-sample Welch window and 2-minute RMSSD window are described in the source, but their interaction with the 30-second AI cycle is not explained.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Signal Processing" icon="wave-square" href="/vital32/sensing/signal-processing">
+    From raw ADC to the normalized feature vector that includes HRV
+  </Card>
+
+  <Card title="Cortisol Estimation" icon="droplet" href="/vital32/predictions/cortisol-estimation">
+    How RMSSD and GSR combine into a stress-hormone estimate
+  </Card>
+
+  <Card title="Anomaly Scoring" icon="shield-halved" href="/vital32/predictions/anomaly-scoring">
+    How HRV deviations feed the real-time anomaly detector
+  </Card>
+
+  <Card title="Pre-Seizure Estimation" icon="brain" href="/vital32/predictions/pre-seizure-estimation">
+    Why HRV is one of the inputs to the 5-minute seizure window
+  </Card>
+</CardGroup>

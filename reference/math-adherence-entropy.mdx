@@ -1,0 +1,118 @@
+---
+title: "Math: Adherence Entropy for Medication Regularity"
+sidebarTitle: "Adherence Entropy"
+description: "Shannon entropy formula for quantifying medication adherence regularity, with a worked example showing how irregular timing increases entropy in LifeSphere's tracking system."
+icon: "book"
+---
+
+This page defines the entropy metric that LifeSphere uses to characterize how consistently a user follows their medication schedule over time.
+
+## Shannon entropy for adherence
+
+Entropy measures disorder or unpredictability. In medication adherence, high entropy means doses are taken at irregular times or skipped unpredictably; low entropy means a reliable, clockwork routine.
+
+$$
+H(X) = -\sum_{i=1}^{n} p(x_i) \log_2 p(x_i)
+$$
+
+| Symbol | Meaning | Unit |
+| --- | --- | --- |
+| $$H(X)$$ | Shannon entropy of the adherence distribution | bits |
+| $$n$$ | Number of distinct outcome categories (e.g., time bins, adherence states) | dimensionless |
+| $$p(x_i)$$ | Probability of outcome $$x_i$$ (observed frequency) | proportion (0 to 1) |
+| $$\log_2$$ | Base-2 logarithm | dimensionless |
+| $$x_i$$ | A specific adherence outcome or time-bin label | categorical |
+
+The probabilities $$p(x_i)$$ are estimated from observed adherence history. The source does not specify the exact outcome categories, bin sizes, or observation window, so this page presents the general formula and an illustrative application.
+
+## Interpretation
+
+A user who takes medication at exactly the same times every day will have one outcome category with probability near 1 and all others near 0, giving entropy close to 0. A user with highly irregular timing spreads probability across many categories, raising entropy. LifeSphere uses entropy as a summary statistic for caregiver review and as a potential input to reminder intensity adjustment, though the source does not describe automated actions triggered specifically by entropy.
+
+## Worked example (illustrative)
+
+Consider a simplified scenario with four time-of-day categories for a single daily medication.
+
+| Category (time window) | Observed count (30 days) | Probability $$p(x_i)$$ |
+| --- | --- | --- |
+| Morning (6:00 to 10:00) | 18 | 0.60 |
+| Midday (10:00 to 14:00) | 6 | 0.20 |
+| Afternoon (14:00 to 18:00) | 4 | 0.133 |
+| Evening (18:00 to 22:00) | 2 | 0.067 |
+
+Probabilities sum to 1.0 (with minor rounding).
+
+Compute each term:
+
+$$
+H(X) = -[0.60 \log_2 0.60 + 0.20 \log_2 0.20 + 0.133 \log_2 0.133 + 0.067 \log_2 0.067]
+$$
+
+Calculate individual contributions:
+
+| Term | Value |
+| --- | --- |
+| $$0.60 \log_2 0.60$$ | $$0.60 \times (-0.737) = -0.442$$ |
+| $$0.20 \log_2 0.20$$ | $$0.20 \times (-2.322) = -0.464$$ |
+| $$0.133 \log_2 0.133$$ | $$0.133 \times (-2.912) = -0.387$$ |
+| $$0.067 \log_2 0.067$$ | $$0.067 \times (-3.899) = -0.261$$ |
+
+Sum inside the brackets:
+
+$$
+-0.442 + (-0.464) + (-0.387) + (-0.261) = -1.554
+$$
+
+Apply the negative sign:
+
+$$
+H(X) = -(-1.554) = 1.554 \text{ bits}
+$$
+
+The illustrative entropy is approximately **1.55 bits**.
+
+For comparison, a perfectly consistent user (all 30 doses in Morning) would have:
+
+$$
+H(X) = -[1.0 \log_2 1.0 + 0 + 0 + 0] = 0 \text{ bits}
+$$
+
+An illustrative maximum entropy for four equally likely categories would be:
+
+$$
+H_{\text{max}} = \log_2 4 = 2.0 \text{ bits}
+$$
+
+So the illustrative user at 1.55 bits shows moderate irregularity: mostly morning doses but with occasional drift into later windows.
+
+## Why this matters
+
+Medication non-adherence is a leading cause of preventable health deterioration in elderly populations living alone. Simple pill counts miss timing irregularity; entropy captures both consistency and spread. A caregiver reviewing an entropy trend can see whether a user's routine is stabilizing or fragmenting, even before missed doses become clinically dangerous. Entropy also generalizes to any schedule with multiple medications per day, though the source does not describe multi-drug entropy aggregation.
+
+## How it connects to the rest of LifeSphere
+
+Adherence data comes from the dispenser's carousel and shutter mechanism: each successful release is timestamped and logged. These timestamps feed into the adherence entropy calculation. The dispenser also stores medication schedules from two sources: prescription OCR processed through the mobile app (written to `lifesphere/hollowcore/med_schedule`) and manual touchscreen entries (written to `lifesphere/hollowcore/dispenser_manual`). Reminders are delivered through Firebase. While the source does not explicitly link entropy scores to automated reminder escalation, the metric provides a quantitative foundation for longitudinal adherence review.
+
+## Limits
+
+The source does not specify the outcome categories, time-bin granularity, or rolling window length used in practice. Entropy is sensitive to bin size: too-coarse bins smooth away irregularity; too-fine bins inflate entropy from clinically insignificant jitter. The formula assumes independent events, but real adherence has strong day-to-day correlation (a user who misses Monday is more likely to miss Tuesday). The source does not describe any correction for this temporal dependence. No validated threshold for "good" versus "poor" adherence entropy is given.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Medication: Reminders and Adherence" icon="pills" href="/medication/reminders-and-adherence">
+    How reminders are scheduled, delivered, and logged.
+  </Card>
+
+  <Card title="Medication: Dispenser Overview" icon="robot" href="/medication/dispenser-overview">
+    Carousel, encoder, shutter, and stepper mechanism.
+  </Card>
+
+  <Card title="HollowCore: Biometric Mapping" icon="heart-pulse" href="/hollowcore/biometric-mapping">
+    How HollowCore responds to biosensor state, including medication timing.
+  </Card>
+
+  <Card title="Math: Signal Processing" icon="wave-square" href="/reference/math-signal-processing">
+    Other formulas that transform sensor data into care decisions.
+  </Card>
+</CardGroup>

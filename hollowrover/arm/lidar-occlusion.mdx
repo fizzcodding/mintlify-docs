@@ -1,0 +1,60 @@
+---
+title: "LiDAR Occlusion Constraint: Navigation vs Defense"
+sidebarTitle: "LiDAR Occlusion"
+description: "HollowRover's arm must stay stowed below the LiDAR plane during navigation and only rise when the rover is stationary in security mode."
+icon: "eye"
+---
+
+The LiDAR occlusion constraint is a hard operational rule that prevents the robotic arm from interfering with the STL-19P time-of-flight LiDAR while the rover is moving. LiDAR (light detection and ranging) builds the 2D occupancy grid that SLAM and Nav2 depend on for localization and obstacle avoidance. If the arm crosses into the LiDAR scan plane, the sensor sees the arm as an unexpected obstacle, corrupting the map and potentially triggering emergency stops or path replanning errors.
+
+## What the scan plane is
+
+The STL-19P LiDAR is mounted on the rover body at a fixed height and rotates to emit laser pulses in a horizontal plane around the robot. The scan plane is that horizontal slice at the LiDAR's elevation. Anything protruding into this plane, even temporarily, appears as a range return. The rover's software interprets range returns as physical obstacles. A false obstacle inserted by the arm's own mass is called a self-obstacle; it can cause the planner to reject valid paths or to freeze the robot because it believes it is surrounded.
+
+## Stowed posture during navigation
+
+In normal operation, the arm is stowed in a compact posture below the LiDAR scan plane. Joints 1 through 5 fold the links inward and downward so that no part of the forearm, wrist, or gripper rises to LiDAR height. The Manipulator controller enforces this posture at boot and after every caregiving or security task completion. Because the stowed arm is below the scan plane, the LiDAR sees only the environment and the rover chassis, which are already mapped.
+
+## Barrier pose only when stationary
+
+When the security trigger pipeline fires and the passive barrier mode activates, the arm must rise into the horizontal blocking pose. This is allowed only after two conditions are met: the rover has reached the chokepoint target and the Nav2 controller reports a stationary state. While the rover is still moving, the arm remains stowed. Once stopped, the LiDAR continues to scan, but the raised arm now legitimately occupies space in front of the rover. Because the rover is no longer navigating, it does not matter that the LiDAR sees the arm; path planning is inactive.
+
+## Mutual exclusivity of navigation and defense
+
+Navigation and defense are mutually exclusive states. The rover cannot simultaneously follow a global plan and hold a barrier pose. This is enforced at the state-machine level in the autonomous protocol layer. If a new navigation command arrives while the arm is raised, the protocol first commands the arm back to the stowed posture, waits for confirmation from the Manipulator controller, and only then resumes Nav2. Similarly, if a security alert arrives while the rover is navigating to a caregiving task, the rover completes its current path or executes a safe stop before considering the arm raise.
+
+## Why the state machine matters
+
+State machines are a standard robotics technique for ensuring that conflicting modes never overlap. Each state defines which actuators are active and what sensor data is trusted. In navigation state, the LiDAR is trusted and the arm is ignored by the planner because it is stowed. In defense state, the arm is trusted and the LiDAR is used only for obstacle monitoring around the immediate perimeter, not for global path planning. The transition between states includes a brief pause where the arm moves and the planner idles, preventing race conditions where both modes briefly overlap.
+
+## Safety implications of violation
+
+If the arm were allowed to rise during motion, the LiDAR could see the arm as a sudden obstacle directly ahead. Nav2's safety controller, configured with a 0.35 m inflation radius around obstacles, might trigger an emergency halt. The halt could occur on an incline or near a staircase edge, creating a tipping risk. Alternatively, the planner might attempt to reroute around the phantom obstacle, steering the rover into a real wall. The occlusion constraint exists to prevent these failure modes.
+
+## How it connects to the rest of LifeSphere
+
+The constraint is not encoded in shared Firebase state; it is a local rule on the Manipulator controller and the RDK X5 protocol engine. However, HollowCore and SphereAI can influence it indirectly. If HollowCore commands the rover to a caregiving task via MQTT, the rover enters navigation state and the arm stows. If EntryGuard sends an intrusion alert, the rover may interrupt caregiving, but it still executes the stop-and-stow sequence before raising the arm. This layering, where high-level commands request states and low-level controllers enforce safe transitions, is part of the distributed intelligence architecture.
+
+## Limits
+
+The source does not specify the exact LiDAR mounting height, the stowed arm height, or whether the arm has physical hard-stops to prevent accidental raising. In general, servo-driven arms without mechanical limits rely entirely on software commands, so a firmware bug or serial corruption could theoretically command an illegal pose. Watchdog timers on both ESP32 controllers are intended to catch such faults, but the source does not detail their behavior. There is also no mention of what happens if an obstacle (such as a low table) forces the arm upward during navigation; the current rule assumes unobstructed stowage.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Passive Barrier" icon="shield-halved" href="/hollowrover/arm/passive-barrier">
+    How the arm blocks chokepoints and why it may only rise after the rover stops.
+  </Card>
+
+  <Card title="Mapping and SLAM" icon="layer-group" href="/hollowrover/navigation/mapping-and-slam">
+    How the STL-19P LiDAR builds the 2D occupancy grid in lifelong mapping mode.
+  </Card>
+
+  <Card title="Arm Overview" icon="robot" href="/hollowrover/arm/overview">
+    Joint roles and servo types in the 6-DOF arm that must stow below the LiDAR plane.
+  </Card>
+
+  <Card title="Safety Rules" icon="scale-balanced" href="/hollowrover/arm/safety-rules">
+    The broader safety framework that includes the occlusion constraint and human authorization.
+  </Card>
+</CardGroup>

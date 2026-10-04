@@ -1,0 +1,89 @@
+---
+title: "Personal Baselines: Why LifeSphere Learns You, Not the Average"
+description: "LifeSphere's AI learns each user's individual biometric baseline instead of relying on population thresholds, making alerts specific to the person wearing the device."
+sidebarTitle: "Personal Baselines"
+icon: "user"
+---
+
+Most health devices compare your readings to a single table drawn from thousands of strangers. LifeSphere instead learns what is normal for you, then flags only what deviates from your own pattern.
+
+## The Population Problem
+
+Population averages come from clinical studies that group people by age, sex, and sometimes geography. A typical blood pressure chart says 120/80 mmHg is "normal" for adults. But normal for a given person might be 110/70 every morning, or 125/82 after decades of stability. If a device uses the population line as its only reference, it either misses your real drift or cries wolf every time you are slightly off-center.
+
+This problem is worse across cultures. Baseline heart rate, skin temperature, and sleep patterns differ between climates. Diet changes galvanic skin response (GSR, a measure of sympathetic nervous system activity through skin conductance). Activity levels change heart rate variability (HRV, the variation in time between heartbeats). A threshold drawn from a European cohort may be meaningless for an elderly user in Dhaka.
+
+## How LifeSphere Builds a Personal Baseline
+
+The system observes the user during a defined initialization period, then treats that observation as the reference distribution.
+
+<Steps>
+  <Step title="Wear during normal life">
+    The user wears Vital32 for the first 30 days without any special protocol. Cooking, praying, sleeping, talking, and resting are all recorded.
+  </Step>
+  <Step title="Feature extraction">
+    Raw sensor readings are turned into summary features: mean and variance of heart rate, HRV distributions, GSR resting level, skin temperature curves, motion intensity histograms, and sleep efficiency estimates.
+  </Step>
+  <Step title="Model training">
+    The Isolation Forest anomaly detector is trained on these 30 days of feature vectors. The model learns the density and correlation structure of _this user's_ data.
+  </Step>
+  <Step title="Continuous update">
+    Long-cycle models, such as the biological age clock and the cognitive tracker, roll a 30-day window forward, so the baseline slowly adapts to gradual lifestyle changes without forgetting seasonal patterns.
+  </Step>
+</Steps>
+
+## Which Models Use Personal Baselines
+
+| Model | Personal Baseline Source | How It Adapts |
+| --- | --- | --- |
+| Isolation Forest | First 30 days of normal wear | Trained once; no online retraining described |
+| Cortisol Estimator | Personal GSR resting level and HRV trend | Medium cycle re-estimates against recent history |
+| Biological Age Clock | Multi-sensor feature distribution over 30 days | Daily update with rolling window |
+| Cognitive Tracker | Vocabulary richness, topic repetition, semantic coherence | Long cycle CUSUM (cumulative sum control chart) against personal speech history |
+| Emotional Classifier | Weight history; more biology weight if user is often stressed | Weights are fixed by state, but state history is personal |
+
+## What This Means for Alert Quality
+
+A population-based fall detector might trigger on every stair climb by an active elder. A personal-baseline fall detector knows that this user's motion signature includes regular stair use and only flags the unusual absence of movement after a high-impact event.
+
+Similarly, an anomaly score above 0.9 means "this reading is extreme _for you_," not "this reading is extreme for a 75-year-old." That distinction changes whether a guardian is called at midnight or the system waits for confirmation.
+
+## Why This Matters
+
+LifeSphere's stated goal is to serve those who need care most but are least capable of managing complex devices. If the device generates false alarms, families disable it. If it misses genuine drift, the user deteriorates unnoticed. Personal baselines are the technical mechanism that tries to keep the device useful enough to remain worn.
+
+The source document calls this "democratizing predictive healthcare" by removing the assumption that healthcare data from wealthy countries defines health for everyone else.
+
+## How It Connects to the Rest of LifeSphere
+
+- **Vital32** supplies the raw sensor streams from which baselines are computed
+- **SphereAI** uses personal baselines to avoid misreading a naturally quiet user as isolated or depressed
+- **HollowCore** uses personal temperature and GSR baselines to calibrate comfort responses; a room that feels cold to one user may feel normal to another
+- **HollowRover** only dispatches on anomaly scores that exceed the user's own threshold, not a generic emergency line
+
+## Limits
+
+- The 30-day initialization period assumes the user is healthy during that window; a baseline built during illness would be skewed
+- Online adaptation is not described; the source does not specify how quickly models respond to gradual physiological change, such as a new medication
+- The cognitive tracker requires enough speech samples to establish vocabulary patterns; a very quiet user may have a weak baseline
+- No accuracy or false-positive rate data are available; the benefit of personal baselines is theoretical until longitudinal studies are completed
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="AI Overview" icon="brain" href="/ai/overview">
+    The full set of models and timescales.
+  </Card>
+
+  <Card title="Isolation Forest" icon="magnifying-glass-chart" href="/ai/isolation-forest">
+    How the anomaly detector uses your baseline to score surprise.
+  </Card>
+
+  <Card title="Cortisol Estimator" icon="bolt" href="/ai/cortisol-estimator">
+    Stress estimation built on your personal GSR and HRV patterns.
+  </Card>
+
+  <Card title="Cognitive Tracker" icon="head-side-brain" href="/ai/cognitive-tracker">
+    Detecting drift in your own speech patterns over time.
+  </Card>
+</CardGroup>

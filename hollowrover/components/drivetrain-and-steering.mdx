@@ -1,0 +1,68 @@
+---
+title: "HollowRover Drivetrain and Ackermann Steering"
+sidebarTitle: "Drivetrain and Steering"
+description: "HollowRover uses four independent Dake DK-37R gear motors, a dual H-bridge motor driver stage, and Ackermann four-wheel steering for precise, scrub-free navigation through home environments."
+icon: "route"
+---
+
+HollowRover's drivetrain was redesigned from an early skid-steer layout to a full Ackermann steering system. The change was driven by the need for precise path following during SLAM navigation: skid steering scrubs tires and drifts during turns, while Ackermann geometry lets each wheel follow its own natural arc.
+
+## Four-wheel independent drive
+
+Each of HollowRover's four wheels is driven by its own Dake DK-37R gear motor with an integrated encoder. A gear motor combines a standard DC motor with a reduction gearbox, trading speed for torque. The encoder adds a rotary sensor that reports how far the wheel has turned, which the drivetrain controller uses for closed-loop speed regulation.
+
+Four independent motors give the rover fine control over traction. If one wheel loses grip on a doorway threshold or a loose rug, the other three can compensate. The source does not specify motor voltage or no-load RPM, but the encoder feedback implies that the control loop targets consistent wheel velocity rather than open-loop voltage.
+
+## Dual H-bridge motor driver stage
+
+Motor direction and speed are controlled by a dual H-bridge motor driver stage. An H-bridge is an electronic circuit named for its H-shaped arrangement of switches. By opening and closing the switches in different patterns, the bridge can drive current through the motor in either direction (forward or reverse) or brake it. A dual-stage configuration can run two motors; with two such stages, HollowRover controls all four wheels.
+
+Pulse-width modulation (PWM) varies the duty cycle of the drive signal to control average voltage and thus motor speed. The drivetrain controller generates PWM commands for each motor channel, adjusting them in real time based on encoder feedback and the navigation path.
+
+## Ackermann steering geometry
+
+Ackermann steering is the geometric principle used in most cars: the inner wheel turns at a sharper angle than the outer wheel so that all wheels roll without sideways scrub. This is achieved by linking the steering knuckles with a tie rod arranged so that the pivot axes of the left and right wheels converge at a point on the rear axle's extended line.
+
+For HollowRover, this means machined steering knuckles at each corner, actuated by two MG995 servos through a mechanical linkage. The inner wheel angle $$\delta_i$$ is always greater than the outer wheel angle $$\delta_o$$ for any given turn:
+
+$$\delta_i > \delta_o$$
+
+This inequality is the mathematical expression of Ackermann correctness. When satisfied, both front wheels trace concentric circular arcs, minimizing tire scrub and reducing the lateral forces that would otherwise push the rover off its planned path.
+
+## Why Ackermann replaced skid-steer
+
+The original design used a fixed-axle skid-steer setup with no independent steering. In skid steering, the rover turns by driving the left and right wheels at different speeds, causing the tires to slide sideways. This works well on loose terrain and is mechanically simple, but it has three drawbacks for indoor home navigation:
+
+1. **Tire scrub:** sliding wears tires, creates noise, and deposits rubber marks on floors.
+2. **Odometry drift:** the amount of slide depends unpredictably on floor surface and tire condition, so the rover cannot accurately estimate how far it has turned.
+3. **Path following error:** SLAM and Nav2 assume the robot follows the commanded trajectory; skid-steer slip introduces a systematic bias that accumulates over long paths.
+
+Ackermann steering eliminates these problems at the cost of mechanical complexity. The machined knuckles, tie rods, and dual servos add parts and assembly steps, but the navigation accuracy gain is essential for a robot that must stop within centimeters of a fallen user.
+
+## How it connects to the rest of LifeSphere
+
+Precise steering directly enables the rover's caregiving protocols. When a fall is detected, the rover must navigate to the user's UWB-reported position and orient itself so the arm can reach the user from a safe angle. An imprecise turn could leave the rover facing a wall, forcing a time-consuming corrective maneuver. Ackermann geometry minimizes these errors, shortening response time.
+
+## Limits
+
+The source does not state the steering angle limits, turning radius, or maximum forward speed beyond the Nav2 parameter of 0.3 m/s. In general, Ackermann vehicles cannot turn in place like skid-steer robots; they require a minimum turning radius that may be larger than the width of narrow hallways. The source also does not describe how the rover handles tight reversals or three-point turns in confined spaces.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Rocker Suspension" icon="wave-square" href="/hollowrover/components/rocker-suspension">
+    How the chassis stays level when one side climbs a threshold.
+  </Card>
+
+  <Card title="Navigation" icon="location-dot" href="/hollowrover/navigation/path-planning">
+    How Nav2 uses Ackermann geometry for path following.
+  </Card>
+
+  <Card title="Wheels Overview" icon="circle" href="/hollowrover/wheels/overview">
+    The 5.6-inch S-curve spoke wheels that contact the floor.
+  </Card>
+
+  <Card title="Dual Controller Split" icon="layer-group" href="/hollowrover/components/dual-controller-split">
+    Which controller manages motors and steering servos.
+  </Card>
+</CardGroup>

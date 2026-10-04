@@ -1,0 +1,59 @@
+---
+title: "EntryGuard Video Streaming: Live Annotated Feeds to Guardians"
+sidebarTitle: "Video Streaming"
+description: "EntryGuard streams annotated MJPEG video to a guardian's phone during chokepoint events, giving real-time visual context for motion, fire, gas, and face-recognition alerts."
+icon: "camera"
+---
+
+When EntryGuard detects a threat at a monitored chokepoint, sensing alone is not enough. A guardian needs to see what is happening. The video streaming layer provides a live, annotated camera feed to the caregiver's phone, turning an abstract alert into actionable visual context.
+
+## MJPEG Streaming
+
+The face recognition pipeline outputs its annotated video as an MJPEG stream. MJPEG, or Motion JPEG, is a video format where each frame is a complete JPEG image. Unlike compressed video codecs that share data across frames, MJPEG treats every frame independently. This makes it simple to decode on a wide range of devices, including phones and web browsers, without requiring specialized video players.
+
+The annotation layer overlays visual markers on the stream: bounding boxes around detected faces, labels showing registered or unregistered status, and possibly other metadata flags. This lets the guardian see not just the scene, but the system's interpretation of it, at a glance.
+
+## When the Stream Activates
+
+The live stream is not transmitted continuously. Continuous streaming would waste bandwidth and raise privacy concerns. Instead, the stream is triggered by specific events:
+
+- An unregistered face is detected at a chokepoint
+- A motion alert fires in ACTIVE mode with face-check enabled
+- A fire or gas alert occurs at a node with a camera
+
+When such an event occurs, the system begins streaming annotated MJPEG frames to the guardian's phone while the event is active. The push notification that accompanies the alert includes a link or embedded live feed so the guardian can open it immediately.
+
+## Why This Matters
+
+Imagine a guardian at work receiving a text that says "intruder detected." Without video, the guardian does not know if the alert is a false positive, a delivery person, a family member, or a genuine threat. With annotated video, the guardian can see the face classification result in real time and make an informed decision about whether to call for help, speak through the rover's speaker, or dismiss the alert. This closes the loop between autonomous sensing and human judgment.
+
+## How It Connects to the Rest of LifeSphere
+
+- **HollowRover** hosts the face recognition pipeline and generates the annotated MJPEG stream. It also handles the push notification delivery through Firebase.
+- **EntryGuard nodes** supply the raw camera feeds at chokepoints. The TF-Luna presence sensor triggers the pipeline that starts the stream.
+- **SphereAI** can relay voice messages from the guardian through the rover's speaker while the stream is active, enabling two-way communication with the resident or a visitor.
+- **HollowCore** can adjust lighting and climateadjust lighting and climateadjust lighting and climate based on what the guardian sees in the stream.
+
+## Limits
+
+The source does not specify the resolution or frame rate of the MJPEG stream, nor the exact bandwidth requirements. Streaming performance depends on local Wi-Fi quality. During a Wi-Fi outage, GSM fallback is available for text alerts, but the source does not confirm that video streaming continues over GSM. Night visibility depends on the lighting conditions at the chokepoint. The source does not specify whether the stream is recorded or only live.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Face Recognition" icon="eye" href="/entryguard/face-recognition">
+    The InsightFace pipeline that annotates faces in the video stream.
+  </Card>
+
+  <Card title="Intrusion Detection" icon="user-secret" href="/entryguard/intrusion-detection">
+    How motion alerts trigger the camera and stream activation.
+  </Card>
+
+  <Card title="Threat Classification" icon="circle-question" href="/entryguard/threat-classification">
+    How the system decides which events warrant video streaming.
+  </Card>
+
+  <Card title="Floor-Aware Dispatch" icon="layer-group" href="/entryguard/floor-aware-dispatch">
+    How the rover reaches the exact chokepoint where video is being captured.
+  </Card>
+</CardGroup>

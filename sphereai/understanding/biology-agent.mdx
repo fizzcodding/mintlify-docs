@@ -1,0 +1,68 @@
+---
+title: "SphereAI Biology Agent: Biomarker Signals"
+sidebarTitle: "Biology Agent"
+description: "How SphereAI translates continuous vital sign data from Vital32 into an emotional signal stream through the Biology Agent in the tri-modal fusion pipeline."
+icon: "heart-pulse"
+---
+
+The Biology Agent in SphereAI converts raw physiological data from the Vital32 wearable into emotionally meaningful signals. It is the bridge between biosensing and affective computing, treating the body itself as a continuous emotional sensor.
+
+## What the Biology Agent receives
+
+The Biology Agent reads from the shared Firebase state under the `vital32` namespace. The fields available there include heart rate, SpO2 (blood oxygen saturation), skin temperature, HRV metrics (RMSSD and LF/HF ratio), galvanic skin response (GSR), estimated cortisol, anomaly score, and others. From these, the Biology Agent produces a biological-emotional score B that feeds the meta-classifier.
+
+The source does not specify a closed list of which exact Vital32 fields map to the Biology Agent score. The shared state is a living JSON tree, and the system architecture allows new fields to be added as the biological state model evolves. What the source does describe is the principle: biological signals carry emotional information, and SphereAI should use them.
+
+## Why biology matters for emotion
+
+In general, emotion is not purely mental. It is embodied. The autonomic nervous system, which operates largely outside conscious control, modulates heart rate, sweating, blood flow to the skin, and many other variables in response to stress, fear, sadness, and even loneliness.
+
+Consider galvanic skin response (GSR). This measures electrical conductivity of the skin, which increases when sweat glands are activated by sympathetic nervous system arousal. Even very small emotional reactions, too subtle for the user to notice or describe, can produce measurable GSR changes. The Vital32 wearable includes a GSR sensor whose readings are updated every second.
+
+Consider heart rate variability (HRV). HRV measures the variation in time between heartbeats. In general, higher HRV is associated with emotional flexibility and the ability to cope with stress. Lower HRV is associated with emotional exhaustion, anxiety, and depression. The Vital32 system derives heart rhythm and variability from its cardiac signals and computes RMSSD over a two-minute rolling window, plus LF/HF ratio via Welch power spectral density.
+
+Consider cortisol estimation. Cortisol is a hormone central to the stress response. While the wearable does not measure cortisol directly from blood, the AI subsystem includes a gradient boosting model that estimates cortisol from RMSSD, GSR baseline, skin temperature, and sleep efficiency. This estimated cortisol value enters the shared state and provides the Biology Agent with a proxy for chronic or acute stress load.
+
+## How these signals connect to emotion types
+
+The system recognizes five emotional states: calm, stressed, grief, isolated, and cognitive. While the Biology Agent outputs a single score B rather than labeling the state directly, the biological correlates of these states differ:
+
+- **Stressed** states tend to show elevated GSR, elevated heart rate, reduced RMSSD, and elevated estimated cortisol.
+- **Grief** states may show reduced heart rate variability, lower energy levels, and specific skin temperature patterns.
+- **Isolated** states may manifest in reduced daily HRV amplitude, altered sleep signatures, and reduced baseline GSR reactivity (the system becomes less responsive overall).
+- **Cognitive** changes may be reflected indirectly through reduced circadian variation in biological signals.
+
+The source does not detail these mappings explicitly. The above is general background from affective computing and psychophysiology literature, framed as general knowledge to help readers understand why the Biology Agent exists.
+
+## How it connects to the rest of LifeSphere
+
+The Biology Agent score B is one of three inputs to the meta-classifier, alongside L (language sentiment) and V (voice features). The dynamic weighting system assigns the highest trust to biology in certain states: when the prior state is "isolated," biology carries a weight of 0.6, the highest of any stream in any state. The rationale is that a withdrawn, non-communicative user may not speak much or show vocal variation, but their body continues to broadcast signals of loneliness and emotional flatness.
+
+The Biology Agent closes a critical feedback loop in the ecosystem. When the meta-classifier determines a stressed state, SphereAI can adjust its conversational tone. HollowCore can lower the air conditioning temperature and dim the lights to calm the user. HollowRover can prepare a stress-relief protocol. All of this happens without the user needing to say or do anything. LifeSphere does not require the user to interact with technology. It requires technology to respond to the user's biology.
+
+## Limits
+
+- The source does not specify the exact formula or feature selection that converts Vital32 fields into the Biology Agent score B. This is presented as a conceptual subsystem rather than a fully detailed pipeline.
+- Cortisol is estimated, not measured directly. The gradient boosting model that produces it is trained offline, but the training data and validation performance are not specified. The estimate inherits uncertainty from the indirect mapping between wearable signals and hormonal state.
+- Biological signals can be confounded by medication, physical illness, temperature extremes, and sensor placement. The plausibility filtering step in Vital32 catches some hardware faults, but it does not necessarily distinguish emotional biological changes from non-emotional ones.
+- No validation of the Biology Agent against clinical emotional assessments is reported. Longitudinal user studies are future work.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Language Agent" icon="message" href="/sphereai/understanding/language-agent">
+    How spoken words are converted to sentiment scores
+  </Card>
+
+  <Card title="Voice Agent" icon="wave-square" href="/sphereai/understanding/voice-agent">
+    How vocal prosody and acoustic features feed the emotional stream
+  </Card>
+
+  <Card title="Dynamic Weighting" icon="layer-group" href="/sphereai/understanding/dynamic-weighting">
+    Why biology becomes the trusted signal when a user withdraws
+  </Card>
+
+  <Card title="Meta-Classifier" icon="brain" href="/sphereai/understanding/meta-classifier">
+    Fusing all three agent scores into a single emotional state decision
+  </Card>
+</CardGroup>

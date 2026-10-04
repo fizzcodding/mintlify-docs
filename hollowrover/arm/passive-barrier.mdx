@@ -1,0 +1,56 @@
+---
+title: "HollowRover Passive Barrier: Non-Contact Security Deterrent"
+sidebarTitle: "Passive Barrier"
+description: "HollowRover's arm becomes a passive barrier that swings into chokepoints to deter unregistered intruders without ever contacting a person."
+icon: "shield-halved"
+---
+
+The passive barrier is HollowRover's security-deterrent mode, in which the 6-DOF arm swings across a hallway or doorway to block passage when an unregistered person is detected at a monitored chokepoint. It is called passive because the barrier does not move toward the person, grasp, restrain, or strike. It simply occupies the space. This design choice keeps the response within ethical bounds while still creating a visible, physical deterrent that buys time for the guardian to assess the situation.
+
+## What a chokepoint is
+
+A chokepoint is any indoor passage that funnels movement through a narrow zone, such as a hallway leading to a bedroom, a corridor to valuables, or a doorway into a sensitive room. By placing the rover near a chokepoint and monitoring it with the TF-Luna ToF sensor, the system gains early warning when someone enters the zone, before they reach the protected area beyond. The arm then blocks the remaining width, making it inconvenient or impossible to pass without physically moving the rover, which triggers further alerts.
+
+## How the arm positions as a barrier
+
+When the trigger pipeline confirms an unmatched face, the Manipulator controller interrupts any current motion and commands the arm into a pre-defined barrier pose. Typically, the shoulder and elbow extend the forearm horizontally at about waist to chest height across the passage, while the wrist pitch keeps the limb level and the base rotation aims it across the width. The gripper remains open or loosely posed; the goal is spatial obstruction, not tight gripping. Because the arm is below the LiDAR plane when stowed, it must rise only after the rover is stationary, ensuring the barrier pose does not collide with doorframes or ceiling fixtures.
+
+## Why non-contact matters
+
+Physical contact with an intruder introduces legal liability, risk of escalation, and potential harm to both the person and the servo hardware. It also violates the zero-interaction principle that governs LifeSphere: the user should not need to manage complex technology, and the technology should not initiate forceful interaction with any human. The passive barrier achieves deterrence through presence and obstacle, not through force. If the intruder chooses to back away, no contact occurs. If they attempt to pass, they must physically interact with a stationary object, which is ergonomically awkward and slows progress.
+
+## Three simultaneous responses
+
+When the barrier triggers, the system executes exactly three concurrent actions: (1) the arm moves into the barrier pose, (2) an audible alarm sounds from the rover's speaker via the MAX98357A amplifier, and (3) an instant push notification with a live camera feed is sent to the guardian's phone. The alarm serves both deterrent and notification purposes. The camera feed lets the guardian see who is present and decide on next steps. All three responses are automatic because they present information and obstacle, not force.
+
+## Human authorization for escalation
+
+Any defensive action beyond the three automatic responses requires explicit human authorization. The system does not autonomously spray water, charge, or clamp. The guardian, viewing the live feed, can choose to call emergency services, speak through SphereAI's speaker, or remotely command the rover to retreat. The rover will not escalate on its own. This hard boundary is enforced at the protocol level: the autonomous decision graph ends at the three responses, and further actuator commands require a Firebase command field validated against the guardian's authenticated session.
+
+## How it connects to the rest of LifeSphere
+
+The barrier mode depends on EntryGuard nodes at the perimeter for initial detection and on the InsightFace service for face verification. If the face matches a registered occupant, the barrier does not deploy. If verification fails or the confidence is too low, the rover treats the person as unregistered and initiates the barrier. UWB positioning from the floor anchor set ensures the rover is at the correct chokepoint location on the correct floor; barometric floor detection prevents the rover from loading the wrong map and heading to a chokepoint on another level. The camera feed for the guardian notification comes from the SC230AI stereo depth camera, streamed as an MJPEG annotated video.
+
+## Limits
+
+The source does not specify the width of passage the arm can block, whether barrier poses are configurable per chokepoint, or what happens if the rover is not already near the monitored zone when the alert fires. In general, a 6-DOF arm with roughly 30 to 40 cm reach can block a narrow hallway but not a wide open room. The barrier also assumes the chokepoint is mapped and the rover can navigate there autonomously; unmapped areas or obstacles placed after mapping may block the rover's approach. The arm cannot physically stop a determined intruder who pushes the rover aside; its value lies in delay, deterrence, and alert generation, not in immovable fortification.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Trigger Pipeline" icon="route" href="/hollowrover/arm/trigger-pipeline">
+    TF-Luna presence detection, camera capture, InsightFace recognition, and the decision to deploy the barrier.
+  </Card>
+
+  <Card title="Safety Rules" icon="scale-balanced" href="/hollowrover/arm/safety-rules">
+    Mandatory passive-only constraints and the human-authorization requirement for any escalation.
+  </Card>
+
+  <Card title="Intrusion Detection" icon="lock" href="/entryguard/intrusion-detection">
+    How EntryGuard nodes detect motion and distinguish normal entry from intrusion alerts.
+  </Card>
+
+  <Card title="Face Recognition" icon="eye" href="/entryguard/face-recognition">
+    The InsightFace service that distinguishes registered faces from strangers, running locally on HollowRover.
+  </Card>
+</CardGroup>

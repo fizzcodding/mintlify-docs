@@ -1,0 +1,68 @@
+---
+title: "LifeSphere Custom Dispenser PCB: Integrated Control Board"
+sidebarTitle: "Custom PCB"
+description: "LifeSphere's dispenser uses a custom 2-layer PCB designed in EasyEDA Pro, consolidating stepper driver, encoder, servo control, and power management onto one board."
+icon: "layer-group"
+---
+
+Every electromechanical subsystem in LifeSphere depends on reliable, repeatable electronics. The medication dispenser is no exception. Rather than wiring together off-the-shelf breakout boards with flying leads, the dispenser uses a custom two-layer printed circuit board designed in EasyEDA Pro. The board consolidates the stepper driver, encoder interface, servo control, and power distribution into a single assembly. This page explains what a custom PCB achieves in this context, how it is powered, and why integration matters for a device that must operate autonomously for extended periods.
+
+## Why a custom board instead of loose modules
+
+In early prototyping, engineers often connect sensors and actuators using pre-made breakout boards and breadboards. This is fast for experimentation but fragile for deployment. Each jumper wire is a potential point of failure. Connector pins can work loose under vibration. Breadboards add electrical noise and limit current capacity. A custom PCB replaces that tangle with copper traces etched onto a fiberglass substrate. The traces do not shift, the grounds are continuous, and the layout can be optimized for signal integrity and thermal management.
+
+In general, a custom board offers several advantages for a fielded product:
+
+- **Reliability.** Soldered connections withstand vibration, temperature cycling, and mechanical shock far better than plug-in jumpers. A rover that moves between rooms and over doorway lips subjects its internal electronics to constant motion.
+- **Compactness.** A purpose-designed board fits the available volume. Breakout boards often include extra headers, LEDs, and mounting holes that consume space without adding function. In the HollowRover chassis, where the dispenser must coexist with the arm, battery, and compute stack, every millimeter matters.
+- **Power integrity.** A custom layout can place decoupling capacitors close to load points, use wide copper pours for high-current paths, and separate noisy motor circuits from sensitive encoder signals. This reduces the chance of electrical glitches that could cause missed steps or encoder misreads.
+- **Manufacturability.** Once the design is validated, the same board can be fabricated in quantity at low cost. EasyEDA Pro integrates directly with several PCB fabrication services, streamlining the transition from prototype to production.
+
+## Power supply
+
+The custom PCB is powered from a 7.4 V 2S lithium-polymer battery pack. A 2S pack consists of two cells in series, giving a nominal voltage of 7.4 volts. The source states that the board generates three separate power rails from this input, although the specific voltages of those rails are not documented. In general, a multi-rail design is common in mixed-signal systems: one rail might supply the NEMA17 stepper motor at or near battery voltage, a second regulated rail could provide 5 V for the servo and encoder, and a third might supply 3.3 V for the microcontroller or logic-level communication lines. Separating rails prevents motor current spikes from drooping the voltage seen by sensitive digital circuits.
+
+The 7.4 V 2S LiPo is distinct from the rover's main 11.1 V 3S 5000 mAh battery and from Vital32's 3.7 V wearable cell. This independence means the dispenser can remain operational even if the rover's main pack is low, or it can be serviced separately without affecting other subsystems.
+
+## What the board hosts
+
+The custom PCB serves as the central nervous system of the dispenser mechanism. While the source does not publish the full schematic, it references the following functional blocks as residing on the board:
+
+- **TMC2209 stepper driver** channel, receiving step and direction signals from the microcontroller and delivering coil current to the NEMA17 motor.
+- **AS5600 magnetic encoder** interface, reading the angular position of the carousel magnet and returning it to the controller via an analog or digital line.
+- **MG995 servo control** output, typically a pulse-width modulation signal that commands the shutter position.
+- **Power regulation and distribution**, converting the 7.4 V input into the lower-voltage rails needed by the logic and sensor circuits.
+- **Microcontroller connections**, likely through headers or direct soldered pins that link the dispenser board to the ESP32 or other control processor handling the schedule execution.
+
+## How it connects to the rest of LifeSphere
+
+The PCB is the electrical glue that binds the mechanical dispenser to the rover's intelligence:
+
+- **HollowRover's ESP32 or main controller** sends step commands and reads encoder feedback through the PCB.
+- **Firebase** provides the schedule, but the real-time motion commands are generated locally on the board for sub-10 ms responsiveness.
+- **The AS5600, TMC2209, and MG995** are all physically mounted or connected to this single board, so manufacturing variation is reduced and debugging is centralized.
+- **The custom PCB** replaces an earlier ad-hoc wiring approach, reflecting the system's evolution from prototype to integrated product.
+
+## Honest limits
+
+The source does not provide the PCB layer stack dimensions, trace widths, copper weight, or the exact voltage values of the three power rails. It does not specify thermal design features such as exposed copper areas or heatsinks for the stepper driver, nor does it state whether the board includes reverse-polarity protection or overcurrent fuses. These omissions are typical for a research build document focused on system architecture rather than manufacturing documentation. The underlying design principle, integration for reliability, is nonetheless clear.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Dispenser Mechanism Overview" icon="pills" href="/medication/dispenser-overview">
+    The complete dose-to-hand sequence, with the custom PCB as the electrical anchor.
+  </Card>
+
+  <Card title="Gear Reduction and Positioning" icon="gears" href="/medication/gear-reduction">
+    The mechanical motion chain whose electrical commands originate on this board.
+  </Card>
+
+  <Card title="Stepper Driver Choice" icon="microchip" href="/medication/stepper-driver">
+    General background on what advanced stepper drivers do and why they suit this application.
+  </Card>
+
+  <Card title="Shutter and Release" icon="lock" href="/medication/shutter-and-release">
+    The servo output controlled by the same custom PCB that drives the carousel motor.
+  </Card>
+</CardGroup>

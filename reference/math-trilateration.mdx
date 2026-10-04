@@ -1,0 +1,167 @@
+---
+title: "Math: UWB Trilateration for 2D Position"
+sidebarTitle: "Trilateration"
+description: "Circle equations, linear-system derivation, and closed-form 2D trilateration formulas that let HollowRover and EntryGuard resolve position from three UWB anchors."
+icon: "location-dot"
+---
+
+This page derives the mathematics behind LifeSphere's UWB-based indoor positioning. Three anchors per floor let the rover and security nodes compute horizontal position without relying on last-known-position heuristics.
+
+## The geometry of three circles
+
+Each UWB anchor measures a distance (range) to a mobile tag. If the tag is at unknown position $$(x, y)$$ and anchor A is at known position $$(a_x, a_y)$$, the geometric constraint is a circle.
+
+$$
+(x - a_x)^2 + (y - a_y)^2 = r_A^2
+$$
+
+For three anchors A, B, and C:
+
+$$
+\begin{align}
+(x - a_x)^2 + (y - a_y)^2 &= r_A^2 \\
+(x - b_x)^2 + (y - b_y)^2 &= r_B^2 \\
+(x - c_x)^2 + (y - c_y)^2 &= r_C^2
+\end{align}
+$$
+
+| Symbol | Meaning | Unit |
+| --- | --- | --- |
+| $$x, y$$ | Unknown 2D position of the tag | meters |
+| $$a_x, a_y$$ | Coordinates of anchor A | meters |
+| $$b_x, b_y$$ | Coordinates of anchor B | meters |
+| $$c_x, c_y$$ | Coordinates of anchor C | meters |
+| $$r_A, r_B, r_C$$ | Measured ranges from tag to each anchor | meters |
+
+## Deriving the linear system
+
+Subtract the first equation from the second and third to eliminate the quadratic $$x^2 + y^2$$ terms. This yields two linear equations in $$x$$ and $$y$$.
+
+Starting with anchor A and B:
+
+$$
+r_B^2 - r_A^2 = (x - b_x)^2 + (y - b_y)^2 - (x - a_x)^2 - (y - a_y)^2
+$$
+
+Expanding and simplifying:
+
+$$
+r_B^2 - r_A^2 = (a_x^2 - b_x^2) + (a_y^2 - b_y^2) + 2x(b_x - a_x) + 2y(b_y - a_y)
+$$
+
+Rearranging:
+
+$$
+2(b_x - a_x)x + 2(b_y - a_y)y = r_A^2 - r_B^2 + b_x^2 - a_x^2 + b_y^2 - a_y^2
+$$
+
+## Matrix form
+
+The two linear equations can be written as $$A \mathbf{p} = \mathbf{b}$$ where $$\mathbf{p} = [x, y]^T$$.
+
+$$
+A = \begin{bmatrix} 2(b_x - a_x) & 2(b_y - a_y) \\ 2(c_x - a_x) & 2(c_y - a_y) \end{bmatrix}
+$$
+
+$$
+\mathbf{b} = \begin{bmatrix} r_A^2 - r_B^2 + b_x^2 - a_x^2 + b_y^2 - a_y^2 \\ r_A^2 - r_C^2 + c_x^2 - a_x^2 + c_y^2 - a_y^2 \end{bmatrix}
+$$
+
+## Solution
+
+When the three anchors are not collinear, the matrix $$A$$ is invertible and the position is:
+
+$$
+\begin{bmatrix} x \\ y \end{bmatrix} = A^{-1} \mathbf{b}
+$$
+
+| Symbol | Meaning | Unit |
+| --- | --- | --- |
+| $$A$$ | 2x2 coefficient matrix | meters |
+| $$\mathbf{b}$$ | Right-hand-side vector | meters squared |
+| $$A^{-1}$$ | Inverse of $$A$$ | per meter |
+| $$\mathbf{p}$$ | Position vector $$[x, y]^T$$ | meters |
+
+Three non-collinear anchors guarantee a unique 2D solution. Two anchors alone would leave a left-right ambiguity. LifeSphere registers three anchors per floor at known fixed non-collinear positions, supporting horizontal positioning to within approximately 10 cm.
+
+## Worked example (illustrative)
+
+Place three anchors at known positions with measured ranges:
+
+| Anchor | Position $$(x, y)$$ | Measured range $$r$$ |
+| --- | --- | --- |
+| A | (0.0, 0.0) m | 3.0 m |
+| B | (4.0, 0.0) m | 2.24 m |
+| C | (0.0, 3.0) m | 2.24 m |
+
+### Step 1: Build matrix A
+
+$$
+A = \begin{bmatrix} 2(4.0 - 0.0) & 2(0.0 - 0.0) \\ 2(0.0 - 0.0) & 2(3.0 - 0.0) \end{bmatrix} = \begin{bmatrix} 8 & 0 \\ 0 & 6 \end{bmatrix}
+$$
+
+### Step 2: Build vector b
+
+For the first row (anchors A and B):
+
+$$
+r_A^2 - r_B^2 + b_x^2 - a_x^2 + b_y^2 - a_y^2 = 9.0 - 5.0176 + 16.0 - 0 + 0 - 0 = 19.9824
+$$
+
+For the second row (anchors A and C):
+
+$$
+r_A^2 - r_C^2 + c_x^2 - a_x^2 + c_y^2 - a_y^2 = 9.0 - 5.0176 + 0 - 0 + 9.0 - 0 = 12.9824
+$$
+
+So:
+
+$$
+\mathbf{b} = \begin{bmatrix} 19.9824 \\ 12.9824 \end{bmatrix}
+$$
+
+### Step 3: Solve
+
+Since $$A$$ is diagonal, inversion is trivial:
+
+$$
+A^{-1} = \begin{bmatrix} 1/8 & 0 \\ 0 & 1/6 \end{bmatrix}
+$$
+
+$$
+\begin{bmatrix} x \\ y \end{bmatrix} = \begin{bmatrix} 1/8 & 0 \\ 0 & 1/6 \end{bmatrix} \begin{bmatrix} 19.9824 \\ 12.9824 \end{bmatrix} = \begin{bmatrix} 2.498 \\ 2.164 \end{bmatrix}
+$$
+
+The illustrative solution is approximately $$(2.50, 2.16)$$ meters. This lies inside the triangle formed by the three anchors, confirming a physically plausible position.
+
+## Why this matters
+
+Indoor positioning without GPS enables autonomous navigation in homes, apartments, and care facilities. Trilateration gives HollowRover a precise horizontal position on each floor. When EntryGuard detects an event, the alert payload includes the UWB zone reference so the rover knows where to go. The requirement that anchors be non-collinear is practical: if all three anchors sit in a straight line, the linear system becomes singular and one coordinate is unresolvable.
+
+## How it connects to the rest of LifeSphere
+
+UWB positioning is one input to HollowRover's SLAM and Nav2 stack. It is also used for multi-floor dispatch: when EntryGuard triggers an alert, the payload includes the node identity, UWB zone reference, and floor pressure reference. The rover compares the pressure to its registered floor baselines, selects the matching floor, loads that floor's SLAM map, and localizes against that floor's three-anchor set before navigating. Vital32 also carries a UWB tag, so the wearable itself can contribute to person-finding within the floor reference.
+
+## Limits
+
+UWB provides 2D horizontal position only; vertical position comes from barometric pressure, not from UWB Z-axis. The system requires three anchors per floor at known non-collinear locations, which means setup effort scales with the number of floors. Line-of-sight obstruction by furniture or doors can degrade range accuracy and bias the solution. The approximate 10 cm accuracy claim is a design target; no validation data is reported. BLE RSSI serves as a coarser fallback when UWB coverage is unavailable.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Math: Floor Detection" icon="layer-group" href="/reference/math-floor-detection">
+    How barometric pressure determines which floor the rover is on.
+  </Card>
+
+  <Card title="HollowRover: UWB Positioning" icon="location-dot" href="/hollowrover/navigation/uwb-positioning">
+    Anchor placement, ranging, and integration with SLAM.
+  </Card>
+
+  <Card title="HollowRover: Multi-Floor Maps" icon="layer-group" href="/hollowrover/navigation/multi-floor-maps">
+    Separate maps and localization references per registered floor.
+  </Card>
+
+  <Card title="HollowRover: BLE Person-Finding" icon="bluetooth" href="/hollowrover/navigation/ble-person-finding">
+    RSSI-based search when UWB is unavailable.
+  </Card>
+</CardGroup>

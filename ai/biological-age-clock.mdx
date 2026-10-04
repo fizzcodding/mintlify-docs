@@ -1,0 +1,64 @@
+---
+title: "Biological Age Clock"
+sidebarTitle: "Biological Age Clock"
+description: "Learn how LifeSphere estimates biological age by fusing wearable sensor data into a personalized clock that reflects the body's true aging state rather than calendar years."
+icon: "calculator"
+---
+
+LifeSphere estimates your biological age, a measure of how aged your body systems appear to be based on current physiological function, by combining multiple live sensor streams from Vital32 into a single daily value. This page explains what biological age means here, how the model fuses data, and how the result fits into the broader caregiving system.
+
+## What biological age means
+
+Biological age is not the same as the number of years since birth. In general, biological aging reflects how well organs, tissues, and regulatory systems are maintaining homeostasis, the stable internal conditions your body needs to function. Two people with the same calendar age can have very different biological ages depending on cardiovascular fitness, metabolic health, immune function, sleep quality, and stress exposure.
+
+LifeSphere treats biological age as an integrative score. Rather than looking at heart rate or skin temperature in isolation, the system asks a single question each day: based on everything it can sense about the user's body, how old do these signals suggest the body is acting? This shifts the conversation from isolated vital sign alerts to a holistic view of overall physiological trajectory.
+
+## How the clock is built
+
+The biological age clock is an ensemble model that combines two machine learning methods: Random Forest and XGBoost. An ensemble means multiple models contribute their predictions, and their combined output is usually more stable than any single model alone. Random Forest builds many decision trees on random subsets of data and averages their results, which helps reduce noise. XGBoost, short for eXtreme Gradient Boosting, trains trees sequentially so that each new tree corrects errors made by previous ones, often capturing subtle patterns in complex data.
+
+The model receives inputs derived from the multi-sensor array on Vital32, including but not limited to heart rhythm features, skin temperature patterns, galvanic skin response trends, and derived metrics such as heart rate variability and sleep proxies. The source does not specify the exact engineered features or the full input list. The output is a single number in years, for example 68.4, updated once per day on the long inference cycle.
+
+## Fusion logic and update cadence
+
+Biological age sits at the top of the multi-timescale inference hierarchy. While anomaly detection refreshes every 30 seconds and emotional state updates every 15 minutes, the biological age clock operates on a 24-hour cycle. This slow cadence is intentional: biological aging does not change measurably in minutes, and a daily aggregation window smooths out transient fluctuations from exertion, meals, or emotional spikes.
+
+The daily update also means the model accumulates context across an entire circadian period. Values recorded during sleep, morning activity, and evening rest all contribute to one integrated assessment rather than being judged against population averages at arbitrary moments.
+
+## Why this matters
+
+Calendar age is a blunt instrument for caregiving. A caregiver's note might say "patient, 72, stable," but that tells nothing about whether the user's systems are recovering from illness, declining gradually, or actually functioning closer to a healthier baseline. Biological age provides a longitudinal anchor that makes subtle drift visible over weeks and months.
+
+When the clock shows a persistent upward drift, it suggests the user's physiological state is aging faster than expected. This can prompt earlier attention to sleep, hydration, stress, or medication adherence before individual symptoms become critical. Because LifeSphere compares the user to their own historical baseline rather than a generic population norm, the score becomes personally meaningful: each user's clock learns what "young for them" looks like and flags departure from that personal healthy state.
+
+## How it connects to the rest of LifeSphere
+
+The biological age value is written into the shared biological state under `lifesphere/vital32/bio_age`. Other subsystems do not trigger protocols directly from this field, but SphereAI can reference it during conversational health summaries, and guardians reviewing the app can see trends alongside anomaly scores and emotional states.
+
+The biological age clock also supports the broader design goal of early cognitive decline detection. While it does not measure cognition directly, sustained increases in biological age correlate in research literature with increased risk of functional decline. LifeSphere treats this as contextual signal rather than diagnostic evidence.
+
+## Limits
+
+The source does not specify the exact feature set, training data source, or validation methodology for the biological age clock. No accuracy metrics, correlation coefficients, or clinical benchmarks are reported. The output should be understood as an informational estimate derived from wearable sensors, not a medically validated assessment of biological aging. The specific contributions of each sensor type, and their relative weights in the ensemble, are not documented.
+
+The model is trained offline, and the source does not state whether the ensemble runs on the wearable, on HollowRover, or on another node. Longitudinal user studies to validate whether this estimate tracks validated biomarkers of aging in an elderly population are listed as future work.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Anomaly Scoring" icon="wave-square" href="/ai/isolation-forest">
+    Real-time deviation detection that learns personal baselines over 30 days
+  </Card>
+
+  <Card title="Cortisol Estimator" icon="droplet" href="/ai/cortisol-estimator">
+    Gradient-boosted stress hormone estimation from biomarker fusion
+  </Card>
+
+  <Card title="Cognitive Tracker" icon="brain" href="/ai/cognitive-tracker">
+    CUSUM-based drift detection for early cognitive change signals
+  </Card>
+
+  <Card title="Multi-Timescale Inference" icon="layer-group" href="/core/multi-timescale-inference">
+    How short, medium, and long cycles coordinate across the system
+  </Card>
+</CardGroup>

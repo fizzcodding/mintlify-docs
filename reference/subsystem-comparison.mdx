@@ -1,0 +1,130 @@
+---
+title: "LifeSphere Subsystem Comparison: Five Modules, One Ecosystem"
+sidebarTitle: "Subsystem Comparison"
+description: "Compare Vital32, HollowRover, SphereAI, EntryGuard, and HollowCore by purpose, hardware, AI, shared-state roles, and physical actuators across the caregiving ecosystem."
+icon: "layer-group"
+---
+
+Each of LifeSphere's five subsystems plays a distinct role, yet all read from and write to the same central biological state. This page compares them side by side so you can understand how hardware, intelligence, and responsibility are distributed.
+
+## Summary table
+
+| Subsystem | Primary role | Core hardware |
+| --- | --- | --- |
+| Vital32 | Continuous biometric monitoring | ESP32-based wearable with multi-sensor array |
+| HollowRover | Autonomous physical response and presence | RDK X5 compute with ROS2, LiDAR, UWB, robotic arm |
+| SphereAI | Emotional and cognitive interpretation | ESP32-S3 wake-word, Whisper, DistilBERT, audio I/O |
+| EntryGuard | Perimeter threat detection and localization | ESP32 nodes with PIR, gas, fire, UWB, and barometric sensors |
+| HollowCore | Biology-responsive home automation and finance | ESP32 relay controllers, MQTT listener, dispenser HMI |
+
+## Vital32
+
+**Purpose**: Worn continuously by the user, Vital32 is the biological heartbeat of the ecosystem. It collects cardiac, thermal, motion, galvanic, impedance, and environmental signals with zero required interaction.
+
+**Compute**: ESP32 WROOM-32 microcontroller. It schedules sensor reads across a shared bus, processes raw ADC values, applies signal processing, and uploads to Firebase every 30 seconds.
+
+**Sensors**: A multi-sensor array including ECG waveform acquisition, MAX30102 pulse oximetry, MPU6050 accelerometer and gyroscope, MLX90614 infrared skin temperature, BME688 VOC and humidity, VEML6075 UV, galvanic skin response, and AD5933 bioelectrical impedance.
+
+**AI processed**: Raw data feeds anomaly scoring, HRV analysis, cortisol estimation, biological age, and the pre-seizure model. The wearable does not run AI itself; it streams data for cloud or rover-hosted inference.
+
+**Writes to shared state**: vital32.heart_rate, spo2, skin_temp, hrv_rmssd, hrv_lf_hf, gsr, bio_age, anomaly_score, seizure_prob, cortisol_est, fall_detected, immune_alert, and timestamp.
+
+**Reads from shared state**: None. Vital32 is purely a publisher of biometric data.
+
+**Actuators**: A 0.96-inch OLED for local display and a BLE beacon for person-finding. No physical intervention.
+
+## HollowRover
+
+**Purpose**: Bridges digital alerts and physical action. It responds to biometric triggers by navigating the home, delivering medication, cushioning pre-seizure events, de-escalating stress, and deterring intruders.
+
+**Compute**: D-Robotics RDK X5 with an 8-core Cortex-A55 CPU, 4 GB RAM, and a 10 TOPS NPU for parallel AI inference. Two ESP32 controllers isolate timing-critical drivetrain tasks from servo-driven manipulator control.
+
+**Sensors**: STL-19P ToF LiDAR, a 9-axis IMU, four HC-SR04 ultrasonic sensors, an MLX90640 thermal camera, an SC230AI stereo depth camera for night vision with an IR fill light, BME688 barometric pressure for floor detection, DWM1000 UWB anchors, and a BLE RSSI module.
+
+**AI processed**: Runs SLAM and Nav2 on CPU, while the NPU handles Whisper speech-to-text, DistilBERT sentiment, face recognition via InsightFace, and voice analysis independently.
+
+**Writes to shared state**: hollowrover.status, hollowrover.battery.
+
+**Reads from shared state**: Subscribes to vital32.fall_detected, anomaly_score, seizure_prob, and entryguard alerts to trigger protocols.
+
+**Actuators**: Four-wheel Ackermann steering with independent Dake DK-37R gear motors, rocker suspension, a 6-DOF robotic arm, water spray module, peristaltic pump, speaker, OLED display, and medication dispenser carousel with stepper motor and shutter servo.
+
+## SphereAI
+
+**Purpose**: The affective computing layer that interprets emotional state, stress, loneliness, and cognitive drift from language, voice, and live biology. It fights isolation and supports early cognitive decline detection.
+
+**Compute**: ESP32-S3 for local wake-word detection; RDK X5 for full Whisper and DistilBERT inference. The ESP32-S3 signals the RDK X5 over UART on wake word detection.
+
+**Sensors**: INMP441 I2S digital microphone for 24-bit audio up to 48 kHz, and MAX98357A I2S amplifier driving a 3 W speaker.
+
+**AI processed**: Whisper speech-to-text, DistilBERT sentiment analysis, Librosa MFCC and prosody extraction, and the TriAgent meta-classifier with dynamic fusion weights.
+
+**Writes to shared state**: sphereai.emotional_state, sphereai.stress_level, sphereai.loneliness_index, sphereai.cognitive_score.
+
+**Reads from shared state**: Subscribes to vital32 biomarkers, especially cortisol_est and gsr, to modulate tone and trigger calming protocols.
+
+**Actuators**: Speaker for conversation, alerts, and adhkar playback; OLED display for text output.
+
+## EntryGuard
+
+**Purpose**: An invisible security layer at protected entry points. It detects motion, fire, gas, and unrecognized faces, then alerts the ecosystem with floor-aware positioning so HollowRover can respond.
+
+**Compute**: ESP32 WROOM-32 at each node.
+
+**Sensors**: PIR motion sensor HC-SR501, HC-SR04 ultrasonic distance sensor, KY-026 fire/flame sensor, MQ-2 gas sensor, UWB module, and barometric pressure sensor.
+
+**AI processed**: Face recognition via InsightFace with the buffalo_sc model pack and MediaPipe, running as a FastAPI service. Face profiles are stored locally on HollowRover.
+
+**Writes to shared state**: entryguard.mode, entryguard.intruder_detected, and alert payloads including alert type, node identity, UWB zone reference, and floor pressure reference.
+
+**Reads from shared state**: Minimal; nodes operate autonomously and push alerts upstream.
+
+**Actuators**: Local buzzer for fire and gas alerts; MJPEG video streaming with annotations; push notifications to guardian phones.
+
+## HollowCore
+
+**Purpose**: Makes the home an active participant in caregiving. It maps biometrics to relay-controlled devices and handles financial anomaly detection and biometric transaction authorization.
+
+**Compute**: ESP32 controllers listening to the Mosquitto MQTT broker on the RDK X5. Relays control lights, AC, fan, TV, main door lock, and air purifier.
+
+**Sensors**: None directly; it is a state-driven actuator layer that responds to shared-state fields from Vital32 and SphereAI.
+
+**AI processed**: Isolation Forest for financial anomaly detection on spending history; biometric authorization for high-risk transactions using face recognition, fingerprint, and Vital32 proximity.
+
+**Writes to shared state**: hollowcore.ac_temp, hollowcore.fan, `med_schedule` under `lifesphere/hollowcore` from prescription OCR, and `dispenser_manual` from touchscreen entries.
+
+**Reads from shared state**: Continuously subscribes to vital32.cortisol_est, gsr, spo2, sleep state, and skin_temp to trigger lighting, climate, audio, and lock rules.
+
+**Actuators**: Wi-Fi relay modules for living room light, bedroom light, AC and fan, TV power, main door lock solenoid, and air purifier. Also drives the dispenser's touchscreen HMI.
+
+## Why this matters
+
+No single subsystem could deliver the full caregiving experience alone. Vital32 generates data but cannot act physically. HollowRover can act but needs biometric triggers. SphereAI interprets emotion but cannot monitor health directly. EntryGuard secures the perimeter but has no physical mobility. HollowCore adapts the environment but relies on upstream signals. The distributed design means that if one node goes offline, the others continue operating independently: if HollowRover is charging, Vital32 still monitors; if one EntryGuard node fails, the rest still detect intrusions.
+
+## How it connects to the rest of LifeSphere
+
+All five subsystems share the same root JSON tree in Firebase Realtime Database under the key "lifesphere". Vital32 writes continuously; HollowRover subscribes and dispatches; SphereAI reads biomarkers to adjust tone; EntryGuard pushes alerts with UWB zone and floor references; HollowCore listens to MQTT commands and publishes device states. This publish-subscribe model is what lets the ecosystem behave as a single synchronized intelligence rather than five separate devices.
+
+## Limits
+
+The source does not specify exact redundancy for every sensor type, nor how many EntryGuard nodes a typical home requires. The compute distribution assumes stable Wi-Fi; during outages the rover becomes a local hotspot, but functionality may degrade if the hotspot range is insufficient for all nodes. Financial API integration details and fingerprint hardware specifications are not provided.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Glossary" icon="book" href="/reference/glossary">
+    Definitions for every specialized term used across the ecosystem.
+  </Card>
+
+  <Card title="Trigger-to-Response Table" icon="route" href="/reference/trigger-response">
+    Every trigger condition and the physical response it initiates.
+  </Card>
+
+  <Card title="Shared State Fields" icon="database" href="/reference/state-field-dictionary">
+    A complete dictionary of every field path in the biological state backbone.
+  </Card>
+
+  <Card title="System Architecture" icon="gears" href="/core/system-architecture">
+    How the five subsystems fit into the broader distributed intelligence model.
+  </Card>
+</CardGroup>

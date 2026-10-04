@@ -1,0 +1,97 @@
+---
+title: "EntryGuard Components: Perimeter Sensors and Compute"
+sidebarTitle: "Components"
+description: "Each EntryGuard node combines motion, distance, environmental, and location sensors on a Wi-Fi-enabled microcontroller to turn a doorway into a smart, autonomous sentry."
+icon: "microchip"
+---
+
+An EntryGuard node is a compact, self-contained sentry built from commercially available sensors and a single microcontroller. It converts a doorway or hallway into an intelligent monitoring point that can tell the difference between normal activity and genuine danger. This page describes every component inside a node and explains what each one contributes.
+
+## Core Hardware
+
+The node is built around an ESP32 WROOM-32 microcontroller. This chip provides on-board Wi-Fi, which lets the node join the home network and communicate with Firebase and the local MQTT broker. The ESP32 family is widely used in Internet of Things devices because it combines wireless connectivity with enough processing power to read multiple sensors and run simple decision logic.
+
+## Sensor Array
+
+Every node carries the following sensors. They share the microcontroller's input pins and are read in sequence to keep wiring simple.
+
+| Sensor | What It Detects | Why It Is Needed |
+| --- | --- | --- |
+| PIR HC-SR501 | Body heat motion | Catches warm-body movement across a wide angle |
+| Ultrasonic HC-SR04 | Distance to nearest object | Measures how close someone or something is to the node |
+| Fire/Flame KY-026 | Infrared flame signature | Detects open fire even before smoke appears |
+| Gas MQ-2 | Combustible gases and smoke | Warns of gas leaks or airborne contaminants |
+| UWB module | Precise radio ranging | Provides zone-level location for rover dispatch |
+| Barometric sensor | Atmospheric pressure | Supplies floor-level reference for multi-floor homes |
+
+### PIR Motion Sensor (HC-SR501)
+
+A passive infrared (PIR) sensor detects changes in infrared radiation. Warm bodies emit infrared light. When a person moves across the sensor's field of view, the change in received infrared energy triggers a digital signal. The sensor is "passive" because it does not emit any energy; it only listens. This makes it low-power and reliable for continuous perimeter monitoring.
+
+In EntryGuard, the PIR output is gated by the system mode. If the mode is not ACTIVE, motion alone does not generate an alert. This prevents the resident from triggering the alarm during ordinary daily movement.
+
+### Ultrasonic Distance Sensor (HC-SR04)
+
+An ultrasonic sensor measures distance by emitting a short burst of high-frequency sound and timing how long the echo takes to return. The HC-SR04 is a common low-cost module used in robotics and automation. By measuring the distance to the nearest solid object, the node can confirm that motion is associated with a physical presence at a specific range, reducing false positives from distant heat sources.
+
+### Fire/Flame Sensor (KY-026)
+
+The KY-026 is a small module that detects infrared light in the wavelength range emitted by open flames. It responds faster than a smoke detector in some cases because it senses the flame's radiant energy directly rather than waiting for smoke to reach it. When the reading crosses a calibrated threshold, the node triggers a fire alert and activates a local buzzer.
+
+### Gas Sensor (MQ-2)
+
+The MQ-2 is a chemiresistive sensor. It contains a heated filament coated with a metal oxide. When combustible or harmful gases reach the filament, the surface resistance changes. The module outputs an analog voltage proportional to gas concentration. The node compares this voltage to a threshold and triggers a gas alert when the concentration is high enough to indicate danger.
+
+### UWB Module
+
+Each EntryGuard node includes an ultra-wideband (UWB) radio module from the DW1000 family. UWB radios measure distance by timing extremely short radio pulses. Because EntryGuard nodes are fixed at known positions, they act as anchors in the home's localization grid. When an alert fires, the node includes its UWB zone reference in the alert payload so the rover knows which horizontal area to target.
+
+### Barometric Pressure Sensor
+
+Atmospheric pressure decreases predictably with altitude. A barometric sensor measures ambient air pressure. In a multi-floor deployment, each registered floor stores a calibrated pressure baseline. The EntryGuard node includes its pressure reading in the alert payload. The rover compares this reading to its own barometric sensor and to the stored floor baselines to confirm which floor the alert originated from.
+
+## Alert Output
+
+When a sensor crosses its threshold, the node constructs an alert payload. The payload contains:
+
+- The alert type (motion, fire, or gas)
+- The sensor value that triggered the event
+- The node identity
+- A UWB zone reference
+- A barometric floor pressure reference
+
+This payload travels over the local network to Firebase and, for time-critical events, directly over MQTT to the rover.
+
+## Why This Matters
+
+Using low-cost, widely available sensors means EntryGuard can be replicated and maintained without specialized fabrication. Each sensor covers a different physical principle. By combining these orthogonal signals, the node reduces blind spots and makes it harder for a single sensor failure to create a dangerous gap in coverage.
+
+## How It Connects to the Rest of LifeSphere
+
+- **HollowRover** subscribes to the MQTT topic carrying EntryGuard alerts. It extracts the UWB zone ID and floor pressure reference, selects the correct SLAM map, and begins navigation.
+- **HollowCore** reads `entryguard.intruder_detected` and may toggle lights or other relays in response to the event.
+- **SphereAI** may adjust the tone of verbal alerts based on the type of danger reported, helping to calm the resident rather than panic them.
+
+## Limits
+
+The source does not specify the exact voltage thresholds or calibration curves for the fire and gas sensors. These must be tuned during installation based on the local environment. The KY-026 can be sensitive to bright incandescent bulbs or direct sunlight, so placement matters. The MQ-2 requires a warm-up period after power-on before readings stabilize.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Intrusion Detection" icon="user-secret" href="/entryguard/intrusion-detection">
+    How PIR and ultrasonic signals are combined and gated.
+  </Card>
+
+  <Card title="Fire and Gas" icon="fire" href="/entryguard/fire-and-gas">
+    Alert behavior when flame or gas thresholds are crossed.
+  </Card>
+
+  <Card title="Face Recognition" icon="eye" href="/entryguard/face-recognition">
+    The InsightFace pipeline that classifies people at chokepoints.
+  </Card>
+
+  <Card title="Floor-Aware Dispatch" icon="layer-group" href="/entryguard/floor-aware-dispatch">
+    How pressure and UWB references guide the rover across floors.
+  </Card>
+</CardGroup>

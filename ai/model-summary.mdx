@@ -1,0 +1,148 @@
+---
+title: "AI Model Summary: Outputs and Triggers"
+sidebarTitle: "Model Summary"
+description: "A compact one-card reference for every LifeSphere AI model, including its architecture, output field, update cadence, and trigger threshold."
+icon: "layer-group"
+---
+
+LifeSphere contains multiple machine learning models that operate on different timescales and produce different kinds of predictions. This page provides a compact reference for each model, its architecture, its output, and what happens when that output crosses a threshold. Use it as a quick lookup or an orientation guide when reading about individual models in depth.
+
+## Anomaly detector
+
+**Architecture**: Isolation Forest with 100 trees and contamination 0.05.
+
+**Output**: anomaly score, a value from 0 to 1 indicating deviation from the user's personal baseline.
+
+**Update cadence**: Short cycle, 30 seconds.
+
+**Training data**: User's own biometric data from the first 30 days of normal use.
+
+**Thresholds**: Greater than 0.7 triggers a soft alert to guardians. Greater than 0.9 triggers HollowRover emergency protocol dispatch.
+
+**Where its output lives**: `lifesphere/vital32/anomaly_score`
+
+## Pre-seizure LSTM
+
+**Architecture**: Two LSTM layers with 64 and 32 units, 0.3 dropout, Dense 16 ReLU, Dense 1 sigmoid. Inputs are HRV, accelerometer motion, and skin temperature features in 5-minute rolling windows of 300 time steps by 5 features.
+
+**Output**: seizure probability, a value from 0 to 1.
+
+**Update cadence**: Firmware inference every 5 seconds.
+
+**Training data**: CHB-MIT Scalp EEG Dataset and Epilepsy iEEG Prediction Dataset from PhysioNet. Unvalidated on real wearable data.
+
+**Threshold**: Greater than 0.85 triggers HollowRover seizure protocol.
+
+**Where its output lives**: `lifesphere/vital32/seizure_prob`
+
+## Emotional classifier
+
+**Architecture**: TriAgent meta-classifier with dynamic weighting. Three concurrent agents (language via DistilBERT sentiment, voice via Librosa MFCC and prosody features, biology via live Vital32 biomarkers) are fused by a weighted sum whose weights depend on the prior emotional state.
+
+**Output**: emotional state as a categorical label (calm, stressed, grief, isolated, cognitive), plus stress level, loneliness index, and cognitive score.
+
+**Update cadence**: Medium cycle, 15 minutes.
+
+**Training data**: Not specified.
+
+**Thresholds**: No single numeric threshold. Outputs feed into SphereAI tone adjustment, HollowCore environmental responses, and guardian app displays.
+
+**Where its output lives**: `lifesphere/sphereai/emotional_state`, `stress_level`, `loneliness_index`, `cognitive_score`
+
+## Cortisol estimator
+
+**Architecture**: Gradient Boosting with 200 trees.
+
+**Output**: Estimated cortisol labeled in the source as ng/dL est.
+
+**Update cadence**: Medium cycle, 15 minutes.
+
+**Training data**: Not specified.
+
+**Threshold**: Greater than 18.0 triggers HollowCore warm dim lighting and lowered AC temperature.
+
+**Where its output lives**: `lifesphere/vital32/cortisol_est`
+
+## Biological age clock
+
+**Architecture**: Ensemble of Random Forest plus XGBoost.
+
+**Output**: Biological age in years (for example, 68.4).
+
+**Update cadence**: Long cycle, 24 hours.
+
+**Training data**: Not specified.
+
+**Thresholds**: No fixed alert threshold. Used for longitudinal trend monitoring.
+
+**Where its output lives**: `lifesphere/vital32/bio_age`
+
+## Cognitive tracker
+
+**Architecture**: CUSUM (cumulative sum control chart) with 2-sigma decision threshold.
+
+**Output**: Cognitive deviation score.
+
+**Update cadence**: Long cycle, 24 hours.
+
+**Training data**: Personal baseline established during initial normal-use period. Duration not specified.
+
+**Threshold**: CUSUM exceeds 2 sigma from personal baseline, flagging drift for review.
+
+**Where its output lives**: `lifesphere/sphereai/cognitive_score`
+
+## Financial anomaly detector
+
+**Architecture**: Isolation Forest trained on user's historical spending.
+
+**Output**: Binary or score-based flag for out-of-pattern transactions.
+
+**Update cadence**: Real-time on incoming transaction data.
+
+**Training data**: User's own banking and subscription history.
+
+**Threshold**: High-risk threshold not specified. When triggered, requires three-factor biometric authorization (facial recognition, fingerprint, Vital32 proximity confirmation).
+
+**Where its output lives**: Integrated with HollowCore financial module; exact field path not specified.
+
+## Summary comparison
+
+| Model | Output / Cycle | Threshold / Action |
+| --- | --- | --- |
+| Anomaly detector | anomaly score 0 to 1 / 30 s | greater than 0.9 emergency |
+| Pre-seizure LSTM | seizure prob 0 to 1 / 5 s | greater than 0.85 protocol |
+| Emotional classifier | emotional state category / 15 min | State-dependent weights |
+| Cortisol estimator | cortisol est. ng/dL / 15 min | greater than 18.0 comfort |
+| Biological age clock | bio age in years / 24 h | None, trend only |
+| Cognitive tracker | deviation score / 24 h | Exceeds 2 sigma |
+| Financial anomaly | anomaly flag / real-time | Unspecified high-risk |
+
+## How they coordinate
+
+These models do not operate in isolation. The short-cycle models feed immediate safety decisions: anomaly score and seizure probability can both trigger HollowRover dispatch within seconds of a threshold crossing. The medium-cycle models shape environmental and emotional context: cortisol estimation dims lights, and emotional classification adjusts SphereAI's conversational tone. The long-cycle models provide longitudinal health narratives: biological age and cognitive score accumulate meaning over weeks and months, supporting early intervention conversations with clinicians or family.
+
+All outputs converge on the shared biological state, so any subsystem can respond to any model. HollowCore listens to cortisol and blood oxygen. SphereAI reads emotional state and cognitive score. HollowRover subscribes to anomaly score, seizure probability, and fall detected. This convergence is what makes the ecosystem act as a single synchronized intelligence rather than isolated gadgets.
+
+## Limits
+
+No accuracy metrics, validation studies, or benchmark results are reported for any model. The pre-seizure LSTM has a documented training-data domain gap. Several models lack named training datasets entirely. Thresholds should be treated as design parameters, not clinically validated cutoffs. The specific implementation environment, model format, and hardware allocation for each model are not documented, and the source uses generic wording for these details.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Thresholds and Alerts" icon="scale-balanced" href="/ai/thresholds-and-alerts">
+    The complete table of every numeric threshold and what it triggers
+  </Card>
+
+  <Card title="Training Data" icon="book" href="/ai/training-data">
+    What data trains each model, from personal baselines to public datasets
+  </Card>
+
+  <Card title="AI Overview" icon="robot" href="/ai/overview">
+    How the models fit together as a unified predictive intelligence
+  </Card>
+
+  <Card title="Honest Limits" icon="circle-question" href="/status/honest-limits">
+    System-wide gaps between design ambition and validated performance
+  </Card>
+</CardGroup>

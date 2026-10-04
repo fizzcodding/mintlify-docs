@@ -1,0 +1,67 @@
+---
+title: "Compute, Power, and Display: Vital32 Hardware Core"
+sidebarTitle: "Compute, Power and Display"
+description: "Vital32 runs on an ESP32 WROOM-32 microcontroller with Wi-Fi, a 1000 mAh LiPo battery, USB-C charging, and an SSD1306 OLED, plus UWB and BLE for location and proximity."
+icon: "battery-full"
+---
+
+Vital32 is built around an ESP32 WROOM-32 microcontroller. This chip combines a dual-core processor with integrated Wi-Fi and Bluetooth in a compact, low-power package. It reads all sensors, runs signal processing, uploads to the shared biological state, and drives a small display. The entire system is powered by a 3.7 V 1000 mAh lithium-polymer battery with USB-C charging and regulated voltage rails. UWB and BLE radios extend the wearable's role beyond sensing into location and identity verification.
+
+## Compute: ESP32 WROOM-32
+
+The ESP32 WROOM-32 is a system-on-module that includes a dual-core Xtensa LX6 processor, flash memory, and integrated 2.4 GHz Wi-Fi. For Vital32, its primary jobs are: scheduling sensor reads across a shared bus, applying lightweight digital signal processing such as HRV extraction, packaging the data into JSON payloads, and uploading to Firebase Realtime Database over Wi-Fi. The firmware runs a scheduler that staggers reads to avoid bus contention, a condition where multiple devices attempt to communicate simultaneously and corrupt each other's data.
+
+The ESP32 does not run the heavy machine learning models. Anomaly scoring, cortisol estimation, biological age, and seizure prediction are trained offline and the outputs are either computed on more powerful edge hardware or in the cloud. The wearable's role is reliable, low-latency data acquisition and transmission. Target latency from sensor read to shared-state update is within the system's 150 ms target, though the exact breakdown between wearable, Wi-Fi, and Firebase is not specified.
+
+## Power: battery and charging
+
+The wearable uses a 3.7 V 1000 mAh lithium-polymer (LiPo) battery. This capacity is typical for compact wearable prototypes. A TP4056 charging module with integrated protection handles USB-C charging. The module prevents overcharge, over-discharge, and short-circuit conditions. An AMS1117-3.3 linear regulator steps the battery voltage down to 3.3 V, the level required by the ESP32 and most of the sensors.
+
+Power consumption under continuous multi-sensor operation is a critical unknown. The source does not specify expected battery life. In general, running Wi-Fi, multiple I2C sensors, an OLED, UWB ranging, and BLE beaconing simultaneously on a 1000 mAh cell would require aggressive duty cycling or result in a runtime measured in hours rather than days. How the firmware balances responsiveness with power draw is not described.
+
+## Display: SSD1306 OLED
+
+A 0.96-inch 128x64 pixel SSD1306 OLED provides local feedback. The display might show heart rate, connection status, or charging progress. The source mentions that the OLED is updated every second alongside pulse, temperature, GSR, and HRV. Because Vital32 is designed for zero interaction, the display is likely secondary: the primary user interface is the autonomous response of the rest of the ecosystem, not the wearable screen.
+
+## UWB tag: indoor positioning
+
+Vital32 carries a UWB (ultra-wideband) tag. UWB is a radio technology that uses very short pulses to measure distance with high precision. In LifeSphere, three fixed UWB anchors per floor create a 2D positioning network. The wearable's tag is ranged against these anchors so the system knows the user's horizontal location within about 10 centimeters. This is not GPS, which fails indoors. It is a local, floor-relative coordinate system.
+
+The UWB tag also plays a role in financial authorization. When HollowCore needs to confirm a high-risk transaction, one factor is Vital32 proximity: the wearable must be physically near the dispenser or authentication point. The UWB tag provides this confirmation.
+
+## BLE beacon: person-finding and proximity
+
+Vital32 also broadcasts as a BLE (Bluetooth Low Energy) beacon. BLE RSSI (received signal strength indication) is measured by HollowRover when the user moves outside UWB coverage or into an unmapped area. The rover rotates in place, samples signal strength at multiple headings, estimates the direction of strongest signal, and navigates toward it. This is coarser than UWB trilateration but works at longer range and requires no fixed infrastructure.
+
+BLE proximity also contributes to biometric transaction authorization. The combination of face recognition, fingerprint, and Vital32 proximity confirmation creates a multi-factor authentication chain for high-risk financial actions.
+
+## How it connects to the rest of LifeSphere
+
+- **Firebase**: The ESP32 uploads all vital32 fields to the shared state tree every 30 seconds.
+- **HollowRover**: UWB tag enables 2D trilateration; BLE beacon enables coarse person-finding.
+- **HollowCore**: UWB and BLE proximity are factors in transaction authorization.
+- **EntryGuard**: BLE beacon confirms the wearer is the same person detected by face recognition.
+
+## Limits
+
+The source does not specify expected battery life, power management strategy, or thermal behavior under continuous operation. The OLED visibility in bright daylight is not discussed. UWB tag power draw and its effect on runtime are not quantified. BLE beacon interval and transmit power are not stated. The ESP32's flash memory capacity and whether it stores any local history beyond the immediate upload are not described. Fault tolerance for the wearable includes independent watchdog timers, but the exact behavior on Wi-Fi dropout or sensor failure is not detailed.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Sensor Array" icon="microchip" href="/vital32/components/sensor-array">
+    All sensors read by this compute core
+  </Card>
+
+  <Card title="UWB Positioning" icon="location-dot" href="/hollowrover/navigation/uwb-positioning">
+    How three-anchor trilateration works
+  </Card>
+
+  <Card title="BLE Person Finding" icon="bluetooth" href="/hollowrover/navigation/ble-person-finding">
+    Coarse search when UWB is unavailable
+  </Card>
+
+  <Card title="Transaction Authorization" icon="lock" href="/hollowcore/transaction-authorization">
+    How Vital32 proximity secures payments
+  </Card>
+</CardGroup>

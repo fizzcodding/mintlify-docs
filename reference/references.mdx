@@ -1,0 +1,120 @@
+---
+title: "Research References: Sources Behind LifeSphere"
+sidebarTitle: "References"
+description: "The 21 research papers, datasets, datasheets, and software references that underpin LifeSphere's design choices, with a one-line note on how each supports the ecosystem."
+icon: "book"
+---
+
+LifeSphere draws on peer-reviewed research, open-source software, industry datasheets, and biomedical datasets. Each reference below is preserved verbatim from the corrected specification used on this sitecorrected specification used on this site, followed by a brief note on its role in the ecosystem.
+
+## Publications
+
+**[1] Liu, Ting, Zhou (2008) Isolation Forest, IEEE ICDM, 413-422**
+
+Supports the real-time anomaly detection model that learns each user's personal biometric baseline across a 100-tree ensemble, outputting the anomaly_score field that triggers soft alerts and emergency protocols.
+
+**[2] Hochreiter & Schmidhuber (1997) Long Short-Term Memory, Neural Computation 9(8), 1735-1780**
+
+Provides the foundational LSTM architecture used in the pre-seizure estimator and in the sequential modeling layer that combines with Isolation Forest for temporal anomaly patterns.
+
+**[3] Devlin, Chang, Lee, Toutanova (2019) BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding, NAACL-HLT, 4171-4186**
+
+Underpins DistilBERT, the lightweight sentiment classifier in SphereAI's language agent that analyzes transcribed speech for emotional content.
+
+**[4] Radford, Kim, Xu, et al. (2023) Robust Speech Recognition via Large-Scale Weak Supervision, ICML**
+
+Supports Whisper, the speech-to-text model used by SphereAI to convert user speech into text for downstream sentiment and emotional analysis.
+
+**[5] Bosse, Kester, de Man (2022) ROS2 Navigation: From SLAM to Nav2, IEEE Robotics & Automation Magazine 29(3), 56-67**
+
+Supports HollowRover's navigation stack, covering SLAM Toolbox integration, Nav2 path planning, and autonomous robot operation in indoor environments.
+
+**[6] Goldberger, Amaral, Glass, et al. (2000) PhysioBank, PhysioToolkit, and PhysioNet, Circulation 101(23), e215-e220**
+
+Cites the PhysioNet archive broadly referenced for physiological signal processing methods that inform Vital32's cardiac and HRV signal processing pipelines.
+
+**[7] Shoeb (2009) Application of Machine Learning to Epileptic Seizure Detection, M.S. Thesis, MIT**
+
+Supports the pre-seizure LSTM model trained on public seizure datasets, though the corrected specificationcorrected specification notes that the training data are brain-signal recordings while Vital32 inputs are different signals, a gap not addressed.
+
+**[8] Smith (1997) The Scientist and Engineer's Guide to Digital Signal Processing, California Technical Publishing**
+
+Provides general signal processing background for the filtering, spectral analysis, and feature extraction methods applied to Vital32's raw sensor readings.
+
+## Datasheets and hardware references
+
+**[9] LDROBOT (2024) STL-06P DTOF LiDAR Datasheet**
+
+Note: the corrected specification cites STL-06P in this reference entry, whereas the generic descriptioncorrected specification cites STL-06P in this reference entry, whereas the generic description elsewhere refers to the STL-19P LiDAR used for HollowRover's 2D occupancy grid mapping and navigation.
+
+**[10] D-Robotics (2024) RDK X5 Developer Kit Technical Reference Manual**
+
+Supports the main compute board selection for HollowRover, documenting the 8-core Cortex-A55, 4 GB RAM, 10 TOPS NPU, and Wi-Fi 6 capabilities that enable parallel SLAM and AI inference.
+
+**[11] Decawave / Qorvo (2016) DW1000 User Guide**
+
+Supports the DWM1000 UWB module selection for indoor positioning, used across HollowRover, EntryGuard nodes, and Vital32's wearable tag for 2D trilateration and floor-aware localization.
+
+**[12] Ai-Thinker (2024) BU03 DW3000 UWB Positioning Module Datasheet**
+
+Note: the corrected specificationcorrected specification lists this reference, but LifeSphere's generic wording specifies DWM1000 UWB modules (DW1000 family) for positioning.
+
+**[13] CEVA / Hillcrest Labs (2020) BNO080 9-Axis IMU with Sensor Fusion Datasheet**
+
+Note: the corrected specificationcorrected specification lists this reference, but HollowRover's 9-axis IMU is described in generic terms throughout the documentation.
+
+## Software and libraries
+
+**[14] Bodmer (2024) TFT_eSPI Library for Arduino/ESP32**
+
+Supports the dispenser's touchscreen user interface, rendered directly by an ESP32 microcontroller on a raw SPI TFT display without an onboard UI processor.
+
+**[15] XPT2046 (2014) Resistive Touch Screen Controller Datasheet**
+
+Supports the resistive touch layer in the medication dispenser's 3.5-inch display, used for manual schedule entry and review.
+
+**[16] Ilitek (2011) ILI9488 TFT LCD Single Chip Driver Datasheet**
+
+Supports the display controller chip used in the dispenser's 480 by 320 pixel touchscreen.
+
+**[17] Espressif Systems (2023) ESP-SR: Speech Recognition Framework for ESP32-S3**
+
+Supports the lightweight wake-word engine on SphereAI's ESP32-S3, enabling always-listening local detection without continuous cloud connectivity or main CPU involvement.
+
+**[18] Google (2024) Firebase Realtime Database Documentation**
+
+Supports the central biological state backbone architecture, documenting the publish-subscribe model that synchronizes all five subsystems with target 150 millisecond latency.
+
+## Machine learning and biometrics
+
+**[19] Liu, Wen, Yu, Yang (2017) Large-Margin Softmax Loss for Convolutional Neural Networks, ICML, 507-516**
+
+Supports the large-margin classification methods that may inform face recognition training and other discriminative models in the ecosystem.
+
+**[20] McFee, Raffel, Liang, et al. (2015) librosa: Audio and Music Signal Analysis in Python, Proc. SciPy, 18-24**
+
+Supports SphereAI's voice agent, providing the MFCC, pitch, energy, tempo, and zero-crossing rate extraction from user speech for emotional prosody analysis.
+
+**[21] Tesseract OCR (2024) Tesseract Open Source OCR Engine**
+
+Supports the prescription OCR pipeline, converting photographed prescription text into machine-readable input for the large language model that extracts structured medication schedules.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Glossary" icon="book" href="/reference/glossary">
+    Definitions for the technical terms used throughout these references.
+  </Card>
+
+  <Card title="AI Model Summary" icon="brain" href="/ai/model-summary">
+    A concise overview of every AI model, its inputs, outputs, and update cycle.
+  </Card>
+
+  <Card title="Training Data" icon="database" href="/ai/training-data">
+    What datasets and baselines each model learns from.
+  </Card>
+
+  <Card title="FAQ" icon="circle-question" href="/reference/faq">
+    Common questions about predictions, privacy, and validation.
+  </Card>
+</CardGroup>

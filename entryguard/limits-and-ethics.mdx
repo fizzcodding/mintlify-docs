@@ -1,0 +1,87 @@
+---
+title: "EntryGuard Limits and Ethics: Honest Boundaries of Perimeter AI"
+sidebarTitle: "Limits and Ethics"
+description: "EntryGuard's sensors, face recognition, and autonomous responses carry real limits. This page states them openly so caregivers can set expectations and plan oversight."
+icon: "scale-balanced"
+---
+
+No security system is perfect, and EntryGuard is no exception. Its limits arise from sensor physics, algorithmic uncertainty, and the ethical boundaries the project chose to observe. Stating these limits honestly is essential so that caregivers understand what EntryGuard can do, what it cannot do, and where human oversight remains irreplaceable.
+
+## Sensor Limits
+
+### Environmental Calibration
+
+The source does not specify exact threshold values for the KY-026 flame sensor or the MQ-2 gas sensor. These thresholds depend on ambient temperature, humidity, airflow, and local building conditions. A threshold that works in a dry, ventilated home may be wrong for a humid, enclosed apartment.
+
+### False Positives and Negatives
+
+The PIR motion sensor can trigger on pets, space heaters, or direct sunlight through a window. The ultrasonic sensor can misread soft curtains or angled surfaces. The gas sensor responds to multiple gas types and cannot distinguish between a propane leak and airborne cooking fumes. These limitations mean that some alerts may be false positives, and some genuine events may be missed if the sensors are poorly placed or poorly calibrated.
+
+## Face Recognition Limits
+
+### Lighting and Angle Dependence
+
+Face recognition accuracy depends heavily on lighting conditions and the angle at which the face is presented to the camera. In low light, the system may fail to detect a face or may misclassify it. If a person approaches with their head turned or wearing a mask, recognition may fail. The source does not specify whether the system uses an infrared fill light for night-time recognition.
+
+### Profile Storage and Performance
+
+Face profile templates are stored locally on HollowRover. The number of profiles that can be stored is limited by available storage. Recognition speed depends on the number of stored profiles and the local compute load. During periods when the rover is also running SLAM, navigation, and speech processing, face recognition latency may increase.
+
+### Unvalidated Accuracy
+
+The source does not report accuracy figures, false acceptance rates, or false rejection rates for the face recognition pipeline. Caregivers should not treat a "registered" classification as absolute proof of identity, nor an "unregistered" classification as absolute proof of intrusion. Human verification through the live video stream remains the final authority.
+
+## Ethical Boundaries
+
+### No Autonomous Physical Contact
+
+EntryGuard's associated rover response includes a passive barrier only. The arm blocks a pathway but does not touch, grasp, or strike any person. This boundary exists to prevent harm to innocent visitors, delivery workers, or family members who might be misclassified. Any physical escalation beyond the passive barrier requires explicit human authorization.
+
+### Local Biometric Data
+
+Face profile templates never leave the home. This decision prevents mass biometric surveillance and keeps the resident in control of their data. It also means that the system cannot benefit from cloud-scale model improvements or centralized threat databases. The trade-off is accepted as part of the privacy-first design.
+
+### Mandatory Human Authorization
+
+For defensive actions beyond the basic three responses (barrier, alarm, notification), the system requires a human in the loop. This principle ensures that autonomous sensing never fully replaces human judgment in decisions that could affect safety or liberty.
+
+## Operational Limits
+
+### Multi-Floor Constraints
+
+Floor-aware dispatch depends on barometric pressure baselines. If weather causes rapid pressure changes, floor discrimination may become unreliable. The rover cannot climb stairs, so multi-floor response depends on lifts, ramps, or manual relocation. Future work may include legged locomotion, but this is not part of the current design.
+
+### Network Dependency
+
+While EntryGuard nodes can sound local buzzers without network connectivity, remote guardian notification and rover dispatch require Wi-Fi. During a Wi-Fi outage, GSM fallback carries text alerts but the source does not confirm that video streaming or full rover dispatch remains available.
+
+## Why This Matters
+
+LifeSphere's core principle is that technology should respond to the user's biology, not the other way around. EntryGuard extends this by ensuring that security technology does not override human judgment, does not expose private data, and does not pretend to be more reliable than it is. Honest limits build trust. Trust is what makes a caregiver comfortable leaving the system in charge while they are away.
+
+## How It Connects to the Rest of LifeSphere
+
+- **HollowRover** enforces the passive barrier limit and hosts local face data.
+- **HollowCore** enforces mode gating so alerts respect the home's context.
+- **SphereAI** provides verbal communication that can de-escalate situations where the sensors may have erred.
+- **Vital32** continues monitoring so that stress responses to false alarms can be detected and learned from.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Safety Principles" icon="shield-halved" href="/design/safety-principles">
+    System-wide rules for non-contact, human-authorized physical responses.
+  </Card>
+
+  <Card title="Privacy by Design" icon="lock" href="/design/privacy-by-design">
+    How LifeSphere keeps biometric and personal data under the resident's control.
+  </Card>
+
+  <Card title="Face Recognition" icon="eye" href="/entryguard/face-recognition">
+    Technical details of the local face classification pipeline.
+  </Card>
+
+  <Card title="Status and Roadmap" icon="book" href="/status/status-and-roadmap">
+    What has been built, what remains unresolved, and what future work is planned.
+  </Card>
+</CardGroup>

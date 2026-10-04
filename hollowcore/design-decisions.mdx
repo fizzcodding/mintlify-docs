@@ -1,0 +1,84 @@
+---
+title: "HollowCore Design Decisions and Architecture Rationale"
+sidebarTitle: "Design Decisions"
+description: "Why HollowCore uses an ESP32, MQTT relay control, Firebase biometric sync, and distributed intelligence rather than centralized home automation."
+icon: "gears"
+---
+
+HollowCore's architecture reflects deliberate trade-offs in cost, latency, reliability, and user autonomy. This page explains why the subsystem was built around an ESP32 microcontroller, Wi-Fi relay modules, MQTT local messaging, and Firebase cloud synchronization, rather than conventional smart home hubs or proprietary ecosystems.
+
+## Why an ESP32 Microcontroller
+
+The ESP32 was chosen as HollowCore's compute layer because it combines Wi-Fi connectivity, low power consumption, general-purpose input/output capability, and wide availability at a low cost point. This is essential for making LifeSphere achievable in resource-limited contexts such as Bangladesh, where the target population includes elderly citizens with limited income and where imported proprietary hubs may be prohibitively expensive or unsupported.
+
+The ESP32 runs the firmware that maps biometric states to relay outputs. It connects to both Firebase Realtime Database for cloud-mediated biometric updates and the local Mosquitto MQTT broker for direct command messages from SphereAI. Its dual-core architecture allows it to handle network communication and relay control concurrently without missing timing-critical triggers.
+
+A centralized home automation hub, such as commercial platforms with dedicated base stations, would add cost, vendor lock-in, and cloud dependency. The ESP32 keeps HollowCore locally intelligent and financially accessible.
+
+## Why Wi-Fi Relay Modules
+
+HollowCore controls appliances through Wi-Fi relay modules rather than proprietary smart bulbs or thermostats. Relays are electrically operated switches: the ESP32 sends a low-voltage signal, and the relay closes the high-voltage circuit. This approach is hardware-agnostic. Any existing light, fan, AC unit, or lock can be retrofitted without replacing the appliance itself.
+
+This has practical significance in elderly care deployments. The user's existing home may have fixtures installed decades ago. Requiring smart devices that speak specific protocols would force expensive replacement. Relay modules bridge the gap between modern automation and legacy infrastructure.
+
+The source does not specify relay ratings or electrical safety certifications, which would need to be addressed in any real deployment.
+
+## Why MQTT for Local Commands
+
+HollowCore uses two communication channels: Firebase Realtime Database for cloud-mediated biometric synchronization, and MQTT over local Wi-Fi for direct hardware-to-hardware commands. MQTT (Message Queuing Telemetry Transport) is a lightweight publish-subscribe protocol designed for IoT devices with limited bandwidth and intermittent connectivity.
+
+The Mosquitto MQTT broker runs on HollowRover's RDK X5. This creates a local messaging backbone that functions even if internet connectivity fails. When SphereAI needs HollowCore to play calming audio, it publishes to `lifesphere/hollowcore/command`. When HollowCore needs to request SphereAI audio playback in response to elevated GSR, it publishes to `sphereai/command`. These messages never leave the local network.
+
+This design eliminates cloud latency for time-sensitive commands. It also preserves functionality during internet outages, which are common in regions with unreliable infrastructure.
+
+## Why Firebase for Biometric State
+
+Biometric data flows through Firebase Realtime Database rather than direct MQTT. Firebase provides persistent structured storage, automatic synchronization across clients, and built-in authentication. All five subsystems read from and write to the same JSON tree, creating a single source of truth for the user's biological state.
+
+Firebase also enables historical data access for longitudinal AI training. The multi-timescale inference models, such as the 24-hour biological age clock and 30-day rolling circadian model, require access to stored biometric history that MQTT alone cannot provide.
+
+The trade-off is cloud dependency for biometric-driven automation. If Wi-Fi fails, HollowCore can still act on cached state or local MQTT commands, but fresh biometric updates stop until connectivity restores. The rover's local hotspot mode provides a fallback, allowing Vital32 to keep transmitting during outages.
+
+## Distributed Intelligence Over Central Control
+
+HollowCore does not route all decisions through a central brain. The ESP32 makes relay decisions locally based on the latest biometric state it has received. This means HollowCore continues operating even if HollowRover, SphereAI, or EntryGuard are temporarily offline.
+
+The distributed approach aligns with LifeSphere's fault tolerance design: if one subsystem fails, the rest continue independently. For example, if HollowRover is charging and its MQTT broker is unavailable, HollowCore can still respond to biometric triggers received directly from Firebase. If Firebase is unreachable, local MQTT commands from SphereAI can still control relays.
+
+## Medication Integration Design
+
+HollowCore coordinates medication schedules through shared Firebase paths rather than direct hardware links. Prescriptions processed through the companion app write to `lifesphere/hollowcore/med_schedule`. Manual touchscreen entries write to `lifesphere/hollowcore/dispenser_manual`. HollowRover reads these paths and populates its local dispenser.
+
+This decoupling is intentional. HollowCore does not need to know the mechanical details of the dispenser mechanism. It only needs to hold the schedule truth. HollowRover handles the robotics of delivery. This separation of concerns makes each subsystem simpler and more maintainable.
+
+## Why This Matters
+
+Every design decision in HollowCore prioritizes the same principle: the user should not need to interact with technology to receive care. The ESP32 is invisible once installed. Relays control existing appliances without requiring new user interfaces. MQTT commands happen silently between machines. Firebase sync operates continuously in the background.
+
+For a cognitively declining elderly person living alone, this invisibility is the feature, not a limitation. The home simply responds to their biology, preserving dignity and reducing the burden of technology management.
+
+## How It Connects to the Rest of LifeSphere
+
+HollowCore's design depends on and supports the broader ecosystem. Firebase Realtime Database is the central nervous system shared by all five subsystems. The local MQTT broker on HollowRover enables low-latency coordination with SphereAI. Vital32 provides the biometric data that drives all automation rules. EntryGuard contributes security context. HollowRover hosts the MQTT broker and physically delivers medications.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Components" icon="microchip" href="/hollowcore/components">
+    The ESP32, relays, and MQTT infrastructure that implement these design choices.
+  </Card>
+
+  <Card title="Shared Biological State" icon="wifi" href="/core/shared-biological-state">
+    How Firebase Realtime Database synchronizes all five subsystems.
+  </Card>
+
+  <Card title="Communication Channels" icon="route" href="/core/communication-channels">
+    Firebase cloud mediation, MQTT local commands, and GSM fallback.
+  </Card>
+
+  <Card title="Distributed Intelligence" icon="brain" href="/core/distributed-intelligence">
+    Why no single subsystem failure stops the entire ecosystem.
+  </Card>
+</CardGroup>
+
+---

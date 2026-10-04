@@ -1,0 +1,65 @@
+---
+title: "Temperature Sensing: Non-Contact Skin Temperature on Vital32"
+sidebarTitle: "Temperature"
+description: "Vital32 uses an MLX90614 infrared sensor to read skin temperature continuously, feeding climate automation, cortisol estimation, and pre-seizure risk modeling across LifeSphere."
+icon: "temperature-half"
+---
+
+Vital32 reads skin temperature with an MLX90614, a non-contact infrared thermometer. The sensor detects thermal radiation emitted by the skin surface and converts it to a temperature value without physically touching the wearer. This is important for comfort, hygiene, and continuous monitoring: the user does not need to press a probe against the body or wait for conductive equilibrium.
+
+The output is `skin_temp` in the shared biological state. It is not core body temperature. Skin temperature varies with ambient conditions, blood flow, and emotional state. It is a leading indicator of thermoregulatory change, fever onset, hypothermia risk, and stress physiology. The system treats it as one signal in a multi-sensor ensemble rather than a standalone diagnostic.
+
+## What the sensor does
+
+The MLX90614 measures infrared energy in a narrow field of view and applies internal calibration to report temperature. Because it is non-contact, placement on the wearable matters: it must face skin with minimal obstruction and should avoid direct exposure to sunlight or cold air drafts that would skew the reading. The source does not specify the exact mounting position or the field-of-view angle used.
+
+## How the data is used
+
+Skin temperature feeds three distinct downstream paths:
+
+| Path | Condition | Action |
+| --- | --- | --- |
+| HollowCore climate | `skin_temp < 35.5` | Raise AC thermostat to warm the room |
+| Cortisol estimator | Feature input each 15 min | `cortisol_est = f(RMSSD, GSR_baseline, T_skin, sleep_efficiency)` |
+| Pre-seizure LSTM | Feature in 5-min rolling window | Contributes to `seizure_prob` output |
+
+The HollowCore rule is straightforward: when skin temperature reads below 35.5 degrees (the source describes this as below baseline), the system assumes the user may be uncomfortably cold and raises the AC thermostat. This is a comfort-management rule, not a hypothermia alarm, though the distinction in source material is brief.
+
+The cortisol estimator treats skin temperature as one of four features. In general, thermoregulation is linked to sympathetic nervous system activity: acute stress can trigger peripheral vasoconstriction, which drops skin temperature even when core temperature is stable. The system attempts to learn this relationship for the individual user rather than applying a population average.
+
+The pre-seizure LSTM includes skin temperature in its 5-minute rolling window, along with HRV, accelerometer motion, and other features. The source does not specify how temperature dynamics precede seizure onset in this model, only that the feature is present.
+
+## Why this matters
+
+Continuous skin temperature is rarely collected in consumer wearables. Most devices rely on intermittent or ambient-compromised readings. A dedicated non-contact infrared channel, read each second and integrated into emotional, autonomic, and environmental inference, adds context that a wrist-worn LED thermometer cannot match. When combined with GSR and HRV, temperature becomes part of a sympathetic-nervous-system fingerprint that is personalized to the wearer.
+
+## How it connects to the rest of LifeSphere
+
+- **HollowCore**: Direct climate automation via `skin_temp` threshold.
+- **SphereAI**: Cortisol estimates influence emotional state weighting and tone adaptation.
+- **HollowRover**: `seizure_prob > 0.85` derived partly from temperature features triggers cushioning protocol.
+- **Anomaly detector**: Temperature deviation from personal baseline contributes to `anomaly_score`.
+
+## Limits
+
+The source does not state the accuracy of the MLX90614 under typical wearable conditions, nor how ambient temperature is compensated. Skin temperature is not core temperature, so readings should not be interpreted as clinical fever measurements without additional context. The 35.5 threshold for climate adjustment is described as a system rule; its clinical or comfort rationale is not expanded. The effect of sensor placement, skin perfusion, or environmental drafts on reading stability is not discussed.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Sensor Array" icon="microchip" href="/vital32/components/sensor-array">
+    Full multi-sensor overview
+  </Card>
+
+  <Card title="Cortisol Estimation" icon="droplet" href="/vital32/predictions/cortisol-estimation">
+    How skin temperature feeds stress estimation
+  </Card>
+
+  <Card title="Pre-Seizure Estimation" icon="brain" href="/vital32/predictions/pre-seizure-estimation">
+    LSTM feature window and design goals
+  </Card>
+
+  <Card title="HollowCore Climate" icon="sun" href="/hollowcore/lighting-and-climate">
+    Biometric mapping to home environment
+  </Card>
+</CardGroup>

@@ -1,0 +1,89 @@
+---
+title: "Cognitive Tracker: CUSUM Explained"
+sidebarTitle: "Cognitive Tracker"
+description: "Learn how LifeSphere uses cumulative sum control charts to detect gradual cognitive drift from speech patterns, with a 2-sigma guard band for personal baselines."
+icon: "brain"
+---
+
+The Cognitive Tracker monitors speech patterns over time to detect slow departures from the user's personal cognitive baseline, using a statistical method called CUSUM (cumulative sum control chart). This page explains how CUSUM works in general, how LifeSphere applies it, and what the results mean for caregivers.
+
+## Why gradual drift matters
+
+Sudden cognitive events are often obvious. A user who cannot remember a family member's name or becomes disoriented in a familiar room signals an acute concern that draws immediate attention. But much cognitive decline in elderly populations unfolds gradually: vocabulary narrows over months, topics loop more frequently, and conversational coherence softens so slowly that family members adapt without noticing the shift.
+
+LifeSphere's design goal is to make this invisible decline visible by quantifying speech features and tracking their statistical trajectory. Rather than comparing the user to a population average, the system watches for internal drift: is this person today speaking measurably differently from themselves six months ago?
+
+## What CUSUM is
+
+CUSUM is a statistical process control technique originally developed for manufacturing quality control, where it detects small shifts in a process mean before they become large enough to trigger traditional threshold alerts. Unlike methods that only compare the latest measurement to a fixed limit, CUSUM accumulates deviations over time, so persistent small changes eventually produce a signal.
+
+The standard textbook form of a two-sided CUSUM for a normally distributed process variable with in-control mean and standard deviation is:
+
+$$
+\begin{aligned}
+C_t^+ &= \max\left(0, \; C_{t-1}^+ + (x_t - \mu_0) - K \right) \\
+C_t^- &= \max\left(0, \; C_{t-1}^- - (x_t - \mu_0) - K \right)
+\end{aligned}
+$$
+
+Here, the positive accumulator tracks upward drift and the negative accumulator tracks downward drift. The slack value K is typically set to half the minimum shift size to detect. A decision threshold H, often expressed as a multiple of sigma, triggers an alert when either accumulator exceeds it. Because deviations are tracked separately, CUSUM can detect drift in either direction: degeneration or unexpected improvement.
+
+## How LifeSphere applies CUSUM
+
+LifeSphere's Cognitive Tracker uses CUSUM to monitor three speech-derived features:
+
+| Feature | What it measures |
+| --- | --- |
+| Unique word ratio | The proportion of distinct words to total words spoken, indicating vocabulary breadth |
+| Topic repetition | How often the same subject recurs within a conversation window, indicating perseveration |
+| Semantic coherence | How well sentences connect in meaning, indicating logical flow and working memory engagement |
+
+These features are extracted from conversations captured by SphereAI's voice pipeline. The system establishes a personal baseline during an initial period of normal use and then computes the CUSUM statistics on each subsequent observation.
+
+LifeSphere uses a 2-sigma threshold as its decision boundary. This means an alert is triggered when accumulated drift exceeds two standard deviations from the user's own baseline. The choice of 2-sigma balances sensitivity, catching meaningful drift early, with specificity, avoiding noise from natural day-to-day variation.
+
+The output is a cognitive deviation score on the long inference cycle, updated once every 24 hours as part of the multi-timescale pipeline.
+
+## What the output means
+
+A rising positive CUSUM value suggests speech features are drifting away from the personal baseline in a consistent direction. This does not diagnose any specific condition. Instead, it flags a pattern worthy of attention: perhaps a clinician's assessment, a medication review, or simply closer observation by family members.
+
+Because the baseline is personal, the tracker adapts to users with different starting points. A retired professor with a large vocabulary and a lifelong farmer with concise speech patterns are each judged against their own histories, not against one another.
+
+## Why this matters
+
+Early cognitive decline detection is listed as a design goal across the LifeSphere system. The Cognitive Tracker contributes to this goal by providing an objective, continuous signal that complements occasional clinical screenings. Where a yearly doctor's visit provides a snapshot, CUSUM provides a movie of how speech patterns evolve.
+
+This matters for dignity and autonomy. Catching drift early creates windows for intervention: adjusting medications, increasing social engagement, modifying the home environment, while the user still has full decision-making capacity.
+
+## How it connects to the rest of LifeSphere
+
+The cognitive deviation score is written to the shared biological state under the sphereai cognitive score path. It is available to SphereAI during conversations, so the affective agent can adjust its interaction complexity if it sees sustained drift. The score also appears in the guardian-facing app alongside emotional state and biological age trends, giving family members a multidimensional view of wellbeing.
+
+The unique word ratio and semantic coherence features draw on the same speech-to-text pipeline, Whisper, that powers SphereAI's language agent, so no extra hardware or user action is required.
+
+## Limits
+
+The source does not specify the exact implementation details of the CUSUM tracker: the baseline establishment period, the specific formula variants used, the handling of multilingual speech, or how missing data days affect accumulation. No accuracy figures, validation studies, or clinical correlations are reported.
+
+The features are derived from automated speech transcription, which means transcription errors, background noise, or sparse conversational days can affect feature quality. The tracker assumes regular voice interaction; users who speak infrequently may not generate enough data for reliable drift detection. Longitudinal validation in elderly populations is listed as future work.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Biological Age Clock" icon="calculator" href="/ai/biological-age-clock">
+    Daily ensemble estimate of physiological aging from multi-sensor fusion
+  </Card>
+
+  <Card title="Emotional Classifier" icon="heart-pulse" href="/ai/emotional-classifier">
+    Trimodal fusion of language, voice prosody, and live biomarkers
+  </Card>
+
+  <Card title="SphereAI Overview" icon="robot" href="/sphereai/overview">
+    The affective computing layer that interprets emotional and cognitive state
+  </Card>
+
+  <Card title="Multi-Timescale Inference" icon="layer-group" href="/core/multi-timescale-inference">
+    How 30-second, 15-minute, and 24-hour cycles coordinate
+  </Card>
+</CardGroup>

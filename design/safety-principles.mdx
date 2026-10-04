@@ -1,0 +1,93 @@
+---
+title: "Safety Principles: Passive Barrier, Authorization, and Fallbacks"
+sidebarTitle: "Safety Principles"
+description: "LifeSphere's concrete safety mechanisms: passive physical barriers, mandatory human authorization, sensor plausibility bounds, state mutual exclusion, and hardware watchdogs."
+icon: "shield-halved"
+---
+
+Safety in LifeSphere is not a single feature but a distributed property maintained across hardware, software, and protocol design. Because the system operates autonomously around vulnerable users, every component must fail safely, avoid unintended contact, and preserve human oversight for consequential decisions. This page explains the specific safety principles and mechanisms that protect users from the system itself.
+
+## Passive barrier: no contact, no grasping, no striking
+
+The robotic arm's security function is the most visible safety commitment in LifeSphere. When face recognition flags an unregistered individual at a monitored chokepoint, the arm swings to block the pathway. But it does not touch, grasp, restrain, or strike. This is a categorical rule, not a technical limitation.
+
+A passive barrier achieves deterrence without violence. An intruder who encounters a mechanical arm blocking the hallway to valuables knows they have been detected. An audible alarm reinforces this awareness. A live camera feed sent to the guardian's phone adds human witness. These three simultaneous responses (blocking, alarm, notification) create a defensive triad without physical escalation.
+
+The safety rationale has multiple dimensions. Physically, contact risks injury to both the intruder and the frail elderly user who might be nearby. Legally, a caregiving robot that injures someone creates liability that could destroy the project's accessibility mandate. Psychologically, a machine that touches people without consent violates the trust that makes elderly users accept the rover's presence in their home. The system must remain a caregiver, not a weapon.
+
+The source explicitly prohibits autonomous defensive decisions beyond the triad. Any escalation (pursuit, physical engagement, notification to law enforcement) requires explicit human authorization. This rule ensures that the machine never decides alone to escalate force.
+
+## Mandatory human authorization for consequential actions
+
+LifeSphere maintains a bright line between autonomous monitoring and autonomous restriction. The system independently detects falls, estimates seizure probability, measures biomarkers, and adjusts home environment settings. But it does not independently escalate security responses, lock a person inside the home against their will, or make irreversible medical decisions.
+
+The primary authorization gateway is the guardian notification system. When EntryGuard detects a potential intruder, the rover's camera streams live video to the guardian's phone alongside an instant push notification. The guardian reviews the feed and decides whether to approve escalation. Without approval, the system maintains its passive posture.
+
+The source does not specify the authorization mechanism in technical detail. In general, such systems use push notifications with action buttons, time-bounded auto-escalation if no response arrives, and fallback to emergency contacts. The key principle is that the machine presents information and waits for human judgment before acting on it.
+
+This principle extends to financial transactions. For new high-risk transactions or subscriptions, LifeSphere requires biometric authorization: facial recognition (via the EntryGuard or HollowRover camera), fingerprint scan, and Vital32 proximity confirmation. Three authentication factors, including physical presence near the wearable, make unauthorized transactions extremely difficult. The thresholds for "high-risk" are not specified in the source.
+
+## Sensor plausibility bounds
+
+Before any sensor reading enters the AI inference pipeline, it passes through a plausibility filter. This filter validates readings against physical bounds: a heart rate of 300 beats per minute is not biologically possible for a human at rest. A skin temperature of 45 degrees Celsius implies fever or sensor fault. An accelerometer reading showing 50 g of sustained acceleration is not a fall but a hardware malfunction.
+
+Plausibility filtering serves two safety functions. It prevents hardware faults from triggering emergency protocols: a shorted temperature sensor should not dispatch an ambulance. It also prevents adversarial injection of false data: an authenticated but compromised node cannot easily trigger emergency responses by sending impossible values.
+
+The source states that sensor readings are validated against physical plausibility bounds before entering inference, filtering hardware faults from genuine biological anomalies. It does not specify what those bounds are for each sensor, how they were determined, or whether they adapt to individual user baselines over time. In general, such bounds are derived from population physiology but might need loosening for users with known conditions.
+
+## Arm stow and LiDAR occlusion mutual exclusion
+
+Navigation and security response are mutually exclusive states for HollowRover. During navigation, the robotic arm is stowed below the LiDAR scan plane. The LiDAR (a STL-19P time-of-flight sensor) generates a 2D occupancy grid that guides path planning. If the arm were raised during movement, it would occlude the LiDAR's field of view, creating blind spots where obstacles go undetected.
+
+The mutual exclusion rule is simple: the arm rises only when the rover is stationary in security-response mode. The rover stops moving before the arm deploys. This mechanical interlock prevents the dangerous combination of blind navigation and extended appendage.
+
+This principle extends the general safety pattern of physical state separation. Just as the drivetrain and manipulator controllers were split to isolate timing, navigation and defense states are split to isolate physical risk. The rover is either moving safely with full sensor coverage or stationary with the arm deployed. It is never both.
+
+## Watchdog timers and hardware fallbacks
+
+Every subsystem includes an independent watchdog timer. A watchdog timer is a hardware or software mechanism that resets a processor if it fails to receive a periodic "heartbeat" signal. If an ESP32 node crashes, hangs, or enters an infinite loop, the watchdog detects the silence and triggers a restart.
+
+Watchdogs serve safety by ensuring that failed nodes recover rather than remain in dangerous states. A crashed motor controller that left wheels spinning would be reset by its watchdog. A frozen dispenser controller that left the shutter open would be restarted. The watchdog does not guarantee correct operation, but it prevents indefinite malfunction.
+
+When nodes become unresponsive, the watchdog triggers reconnection attempts and guardian notifications. If Vital32 stops uploading data, the system alerts the caregiver that monitoring has been interrupted. If HollowRover stops reporting status, the system knows that physical response capability is degraded. These notifications enable human oversight of system health, not just user health.
+
+Additional fallbacks reinforce the safety architecture. The rover carries a 5000 mAh LiPo battery that maintains critical operations during power outages. It stores the last 24 hours of vital data on SD card for recovery if network connectivity fails. During Wi-Fi outages, the rover becomes a local Wi-Fi hotspot so Vital32 can continue transmitting. GSM via a SIM800L module provides a fallback communication channel when the home internet is down.
+
+## Why this matters
+
+For an elderly person living alone, the caregiving system itself becomes a source of risk if it malfunctions. A robot that moves unpredictably can cause falls. A dispenser that releases the wrong dose can poison. A security system that locks doors incorrectly can trap. LifeSphere's safety principles acknowledge that autonomy magnifies both benefits and harms. The design response is to constrain physical contact, require human judgment for consequential decisions, validate sensor data before acting, separate incompatible physical states, and ensure that failures are detected and recovered.
+
+## How it connects to the rest of LifeSphere
+
+Safety principles shape specific subsystems throughout the architecture:
+
+- **HollowRover's arm safety rules** enforce the passive barrier and navigation mutual exclusion
+- **EntryGuard's alert pipeline** routes threats through human notification before any physical response
+- **Vital32's plausibility filtering** validates every sensor reading before it influences inference
+- **HollowCore's relay commands** affect only environment (lights, temperature); they never physically restrain the user
+- **The dual-controller split** isolates timing-critical navigation from servo-driven manipulation
+- **Communication channels** include redundant paths (Wi-Fi, local hotspot, GSM) so safety alerts survive infrastructure failures
+
+## Limits
+
+Safety principles are design intentions, not proofs of safety. The source does not provide failure mode analysis, fault trees, or estimated failure rates for any component. It does not describe how the system handles edge cases: what if the arm servo fails mid-swing? What if the LiDAR and the arm stow sensor disagree about state? What if the guardian's phone is out of battery during an authorization request? What if the plausibility bounds are too narrow for a user with a genuine but unusual physiology? These questions are standard for any safety-critical system and would need to be addressed in certification or clinical validation.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Ethics of Autonomy" icon="scale-balanced" href="/design/ethics-of-autonomy">
+    The ethical framework that determines which actions the system takes alone and which require human approval.
+  </Card>
+
+  <Card title="Human Authorization" icon="lock" href="/core/human-authorization">
+    When LifeSphere pauses for explicit human judgment before acting.
+  </Card>
+
+  <Card title="Fault Tolerance" icon="battery-full" href="/core/fault-tolerance">
+    How the system maintains operation during power outages, network failures, and node crashes.
+  </Card>
+
+  <Card title="HollowRover Arm" icon="robot" href="/hollowrover/arm/overview">
+    The mechanical and behavioral design of the passive barrier and caregiving assist functions.
+  </Card>
+</CardGroup>

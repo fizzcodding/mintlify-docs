@@ -1,0 +1,82 @@
+---
+title: "Biomarker-Triggered Protocols in HollowRover"
+description: "HollowRover listens to the shared biological state and automatically dispatches emergency, seizure, anomaly, and stress-relief protocols when biomarkers cross defined thresholds."
+sidebarTitle: "Biomarker-Triggered Protocols"
+icon: "heart-pulse"
+---
+
+HollowRover does not wait for a command. It subscribes to the shared biological state through Firebase Realtime Database, evaluates incoming fields against a fixed threshold table, and launches the matching physical protocol within the system's target response latency of approximately 150 milliseconds. This page describes the listener architecture, the trigger conditions, and each protocol that the rover can autonomously execute.
+
+## Why this matters
+
+An elderly person living alone may experience a fall, a cardiac anomaly, a cortisol spike, or a pre-seizure signature while no caregiver is present. The difference between detection and help often depends on how quickly a physical responder can reach the user. HollowRover bridges that gap by treating every change in the shared biological state as a potential command, so the rover moves, speaks, dispenses, or blocks without requiring the user to press a button, call a phone number, or interact with an app.
+
+## How the listener works
+
+HollowRover maintains an active subscription to the Firebase Realtime Database root path `lifesphere`. Within that tree, it watches fields written by Vital32 and SphereAI. When a monitored field crosses a threshold, the rover's onboard decision logic selects a protocol and begins execution.
+
+The subscription is cloud-mediated, with a target latency of roughly 150 ms. For commands that need faster reaction, such as motor adjustments during navigation, the rover uses direct MQTT over local Wi-Fi and serial bridges to its ESP32 controllers, but the biomarker triggers themselves arrive through the Firebase listener.
+
+## Trigger and protocol table
+
+The table below lists the biomarker-driven triggers, their conditions, and the protocols they initiate. The source does not specify every internal step inside a protocol. Where steps are known, they are listed. Where they are not known, the gap is noted honestly.
+
+| Trigger | Condition | Protocol |
+| --- | --- | --- |
+| Fall detected | `fall_detected` becomes `true` | Fall response protocol |
+| Anomaly emergency | `anomaly_score` exceeds `0.9` | Emergency protocol |
+| Pre-seizure warning | `seizure_prob` exceeds `0.85` | Seizure protocol |
+| Cortisol spike | `cortisol_est` exceeds `18.0` | Stress-relief protocol |
+
+These four conditions cover the acute physical and stress events that the system is designed to answer with physical action.
+
+### Extended context for each trigger
+
+Each trigger is a Boolean or scalar field in the shared state. The rover does not interpret raw sensor waveforms; it trusts the values that Vital32 publishes after signal processing and model inference. This separation of concerns lets the wearable compute continuously while the rover acts only on already-processed decisions.
+
+The `anomaly_score` is produced by an Isolation Forest trained on the user's first 30 days of baseline data. A score above `0.7` generates a soft alert. When the score crosses `0.9`, the rover treats it as an emergency and dispatches its emergency protocol. The source does not specify what actions the emergency protocol includes beyond the dispatch itself.
+
+The `seizure_prob` is produced by an LSTM model that processes five-minute rolling windows of HRV, accelerometer motion, and skin temperature features. The model is trained on public EEG datasets and is unvalidated on real wearable data. When the probability exceeds `0.85`, the rover initiates its seizure protocol. The physical form of the cushioning or protective action is not described in the source.
+
+The `cortisol_est` field is updated every 15 minutes by a gradient boosting estimator that fuses RMSSD, GSR baseline, skin temperature, and sleep efficiency. When the estimate rises above `18.0`, HollowCore simultaneously adjusts lighting and climate, SphereAI adjusts its tone, and HollowRover initiates its stress-relief protocol. The exact physical actions the rover takes during that protocol are not specified.
+
+## How it connects to the rest of LifeSphere
+
+Biomarker-triggered protocols are the physical output of the distributed intelligence. Vital32 performs the sensing and inference. SphereAI interprets emotional context. HollowCore adjusts the home environment. HollowRover is the limb that moves through space. Because all subsystems share the same Firebase state, the rover can act in concert with lighting changes, audio calming, and guardian notifications at the same moment.
+
+For example, when `cortisol_est` crosses `18.0`, the following events occur in parallel across the ecosystem:
+
+- HollowCore dims the lights and lowers the AC temperature.
+- SphereAI plays calming audio and softens its conversational tone.
+- HollowRover initiates its stress-relief protocol.
+- A notification may reach the guardian through the Firebase-backed app channel.
+
+This synchronization is what the architecture calls "a single organism sharing one biological state backbone."
+
+## Limits
+
+The source does not define the full internal step sequences for the emergency, seizure, or stress-relief protocols. Readers should understand that the triggers and thresholds are documented, while the granular physical actions inside some protocols remain design goals rather than fully specified procedures.
+
+The pre-seizure LSTM model is trained on brain-signal datasets, not wearable sensor recordings. There is a known signal-domain gap between training data and runtime inputs that the source does not resolve. The 30-minute pre-onset goal and the `0.85` threshold are design intentions, not clinically validated results.
+
+The 150 ms target latency is the stated design goal for Firebase-mediated signals. Real-world latency depends on network conditions, Firebase load, and local Wi-Fi stability.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Fall Response" icon="person-falling" href="/hollowrover/protocols/fall-response">
+    What happens when `fall_detected` becomes true and the rover is dispatched.
+  </Card>
+
+  <Card title="Pre-Seizure Cushioning" icon="brain" href="/hollowrover/protocols/pre-seizure-cushioning">
+    The seizure protocol trigger, model source, and what is known about physical cushioning.
+  </Card>
+
+  <Card title="Cortisol De-escalation" icon="wave-square" href="/hollowrover/protocols/cortisol-de-escalation">
+    How the rover participates in the ecosystem-wide stress-relief response.
+  </Card>
+
+  <Card title="Medication Delivery" icon="pills" href="/hollowrover/protocols/medication-delivery">
+    Autonomous schedule execution, carousel dispensing, and physical handoff to the user.
+  </Card>
+</CardGroup>

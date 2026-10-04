@@ -1,0 +1,63 @@
+---
+title: "Ramadan Mode: Caregiving Around the Fasting Interval"
+sidebarTitle: "Ramadan Mode"
+description: "During Ramadan, LifeSphere restructures medication and hydration protocols around dawn-to-dusk fasting, aligning automated care with the user's spiritual practice."
+icon: "moon"
+---
+
+Ramadan is the Islamic month of fasting, during which observant Muslims abstain from food, drink, and medication from dawn (Fajr) until sunset (Maghrib). For elderly people managing chronic conditions, this interval poses real challenges: missed doses, dehydration, and disrupted sleep can compound existing health vulnerabilities. LifeSphere's Ramadan mode addresses these challenges by restructuring medication and hydration protocols around the fasting interval.
+
+## What Changes During Ramadan
+
+When Ramadan mode is active, medication and hydration schedules adapt to the fasting window. The changes include:
+
+- **Medication timing**: Doses that would normally fall during the fasting window are moved to Suhoor (the pre-dawn meal) or Iftar (the sunset breaking of fast). The prescription schedule stored in Firebase is restructured automatically.
+- **Hydration protocols**: Drinking reminders are concentrated in the non-fasting hours. The system does not issue hydration alerts during the fast.
+
+The source does not describe changes to other subsystems such as SphereAI tone, HollowCore climate rules, or rover delivery timing beyond medication and hydration restructuring.
+
+## How the System Knows When to Activate
+
+The source does not specify whether Ramadan mode is triggered automatically by a calendar lookup, manually by the user or caregiver, or via a combination of both. What is clear is that the mode restructures medication and hydration protocols around the fasting interval, using the Fajr and Maghrib times as the primary temporal anchors rather than clock time alone.
+
+## Why Fasting-Aware Care Is Necessary
+
+A medication reminder that rings at noon during Ramadan is not just unhelpful; it is stressful. It forces the user to choose between religious observance and health compliance, a false dilemma that corrodes trust in the system. Ramadan mode removes this conflict by embedding religious practice into the care protocol itself. The system does not ask the user to adapt to it; it adapts to the user.
+
+This is especially important for elderly users who may have cognitive or physical difficulty rescheduling their own medications. Automated restructuring protects both adherence and dignity.
+
+## How It Connects to the Rest of LifeSphere
+
+Ramadan mode illustrates the ecosystem's ability to adapt its default circadian model to a culturally specific schedule:
+
+- **Medication management**: The dispenser schedule and Firebase `med_schedule` path are rewritten to cluster doses at Suhoor and Iftar.
+- **Vital32**: Biomarker baselines may shift during Ramadan due to altered sleep, meal timing, and fluid intake. The multi-timescale inference engine is intended to learn individual baselines, so it should ideally adapt to the new pattern rather than flagging it as anomalous. The source does not specify whether a special Ramadan baseline is trained.
+- **SphereAI**: Adhkar and salah reminders are already aligned with prayer times; Ramadan mode may intensify this alignment. The source does not specify Taraweeh reminders or other Ramadan-specific audio content.
+
+## Why This Matters
+
+In Bangladesh, where the majority of the population is Muslim, a caregiving system that ignores Ramadan is a system that ignores reality for one month every year. Ramadan mode is not a niche feature. It is a test of whether LifeSphere's zero-interaction principle extends to religious identity: can the system care for the whole person, including their spiritual calendar, without requiring them to configure it?
+
+## Limits
+
+The source does not specify how Ramadan dates are determined, whether the mode is automatic or manual, or how it handles users who are exempt from fasting due to medical condition. The specific hydration and medication rescheduling algorithm is not given. The effect of fasting on biometric baselines and anomaly detection thresholds is not addressed. As with all adaptive features, real-world validation in elderly Muslim households during Ramadan is future work.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Salah Reminders" icon="mosque" href="/sphereai/islamic/salah-reminders">
+    How daily prayer times anchor the spiritual rhythm year-round.
+  </Card>
+
+  <Card title="Adhkar and Stress Response" icon="book" href="/sphereai/islamic/adhkar">
+    How remembrance phrases are deployed during stress, including fasting-related fatigue.
+  </Card>
+
+  <Card title="Medication Overview" icon="pills" href="/medication/overview">
+    How prescription schedules are structured and delivered under normal conditions.
+  </Card>
+
+  <Card title="Cultural and Islamic Design" icon="mosque" href="/design/cultural-and-islamic-design">
+    The design philosophy that makes Ramadan mode possible.
+  </Card>
+</CardGroup>

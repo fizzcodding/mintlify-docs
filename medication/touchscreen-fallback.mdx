@@ -1,0 +1,81 @@
+---
+title: "Touchscreen Fallback: Entering Schedules Directly on the Dispenser"
+sidebarTitle: "Touchscreen Fallback"
+description: "When a phone is unavailable, LifeSphere's medication dispenser offers a 3.5-inch resistive touchscreen for direct manual schedule entry, rendered by an ESP32 microcontroller."
+icon: "hand"
+---
+
+Not every caregiver or user has a smartphone nearby when a medication schedule needs to be created or changed. LifeSphere includes a local touchscreen interface on the dispenser itself so that schedules can be entered, reviewed, and confirmed without the companion mobile app. This page describes the hardware, the rendering approach, and the data path from a fingertip press to a Firebase write.
+
+## The display and touch layer
+
+The touchscreen is a 3.5-inch ILI9488 SPI TFT LCD with a resolution of 480 by 320 pixels. SPI (Serial Peripheral Interface) is a common bus for connecting small displays to microcontrollers using only a few wires. The ILI9488 controller manages pixel refresh and color output.
+
+Touch input is handled by an XPT2046 resistive touch controller. Resistive touchscreens work by detecting pressure: two flexible layers separated by a small gap. When you press, the layers contact at that point and the controller measures the voltage divider ratios to compute X and Y coordinates. They do not require a bare finger and can be operated with a stylus or a gloved hand, which is relevant for elderly users or caregivers who may have limited dexterity.
+
+The display is driven directly by an ESP32 microcontroller. The source does not assert which specific ESP32 board variant is used, only that an ESP32 renders the interface and polls the touch controller.
+
+## Rendering with TFT_eSPI
+
+The user interface is drawn using the TFT_eSPI library, a widely used graphics library for Arduino and ESP32 platforms. The ESP32 stores the layout definitions: medication slot labels, dosage input fields, timing and schedule controls, and confirmation buttons. It draws these elements directly onto the ILI9488 screen.
+
+Because the display has no onboard UI processor, every pixel is calculated by the ESP32. This includes drawing text, rectangles, and button borders. When the user touches the screen, the ESP32 reads the coordinates from the XPT2046, maps those coordinates to the on-screen button regions defined in code, and triggers the corresponding action.
+
+## What the touchscreen lets you do
+
+The source states that the touchscreen supports:
+
+- Selecting medications from a list or entering names
+- Confirming dosages
+- Setting timing and schedule intervals
+- Reviewing the current schedule visually
+- Writing manual entries to `lifesphere/hollowcore/dispenser_manual` in Firebase
+
+This means a caregiver can walk up to the dispenser, press through a few screens, and define a new medication without ever opening the phone app. The schedule is still synchronized to the cloud, so other subsystems see it immediately, and the rover still delivers doses on time.
+
+## Data path from touch to Firebase
+
+When the user presses a confirmation button, the ESP32 formats the entered schedule into a JSON-like structure and writes it to the Firebase path `dispenser_manual`. This path is distinct from `med_schedule`, which receives data from the phone-side prescription pipeline. The rover consumes both paths, so whether a schedule arrives from a photo or from the touchscreen, the dispenser behaves the same way.
+
+The ESP32 connects to Wi-Fi and communicates with Firebase directly. During a Wi-Fi outage, the source does not specify whether the touchscreen supports offline queueing or deferred sync. However, the rover can become a local hotspot in outage mode, so local connectivity may still be available.
+
+## Why this matters
+
+For elderly users who do not own smartphones, or for households where the primary caregiver is momentarily unreachable, the touchscreen removes a hard dependency on the mobile app. It preserves the zero-interaction principle for the end user while giving human operators multiple paths into the system.
+
+The resistive touch layer is also more forgiving than capacitive touch for users with dry skin, tremor, or limited finger precision. While the source does not explicitly justify the resistive choice on accessibility grounds, these are well-known advantages of the technology in assistive device design.
+
+## How it connects to the rest of LifeSphere
+
+- **HollowRover**: the rover hosts the physical dispenser and reads both `med_schedule` and `dispenser_manual`. It executes deliveries regardless of which path the schedule came from.
+- **HollowCore**: listens to schedule changes and can coordinate sleep and security protocols independently of dosing times.
+- **SphereAI**: can reference the schedule during conversation, for example reminding the user what the next dose is for.
+- **Vital32**: biomarker events may suppress or delay reminders, even for schedules entered on the touchscreen.
+
+## Limits
+
+- The TFT_eSPI library renders a raw, custom UI. The source does not describe visual accessibility features such as large fonts, high contrast themes, or voice feedback for touchscreen actions.
+- Because the display is resistive, multi-touch gestures like pinch-to-zoom are not supported.
+- The source does not state whether the touchscreen supports editing an existing schedule or only creating new ones.
+- No offline behavior is specified. If Firebase is unreachable and the rover hotspot is not active, the touchscreen entry may not persist.
+- The exact UI layout, color scheme, and navigation flow are not described in the source.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Medication Overview" icon="pills" href="/medication/overview">
+    The complete flow from prescription to physical dose delivery.
+  </Card>
+
+  <Card title="Review and Confirmation" icon="clipboard-check" href="/medication/review-and-confirmation">
+    How the phone app handles human review and manual entry.
+  </Card>
+
+  <Card title="Dispenser Overview" icon="pills" href="/medication/dispenser-overview">
+    The carousel, motor, encoder, and shutter mechanism.
+  </Card>
+
+  <Card title="Reminders and Adherence" icon="bell" href="/medication/reminders-and-adherence">
+    How reminders fire and how adherence is tracked after scheduling.
+  </Card>
+</CardGroup>

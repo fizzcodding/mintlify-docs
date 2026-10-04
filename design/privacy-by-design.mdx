@@ -1,0 +1,89 @@
+---
+title: "Privacy by Design: Encryption, Local Processing, Data Minimization"
+sidebarTitle: "Privacy by Design"
+description: "How LifeSphere protects biometric and personal data through TLS encryption, local face profiles, authenticated database access, and intentional data minimization."
+icon: "shield-halved"
+---
+
+LifeSphere collects some of the most sensitive data imaginable: heart rhythms, emotional states, sleep patterns, home activity, financial transactions, and facial geometry. Privacy by design is not an afterthought. It is embedded in the architecture, the component selection, and the data flows. This page explains the specific mechanisms that protect user privacy and the principles that guided their selection.
+
+## TLS encryption for all biometric and personal data in transit
+
+Every signal sent between subsystems and Firebase Realtime Database travels over TLS (Transport Layer Security). TLS encrypts data while it moves across networks, preventing eavesdroppers on the same Wi-Fi network or internet path from reading vital signs, emotional state classifications, or financial transaction details. This applies to Vital32's biometric uploads, HollowRover's status reports, EntryGuard's alert payloads, and HollowCore's relay commands.
+
+Encryption in transit is standard practice, but its presence matters because LifeSphere's data is unusually sensitive. A leaked heart rate is not merely a number; it is a biological identifier. A leaked emotional state history is not merely a log; it is a record of grief, loneliness, and stress. The commitment to TLS acknowledges that the home network may be shared, the ISP may be untrusted, and the cloud service itself is a potential exposure point.
+
+The source does not specify which TLS version or cipher suites are used, or whether certificate pinning is employed to prevent man-in-the-middle attacks. These are details that a security audit would examine but the project documentation does not address.
+
+## Local face profile storage
+
+Face recognition in LifeSphere uses InsightFace with the buffalo_sc model pack, running on ONNX Runtime. The system distinguishes registered occupants from unregistered people. Crucially, face profile data is stored locally on HollowRover and never transmitted to external servers.
+
+This decision reflects a core privacy principle: biometric templates should not leave the device if they do not need to. Face recognition in LifeSphere serves two functions: identifying the user for caregiving protocols (medication delivery, conversation personalization) and verifying identity for transaction authorization. Neither function requires cloud comparison. The model runs locally, the templates stay local, and the only data that leaves the rover is the classification result ("registered" or "unregistered") or the annotated video stream sent to the guardian's phone during an alert.
+
+Local storage does introduce risks. If HollowRover is stolen, the face templates go with it. The source does not specify whether templates are encrypted at rest on the rover's storage. It also does not describe how face profiles are enrolled (whether the user or caregiver must actively participate in registration, or whether it happens passively over time). These gaps matter for a complete privacy analysis.
+
+## Authenticated database access
+
+Firebase Realtime Database access is authenticated-only. Every node that reads from or writes to the shared biological state backbone must present valid credentials. This prevents unauthorized devices from injecting false data (for example, setting fall_detected to true as a prank or attack) and prevents unauthorized readers from harvesting a user's complete health history.
+
+The source does not detail the authentication mechanism (whether it uses Firebase's built-in anonymous auth, email/password, or custom tokens). It also does not describe role-based access controls: can a caregiver see all fields? Can HollowRover write to fields that Vital32 should exclusively control? In a production system, these access boundaries would be critical. The current documentation states only that access is authenticated, not how granular that authentication is.
+
+## Local wake-word detection
+
+SphereAI's voice pipeline begins with an ESP32-S3 running ESP-SR, a lightweight wake-word model that operates entirely on the microcontroller. The device listens continuously but processes audio locally. No audio leaves the rover until the wake word is detected and the ESP32-S3 signals the RDK X5 over UART to activate full Whisper speech-to-text processing.
+
+This is a privacy-critical architectural choice. Continuous audio streaming to the cloud would expose every conversation, every cough, every prayer, every argument in the home. By keeping wake-word detection local, LifeSphere ensures that the vast majority of audio is processed and discarded on-device. Only the utterances that follow the wake word are sent for transcription, and even then, the source does not state whether Whisper runs locally or in the cloud.
+
+The local wake-word model also has resilience benefits. It functions during Wi-Fi outages and does not depend on cloud service availability. But the primary motivation is privacy: the user's home should not be a broadcast studio.
+
+## No personality model
+
+LifeSphere originally considered a "Personality Mirror" feature that would build a deep personality model of the user to improve interaction quality. This feature was removed on ethical and privacy grounds. A deep personality model (a structured representation of preferences, values, behavioral patterns, and emotional tendencies) could be replicated, shared, or misused in ways that the user never consented to.
+
+Instead, SphereAI learns preferences to improve interaction quality but does not construct a formal, exportable personality model. This is a deliberate reduction in capability to preserve privacy. The system still adapts (it adjusts tone on cortisol spikes, plays preferred content, respects prayer times), but it does so through stateful behavior rather than through a persisted psychological profile.
+
+## Minimization of data exposure
+
+Beyond specific technical mechanisms, LifeSphere follows a general principle of data minimization. The biometric feature vector uploaded every 30 seconds contains only the processed inference inputs, not the raw sensor waveforms. The emotional state shared with other subsystems is a category label and a few scalar scores, not the complete audio recording or transcript. The financial system shares transaction anomaly flags, not full account statements.
+
+This minimization is partly architectural efficiency (raw data is large, processed features are small) and partly privacy design. The less data that exists in shared state, the less data that can leak, be subpoenaed, or be misused by future system components.
+
+## Why this matters
+
+In the Bangladesh context, where over 15 million elderly citizens often live alone while family members work, the primary caregivers are frequently adult children who access the system remotely. Privacy between generations is culturally significant. An elderly parent may not want their child to know every moment of emotional distress, every financial transaction, or every toilet visit inferred from motion patterns. LifeSphere's privacy architecture acknowledges that caregiving does not eliminate the right to personal boundaries.
+
+## How it connects to the rest of LifeSphere
+
+Privacy mechanisms are woven throughout the subsystems:
+
+- **Vital32's scheduled reads** spread sensor access across time to minimize bus traffic and reduce the attack surface of simultaneous data exposure
+- **HollowRover's local face recognition** keeps biometric templates on the rover rather than in the cloud
+- **SphereAI's ESP32-S3 wake-word engine** processes audio locally before any cloud involvement
+- **HollowCore's relay commands** travel over local MQTT, reducing cloud exposure for home environment control
+- **EntryGuard's alert pipeline** sends live video to guardians only during active alerts, not continuously
+- **Financial anomaly detection** flags outliers locally through Isolation Forest rather than sharing full spending histories
+
+## Limits
+
+Privacy by design is a commitment, not a guarantee. The source does not describe encryption at rest for data stored on Firebase, on the rover's SD card, or on the ESP32 nodes. It does not specify data retention policies (how long biometric history is kept, whether old data is automatically deleted). It does not describe user consent mechanisms, data portability, or deletion rights. The financial integration uses unnamed "secure APIs," so the privacy properties of the banking connection are not verifiable from the project documentation. These are standard concerns for any system handling health and financial data, and they represent areas where future work would be needed before real-world deployment.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Ethics of Autonomy" icon="scale-balanced" href="/design/ethics-of-autonomy">
+    How privacy reinforces ethical boundaries around what the system decides alone.
+  </Card>
+
+  <Card title="Security and Data Integrity" icon="lock" href="/core/security-and-data-integrity">
+    Authentication, plausibility filtering, and security architecture beyond privacy alone.
+  </Card>
+
+  <Card title="What We Removed" icon="circle-question" href="/design/what-we-removed">
+    Features deliberately excluded for ethical and privacy reasons, including the Personality Mirror.
+  </Card>
+
+  <Card title="Distributed Intelligence" icon="layer-group" href="/core/distributed-intelligence">
+    How local processing at each node supports privacy by keeping data close to its source.
+  </Card>
+</CardGroup>

@@ -1,0 +1,103 @@
+---
+title: "Communication Channels: Dual Paths for Speed and Resilience"
+sidebarTitle: "Communication Channels"
+description: "LifeSphere uses a two-channel model: cloud-mediated Firebase for state synchronization and direct MQTT, serial, UART, and GSM for low-latency and fallback communication."
+icon: "wifi"
+---
+
+LifeSphere moves data through multiple channels, each chosen for a specific latency, reliability, and scope requirement. The system does not depend on a single protocol or network path. Instead, it uses a two-channel model: cloud-mediated signals for global state synchronization and direct hardware-to-hardware links for commands that cannot wait for a round trip to the internet.
+
+## Channel overview
+
+| Channel | Protocol and use case | Timing |
+| --- | --- | --- |
+| State sync | Firebase RTDB for biometric and emotional state sharing | 150 ms target |
+| Hardware commands | MQTT over Wi-Fi for device actuation | Source does not specify |
+| Motor control | Serial bridge for obstacle avoidance and servo commands | Sub-10 ms |
+| Wake word | UART from ESP32-S3 to RDK X5 | Event-driven |
+| Fallback | GSM SIM800L for guardian alerts during Wi-Fi outages | Network dependent |
+
+## Firebase Realtime Database: the cloud nerve
+
+Firebase Realtime Database is the primary state synchronization layer. All five subsystems read from and write to a single JSON tree. Firebase handles the pub-sub fanout: when Vital32 writes a new heart rate, Firebase pushes the change to all listening clients.
+
+This channel is ideal for data that changes relatively slowly and needs to reach multiple subscribers. Biometric uploads every 30 seconds, emotional state updates every 15 minutes, and home automation state changes all travel through Firebase. The 150 ms target latency works well for these timescales.
+
+Firebase requires internet connectivity. When the internet is unavailable, this channel degrades, but local alternatives take over for time-critical functions.
+
+## MQTT over local Wi-Fi: the fast lane
+
+For hardware-to-hardware commands that need to bypass cloud latency, LifeSphere uses MQTT (Message Queuing Telemetry Transport) over the local Wi-Fi network. A Mosquitto MQTT broker runs directly on the RDK X5, HollowRover's main computer.
+
+MQTT topics follow a lightweight publish-subscribe pattern similar to Firebase but operating entirely within the local network. Examples from the project documentation include:
+
+- `lifesphere/hollowcore/command` with payloads such as `light_1: true` to turn on a relay
+- `sphereai/command` with payloads such as `play_calming_audio` to trigger audio playback
+
+These commands do not need to traverse the internet. HollowCore's ESP32 subscribes directly to the local broker. SphereAI's audio output triggers through the same path. Because the broker runs on the rover, this channel remains available as long as local Wi-Fi is functional, even during internet outages.
+
+## Serial bridge: sub-10 millisecond actuator control
+
+HollowRover contains two ESP32 WROOM-32 microcontrollers: one for drivetrain and navigation (motors, steering, UWB, ultrasonics, BLE, barometric sensing, IMU) and one for manipulation (arm servos, TF-Luna ToF sensor, dispenser). The main RDK X5 computer maintains a direct serial bridge to these ESP32 controllers at 115200 baud.
+
+This serial link is reserved for motor and actuator commands that need sub-10 millisecond response times. Obstacle avoidance, emergency stop, and servo positioning cannot tolerate the variability of Wi-Fi or cloud latency. The serial bridge guarantees predictable timing for safety-critical motion.
+
+## UART wake-word signaling
+
+SphereAI's voice pipeline uses a two-stage hardware architecture for efficiency. An ESP32-S3 runs the ESP-SR lightweight wake-word model locally and continuously. This always-listening stage uses minimal power and requires no cloud connectivity or main CPU involvement.
+
+When the wake word is detected, the ESP32-S3 signals the RDK X5 over UART (Universal Asynchronous Receiver-Transmitter, a point-to-point serial protocol). The RDK X5 then activates the full Whisper speech-to-text pipeline. This separation ensures that the power-hungry main computer sleeps until actually needed, while the low-power microcontroller maintains constant vigilance.
+
+## GSM fallback: when Wi-Fi fails completely
+
+For scenarios where even local Wi-Fi is unavailable, the rover carries a SIM800L GSM module. GSM (Global System for Mobile Communications) provides cellular data and SMS capability as a fallback channel during outages.
+
+When Wi-Fi connectivity is lost, critical alerts can still reach guardians through the cellular network. The source does not specify bandwidth or latency characteristics for the GSM channel, but its purpose is clear: ensure that emergencies are never silenced by a router failure.
+
+## Reminder delivery
+
+Medication and care reminders are delivered through Firebase listeners. The companion app and HollowRover OLED both subscribe to reminder events in the shared state. When a scheduled dose approaches, the reminder propagates through Firebase to all registered outputs.
+
+## Why this matters
+
+A single-channel caregiving system is fragile. Wi-Fi routers fail. Internet service drops. Cloud services experience outages. By designing multiple channels with distinct latency and reliability profiles, LifeSphere ensures that the right data travels through the right pipe. State synchronization can tolerate 150 ms. Motor commands cannot. Guardian alerts must survive complete network failure. Each channel is matched to its constraint.
+
+## How it connects to the rest of LifeSphere
+
+<AccordionGroup>
+  <Accordion title="Shared biological state">
+    The data structures carried over these channels are documented in <a href="/core/shared-biological-state">Shared Biological State</a>.
+  </Accordion>
+
+  <Accordion title="System architecture">
+    The publish-subscribe topology is detailed in <a href="/core/system-architecture">System Architecture</a>.
+  </Accordion>
+
+  <Accordion title="Fault tolerance">
+    How the system behaves when channels degrade is covered in <a href="/core/fault-tolerance">Fault Tolerance and Graceful Degradation</a>.
+  </Accordion>
+</AccordionGroup>
+
+## Limits
+
+The source does not specify failover logic for channel selection, that is, how the system decides to use GSM versus local hotspot versus waiting for main Wi-Fi restoration. Serial bridge baud rates and UART parameters are described in the source but are implementation details not relevant to the user's understanding of the system. The Firebase 150 ms target is a design goal, not a guaranteed service-level agreement.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Shared Biological State" icon="layer-group" href="/core/shared-biological-state">
+    The data that flows across these channels.
+  </Card>
+
+  <Card title="Fault Tolerance" icon="shield-halved" href="/core/fault-tolerance">
+    How the system survives channel failures.
+  </Card>
+
+  <Card title="System Architecture" icon="layer-group" href="/core/system-architecture">
+    The five-node topology these channels connect.
+  </Card>
+
+  <Card title="Distributed Intelligence" icon="brain" href="/core/distributed-intelligence">
+    Why each node can function when channels are limited.
+  </Card>
+</CardGroup>

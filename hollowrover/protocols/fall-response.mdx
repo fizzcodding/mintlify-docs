@@ -1,0 +1,84 @@
+---
+title: "HollowRover Fall Response Protocol Explained"
+description: "When Vital32 detects a fall, HollowRover dispatches automatically, navigates to the user, and provides a physical presence while the guardian is alerted."
+sidebarTitle: "Fall Response"
+icon: "person-falling"
+---
+
+When the Vital32 wearable detects a fall, it writes `fall_detected: true` to the shared biological state. HollowRover subscribes to that field, receives the update through Firebase Realtime Database, and autonomously initiates its fall response protocol. This page explains the detection logic, the dispatch decision, the navigation process, and what the rover does upon arrival.
+
+## Why this matters
+
+Falls are one of the most common and dangerous events for elderly people living alone. A person may be unable to stand, reach a phone, or call for help. The longer they remain on the floor, the greater the risk of complications from dehydration, pressure injuries, or hypothermia. HollowRover exists so that no one remains on the floor after a fall, even when no human caregiver is present.
+
+## How Vital32 detects a fall
+
+The Vital32 wearable uses an MPU6050 accelerometer and gyroscope to measure motion. Fall detection runs in two stages on the magnitude of the acceleration vector. The magnitude is computed as the square root of the sum of the squares of the three axes:
+
+$$
+|a| = \sqrt{a_x^2 + a_y^2 + a_z^2}
+$$
+
+In plain terms, this combines all directional acceleration into a single number representing total force on the sensor.
+
+The stages are:
+
+1. **Freefall detection**: the magnitude drops below 0.4 g, indicating the body is accelerating downward with little resistance.
+2. **Impact detection**: the magnitude exceeds 2.5 g within 500 milliseconds of the freefall event, indicating a hard landing.
+3. **Confirmation**: after impact, the magnitude remains below about 1.1 g for at least 3 seconds, indicating the person is resting motionless on the ground.
+
+When all three conditions are met, Vital32 writes `fall_detected: true` to the shared state, along with a timestamp.
+
+## Rover dispatch and navigation
+
+HollowRover listens to the `fall_detected` field. On a positive transition, the rover performs the following actions:
+
+1. **Protocol selection**: the fall response protocol is immediately selected from the biomarker-triggered protocol table.
+2. **Localization**: the rover determines the user's position. If the user is within a registered floor's UWB coverage, the rover uses trilateration against that floor's three fixed anchors. If the user is outside UWB range, the rover falls back to BLE RSSI person-finding, rotating in place to sample signal strength from multiple headings and estimating the strongest direction.
+3. **Floor selection**: if the home spans multiple floors, the rover reads the barometric pressure reference stored for each registered floor, compares its own barometric reading to those baselines, selects the closest matching floor, and loads that floor's SLAM map and anchor set.
+4. **Path planning**: Nav2 plans a path at 20 Hz with a maximum forward speed of 0.3 m/s and a safety inflation radius of 0.35 meters around obstacles. The rover must not collide with furniture, walls, or doorframes while rushing to the user.
+5. **Traversal**: four-wheel independent steering with Ackermann geometry lets the rover follow the planned path precisely, minimizing tire scrub during turns. Rocker suspension keeps all wheels in contact across floor transitions and small bumps.
+
+## Upon arrival
+
+The source does not specify a detailed step-by-step sequence for what the rover does once it reaches the fallen user. Based on the stated design goals, the rover provides a physical presence in the room. It may use its speaker to reassure the user, notify the guardian through the Firebase-backed app, and prepare to hand water or medication if requested. The rover's manipulator arm is capable of retrieving objects from the floor and handing items to the user at an accessible height, which may reduce the need for the person to bend or reach while recovering.
+
+The rover also stores the last 24 hours of vital data on an SD card. In a Wi-Fi outage, it becomes a local hotspot so Vital32 can keep streaming. This means the fall event and the preceding context are preserved even if home internet is unavailable.
+
+## Guardian notification
+
+The fall event triggers a notification to the guardian through the LifeSphere app channel. The notification is delivered through Firebase. If Wi-Fi is unavailable, GSM via a SIM800L module serves as the fallback communication channel. The guardian receives the alert and can decide whether to call emergency services, speak to the user through SphereAI, or remotely authorize further actions.
+
+## How it connects to the rest of LifeSphere
+
+The fall response protocol is a cross-subsystem event. Vital32 performs detection. HollowRover performs physical response. SphereAI may provide verbal reassurance. HollowCore may adjust lighting to reduce disorientation. EntryGuard confirms that no intrusion is occurring in parallel. All of this happens without explicit user input, because the system subscribes to a single shared field.
+
+The rover's autonomous physical presence is something that smartwatches, speakers, and cameras cannot provide. A digital alert tells someone that a fall happened; HollowRover is in the room.
+
+## Limits
+
+The source does not describe the rover's behavior after it arrives at the fallen user's location in step-by-step detail. The physical actions upon arrival should be understood as design goals rather than fully documented procedures.
+
+The fall detection algorithm relies on acceleration magnitude thresholds that may not capture every type of fall. Very slow collapses, falls onto soft surfaces, or falls where the person immediately tries to stand may produce different acceleration profiles. The source does not provide validation data for sensitivity or specificity.
+
+Multi-floor response requires an accessible path between floors, such as a lift, ramp, or manual relocation. The rover cannot climb stairs.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Biomarker-Triggered Protocols" icon="heart-pulse" href="/hollowrover/protocols/biomarker-triggered">
+    The complete table of biomarker triggers and the protocols they dispatch.
+  </Card>
+
+  <Card title="Pre-Seizure Cushioning" icon="brain" href="/hollowrover/protocols/pre-seizure-cushioning">
+    The analogous protocol triggered by `seizure_prob` crossing 0.85.
+  </Card>
+
+  <Card title="Motion and Fall Detection" icon="route" href="/vital32/sensing/fall-detection">
+    How Vital32 computes freefall, impact, and confirmation from accelerometer data.
+  </Card>
+
+  <Card title="BLE Person-Finding" icon="bluetooth" href="/hollowrover/navigation/ble-person-finding">
+    How the rover finds the user outside UWB coverage using BLE signal strength.
+  </Card>
+</CardGroup>

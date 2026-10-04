@@ -1,0 +1,135 @@
+---
+title: "Math: Isolation Forest Anomaly Score and Thresholds"
+sidebarTitle: "Anomaly Score"
+description: "Isolation Forest formulas for anomaly scoring, normalization constants, and the soft-alert and emergency thresholds that trigger HollowRover protocols in LifeSphere."
+icon: "calculator"
+---
+
+This page explains how LifeSphere turns a vector of normalized biometric features into a single anomaly score that decides when to alert a guardian and when to dispatch the rover.
+
+## How Isolation Forest scores anomalies
+
+Isolation Forest detects outliers by measuring how quickly a data point can be separated from the rest of the data. A normal point requires many random splits to isolate; an anomaly is isolated in just a few.
+
+### Path length and score definition
+
+Let $$h(x)$$ be the path length of point $$x$$ through a randomly grown binary tree. The average path length over all trees is $$E[h(x)]$$. The anomaly score is:
+
+$$
+s(x, n) = 2^{ - \frac{E[h(x)]}{c(n)} }
+$$
+
+| Symbol | Meaning | Unit |
+| --- | --- | --- |
+| $$s(x, n)$$ | Anomaly score for point $$x$$ in a dataset of size $$n$$ | dimensionless (0 to 1) |
+| $$E[h(x)]$$ | Average path length of $$x$$ over all trees in the forest | number of splits |
+| $$c(n)$$ | Average path length of an unsuccessful search in a binary search tree of $$n$$ points | number of splits |
+| $$n$$ | Number of training samples used to build the forest | dimensionless |
+
+### Normalization constant
+
+The constant $$c(n)$$ normalizes scores so they are comparable across different dataset sizes. It is defined as:
+
+$$
+c(n) = 2H(n-1) - \frac{2(n-1)}{n}
+$$
+
+where $$H(n)$$ is the $$n$$-th harmonic number:
+
+$$
+H(n) = \ln(n) + 0.5772
+$$
+
+| Symbol | Meaning | Unit |
+| --- | --- | --- |
+| $$c(n)$$ | Normalization constant for dataset of size $$n$$ | dimensionless |
+| $$H(n)$$ | $$n$$-th harmonic number approximated by natural log plus Euler-Mascheroni | dimensionless |
+| $$\ln(n)$$ | Natural logarithm of $$n$$ | dimensionless |
+| $$0.5772$$ | Euler-Mascheroni constant | dimensionless |
+
+The harmonic number approximation $$H(n) = \ln(n) + 0.5772$$ works well for moderate to large $$n$$. In general, the exact harmonic number is the sum $$1 + 1/2 + 1/3 + \dots + 1/n$$, but the logarithmic approximation is standard in Isolation Forest implementations.
+
+## Thresholds and what they trigger
+
+LifeSphere uses the Isolation Forest with 100 trees and a contamination parameter of 0.05, which assumes about 5% of the user's baseline data may be anomalous. The forest is trained offline on the user's first 30 days of normal wear.
+
+| Threshold | Score range | System action |
+| --- | --- | --- |
+| Soft alert | $$s > 0.7$$ | Elevated monitoring; increased inference frequency if implemented |
+| Emergency protocol | $$s > 0.9$$ | HollowRover emergency protocol dispatched; guardian notified |
+
+The source does not describe what happens between 0.7 and 0.9 beyond the labels above. The anomaly pipeline also includes LSTM sequential modeling, but the source does not specify how the LSTM and Isolation Forest outputs are combined.
+
+## Worked example (illustrative)
+
+Suppose a user has 30 days of baseline data, giving $$n = 86,400$$ samples (one per 30 seconds). First compute the normalization constant.
+
+### Step 1: Compute H(n-1)
+
+$$
+H(86399) \approx \ln(86399) + 0.5772 \approx 11.3667 + 0.5772 = 11.9439
+$$
+
+### Step 2: Compute c(n)
+
+$$
+c(86400) = 2(11.9439) - \frac{2(86399)}{86400} = 23.8878 - 1.99998 \approx 21.8878
+$$
+
+### Step 3: Compute anomaly score
+
+Suppose a new data point has an average path length $$E[h(x)] = 15.0$$.
+
+$$
+s(x, 86400) = 2^{ - \frac{15.0}{21.8878} } = 2^{ -0.6853 } \approx 0.623
+$$
+
+An illustrative score of 0.623 is below both thresholds, so no alert fires.
+
+Now suppose another point isolates faster with $$E[h(x)] = 5.0$$.
+
+$$
+s(x, 86400) = 2^{ - \frac{5.0}{21.8878} } = 2^{ -0.2284 } \approx 0.851
+$$
+
+An illustrative score of 0.851 crosses the soft-alert threshold and would elevate monitoring.
+
+A point with $$E[h(x)] = 2.0$$:
+
+$$
+s(x, 86400) = 2^{ - \frac{2.0}{21.8878} } = 2^{ -0.0914 } \approx 0.938
+$$
+
+An illustrative score of 0.938 exceeds 0.9 and would trigger the emergency protocol.
+
+## Why this matters
+
+Anomaly scoring is the first automated decision gate in LifeSphere's predictive pipeline. Unlike fixed-population thresholds, this model learns each user's personal baseline during the first month of wear. A heart rate that is normal for one person may be anomalous for another. By comparing each user to their own historical distribution, the system attempts to catch early deterioration before it becomes critical. The score also feeds into the shared biological state as `vital32/anomaly_score`, where HollowRover, HollowCore, and SphereAI all subscribe.
+
+## How it connects to the rest of LifeSphere
+
+The anomaly score is computed every 30 seconds in the short inference cycle. It writes to `lifesphere/vital32/anomaly_score`. This field is one of the three primary triggers for HollowRover autonomous protocols, alongside `fall_detected` and `seizure_prob`. SphereAI may increase conversational check-in frequency when the score is elevated. HollowCore can adjust lighting and temperature as part of a calming response. The LSTM component of the anomaly pipeline may add temporal context, though the source does not specify the fusion rule.
+
+## Limits
+
+The 0.05 contamination parameter is an assumption, not a validated prevalence estimate. The 30-day training window may be insufficient for users with highly irregular routines. No accuracy metrics (AUC, precision, recall) are reported. The training data are the user's own wearable outputs, which means early miscollection errors become part of the baseline. Immune activation detection via anomaly scoring is a design goal, not a validated capability. The source does not specify how Isolation Forest scores interact with LSTM outputs in the combined pipeline.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Math: Signal Processing" icon="wave-square" href="/reference/math-signal-processing">
+    RMSSD, LF/HF, fall magnitude, cort estimation, and other signal formulas.
+  </Card>
+
+  <Card title="AI: Personal Baselines" icon="brain" href="/ai/personal-baselines">
+    How LifeSphere learns individual norms instead of population averages.
+  </Card>
+
+  <Card title="AI: Isolation Forest" icon="microchip" href="/ai/isolation-forest">
+    Full description of the forest architecture and training process.
+  </Card>
+
+  <Card title="HollowRover: Biomarker-Triggered Protocols" icon="robot" href="/hollowrover/protocols/biomarker-triggered">
+    How anomaly scores trigger rover emergency responses.
+  </Card>
+</CardGroup>

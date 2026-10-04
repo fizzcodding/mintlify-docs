@@ -1,0 +1,67 @@
+---
+title: "LifeSphere Closed-Loop Encoder: Catching Missed Steps"
+sidebarTitle: "Encoder Feedback"
+description: "LifeSphere's AS5600 magnetic encoder provides closed-loop position feedback for the medication carousel, detecting and correcting missed motor steps automatically."
+icon: "wave-square"
+---
+
+A stepper motor moves in discrete steps commanded by electrical pulses. In theory, if you send 50 pulses, the motor turns exactly 50 steps. In practice, mechanical load, friction, voltage dips, or brief physical obstruction can cause the motor to miss one or more steps without the controller knowing. The result is a discrepancy between where the controller thinks the carousel is and where it actually is. The LifeSphere dispenser solves this with an AS5600 magnetic encoder, a contactless angle sensor that reads the true rotational position of the carousel in real time. This page explains how open-loop control differs from closed-loop control, what the AS5600 measures, and why that matters for medication safety.
+
+## Open loop versus closed loop
+
+In an open-loop motion system, the controller sends commands and assumes they were executed perfectly. A typical 3D printer extruder or a cheap linear stage works this way under light, predictable loads. The advantage is simplicity: no extra sensor, no calibration, no feedback logic. The disadvantage is that errors accumulate silently. If a step is missed, every subsequent move is offset by that error. Over hundreds of cycles, an open-loop dispenser could drift by entire slot widths, releasing the wrong medication or jamming the shutter against a pill.
+
+In a closed-loop system, a sensor measures the actual output and reports it back to the controller. The controller compares the measured position to the commanded position and issues corrections until the two match. This is the standard approach in industrial robotics, CNC machining, and precision medical devices where positional accuracy is safety-critical. The LifeSphere dispenser adopts this same philosophy.
+
+## What the AS5600 does
+
+The AS5600 is a contactless magnetic position sensor. A small magnet is mounted on the rotating carousel shaft, and the AS5600 chip reads the orientation of the magnetic field to determine the shaft angle. Because there is no physical contact between the sensor and the magnet, there is no wear, no backlash, and no mechanical noise. The sensor outputs an analog or digital representation of angle that the microcontroller can read after each move.
+
+The encoder gives the firmware a direct measurement of where the carousel actually sits, independent of how many step pulses were sent. After the stepper driver completes a move, the controller reads the encoder, converts the angle to an equivalent slot position, and checks whether it aligns with the intended target. If the encoder reports 35.8 degrees when slot 3 should be at 36 degrees, the firmware can issue a small corrective step. If the encoder reports a value far from any valid slot, the system can flag a mechanical fault and withhold the dose until human inspection.
+
+## How it connects to the rest of LifeSphere
+
+The encoder is the verification layer in a chain of trust that starts with the schedule and ends with the user's hand:
+
+- **HollowRover's schedule engine** decides which slot is needed.
+- **The TMC2209 stepper driver** and **NEMA17 motor** execute the rotation.
+- **The 100-tooth ring gear** translates motor motion into carousel motion.
+- **The AS5600 encoder** confirms that the carousel truly reached the target angle before the **MG995 servo** opens the shutter.
+- **SphereAI** delivers the verbal medication name, but the physical correctness of the dose depends on this mechanical confirmation.
+
+Without the encoder, the rest of the chain would be operating on an unverified assumption. The encoder closes the loop and makes the dispenser trustworthy enough for autonomous operation.
+
+## Missed steps in context
+
+Missed steps are not rare edge cases. A stepper motor stall can happen when:
+
+- The carousel is heavily loaded on one side, creating uneven torque.
+- A pill has shifted and partially blocks the slot opening.
+- The battery voltage sags during another subsystem's current draw.
+- Temperature changes alter bearing friction.
+
+In general, precision motion designers treat step counting as optimistic and encoder feedback as the ground truth. LifeSphere's choice to include the AS5600 reflects the same design conservatism: because the user cannot see inside the dispenser or correct a misalignment, the machine must verify itself.
+
+## Limits
+
+The source does not state the angular resolution of the AS5600 in this specific build, nor the exact tolerance threshold used to declare a slot "aligned." It also does not specify what the firmware does when a correction fails repeatedly, such as retrying a fixed number of times or escalating to a guardian alert. The encoder detects positional error but cannot detect whether the correct medication was loaded into the slot in the first place. Human loading accuracy remains a prerequisite.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Gear Reduction and Positioning" icon="gears" href="/medication/gear-reduction">
+    Why 5:1 reduction gives the motor the torque and resolution the encoder then verifies.
+  </Card>
+
+  <Card title="Stepper Driver Choice" icon="microchip" href="/medication/stepper-driver">
+    General characteristics of modern stepper drivers and how they support smooth, quiet motion.
+  </Card>
+
+  <Card title="Shutter and Release" icon="lock" href="/medication/shutter-and-release">
+    The servo-driven shutter that only opens after encoder-confirmed alignment.
+  </Card>
+
+  <Card title="Dispenser Mechanism Overview" icon="pills" href="/medication/dispenser-overview">
+    The complete dose path from schedule to hand, showing where the encoder fits.
+  </Card>
+</CardGroup>

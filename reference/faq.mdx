@@ -1,0 +1,106 @@
+---
+title: "FAQ: Common Questions About LifeSphere"
+sidebarTitle: "FAQ"
+description: "Frequently asked questions about how LifeSphere works, what it requires from users, validated claims, offline behavior, intruder response, privacy, and safety boundaries."
+icon: "circle-question"
+---
+
+LifeSphere is an AI-powered autonomous caregiving ecosystem. These frequently asked questions cover what users, families, and caregivers most often want to know about how it works and what they can expect.
+
+<AccordionGroup>
+  <Accordion title="Does LifeSphere require the user to do anything?">
+    No. LifeSphere is built on a zero-interaction principle: the most vulnerable should not need to learn complex interfaces to receive care. The wearable is worn, not operated. The rover responds autonomously. The home adapts without switches or commands. SphereAI listens through a wake-word system but does not require the user to initiate contact.
+  </Accordion>
+
+  <Accordion title="What does zero-interaction mean in practice?">
+    It means the user does not press buttons, open apps, set schedules, or give voice commands for the system to monitor their health and respond to emergencies. Prescription setup uses a one-time photo captured by a caregiver or family member. Daily operation is fully autonomous.
+  </Accordion>
+
+  <Accordion title="Does the rover climb stairs?">
+    No. HollowRover is wheeled and does not climb stairs. Moving between floors requires an accessible path such as a lift, ramp, or manual relocation by a caregiver. Future work includes legged locomotion for multi-floor navigation, but no timeline is given.
+  </Accordion>
+
+  <Accordion title="Are the predictive health claims validated?">
+    No quantitative validation results exist. The claims about immune activation detection 24 to 48 hours before symptom onset, pre-seizure estimation 30 minutes before onset, biological age estimation, and early cognitive decline detection are all design goals, not validated medical outcomes. Longitudinal user studies to validate predictive model accuracy are listed as future work.
+  </Accordion>
+
+  <Accordion title="Where are face profiles stored?">
+    Face recognition profile data is stored locally on HollowRover and never transmitted to external servers. The InsightFace service with the buffalo_sc model pack runs locally, and profiles remain on the device.
+  </Accordion>
+
+  <Accordion title="What happens when Wi-Fi goes out?">
+    During Wi-Fi outages, HollowRover becomes a local Wi-Fi hotspot so Vital32 can keep transmitting. A GSM module via SIM800L provides a fallback channel for alerts. The rover stores the last 24 hours of vital data on SD card. However, full cloud synchronization and remote guardian notifications may be degraded.
+  </Accordion>
+
+  <Accordion title="What does the robotic arm do to intruders?">
+    Nothing aggressive. The arm acts as a passive barrier only. When face recognition flags an unregistered individual at a monitored chokepoint, the arm swings to block the pathway without making any contact. It does not grasp, restrain, or strike. Three simultaneous responses activate: the arm blocks, an audible alarm sounds, and a push notification with live camera feed goes to the guardian's phone. Any escalation beyond this requires explicit human authorization.
+  </Accordion>
+
+  <Accordion title="Can the user override or stop an autonomous action?">
+    The source does not specify explicit user override mechanisms, but the system includes mandatory human authorization before any defensive action beyond the passive barrier. Emergency protocols such as fall response are designed to help, not restrict, the user.
+  </Accordion>
+
+  <Accordion title="Is my biometric data encrypted?">
+    Yes. All biometric and personal data between subsystems and Firebase uses TLS encryption in transit. Sensor readings are validated against physical plausibility bounds before entering inference, filtering hardware faults from genuine biological anomalies. Database access requires authentication.
+  </Accordion>
+
+  <Accordion title="Who can see my health data?">
+    The source does not specify a full access control matrix, but the shared state is authenticated-only and face profiles are kept local. In general, the ecosystem is designed for the user and their designated guardians or caregivers to have visibility, with the exact permission model not detailed.
+  </Accordion>
+
+  <Accordion title="Does the system work without internet?">
+    Partially. Local MQTT commands between subsystems continue on the local Wi-Fi network hosted by the rover. Fire and gas alerts have local buzzers. GSM fallback handles critical alerts. However, Firebase synchronization, remote guardian notifications, and cloud-dependent features like full speech processing require connectivity.
+  </Accordion>
+
+  <Accordion title="How accurate is the fall detection?">
+    No accuracy figures are reported. Fall detection uses a two-stage accelerometer algorithm: freefall below 0.4 g, impact above 2.5 g within 500 ms, then confirmed by 3 seconds of near-zero movement. The source does not provide validation data on true positive or false positive rates.
+  </Accordion>
+
+  <Accordion title="Can the system dispense the wrong medication?">
+    The prescription OCR pipeline includes a human review step: the user or caregiver reviews and edits all extracted data before confirming the schedule. The touchscreen fallback also allows manual schedule entry with review. While the dispenser mechanism was described as rigorously tested, no error rate data is provided.
+  </Accordion>
+
+  <Accordion title="What happens if the wearable battery dies?">
+    Vital32 uses a 3.7 V 1000 mAh LiPo battery with a TP4056 charging module and USB-C. The source does not specify battery life in hours or behavior when the battery is depleted. The TP4056 module includes protection features, but the exact low-battery alert mechanism is not described.
+  </Accordion>
+
+  <Accordion title="Does SphereAI understand Bangla speech?">
+    The source does not specify language support. Whisper and DistilBERT models used by SphereAI are primarily trained on English and major world languages. Bangla language support is not explicitly claimed.
+  </Accordion>
+
+  <Accordion title="How does the financial fraud detection work?">
+    HollowCore integrates with banking and subscription services via secure APIs. An Isolation Forest trained on the user's historical spending flags unrecognized or out-of-pattern transactions. Notifications go to the LifeSphere app and rover OLED. For high-risk transactions or new subscriptions, biometric authorization requires facial recognition, fingerprint scan, and Vital32 proximity confirmation.
+  </Accordion>
+
+  <Accordion title="Is there a monthly subscription cost?">
+    The source does not specify any pricing, subscription model, or total system cost. It states the system is achievable at an accessible cost point with commercially available hardware and open-source software.
+  </Accordion>
+
+  <Accordion title="Can multiple people live in the same home with LifeSphere?">
+    The source focuses on a single elderly user. Multi-user scenarios, household member distinction, or guest handling are not specified. Face recognition distinguishes registered occupants from unregistered people, but how it handles multiple registered users is not documented.
+  </Accordion>
+</AccordionGroup>
+
+## A note on source consistency
+
+The source document is not fully consistent on some hardware details, so this site uses generic wording for them. For example, specific board revisions, motor driver identities, and camera part generations are described in general terms where the source contains conflicting information.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Glossary" icon="book" href="/reference/glossary">
+    Definitions for every specialized term used across the ecosystem.
+  </Card>
+
+  <Card title="Honest Limits" icon="scale-balanced" href="/status/honest-limits">
+    A frank discussion of what is unvalidated, unresolved, and still in development.
+  </Card>
+
+  <Card title="Security and Data Integrity" icon="shield-halved" href="/core/security-and-data-integrity">
+    Encryption, authentication, plausibility filtering, and safety boundaries.
+  </Card>
+
+  <Card title="Zero-Interaction Principle" icon="hand" href="/core/zero-interaction-principle">
+    Why LifeSphere is designed to require no action from the user.
+  </Card>
+</CardGroup>

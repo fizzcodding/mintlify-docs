@@ -1,0 +1,96 @@
+---
+title: "HollowRover Autonomous Medication Delivery Protocol"
+description: "HollowRover executes confirmed prescription schedules, dispenses doses from its 20-slot carousel, and physically hands medication and water to the user."
+sidebarTitle: "Medication Delivery"
+icon: "pills"
+---
+
+HollowRover delivers medication autonomously based on schedules that are confirmed by the user or caregiver. The schedule originates from a prescription photograph processed through OCR and a large language model, or from manual touchscreen entry. Once confirmed, the schedule is stored in Firebase, synced to the rover, and executed by a 20-slot carousel dispenser driven by a stepper motor. The rover then navigates to the user and hands the medication and water. This page covers the schedule source, the dispenser mechanism, navigation to the user, and the physical handoff.
+
+## Why this matters
+
+Medication non-adherence is a leading cause of preventable hospitalization among elderly people. The problem is not always forgetfulness alone. It is also the complexity of managing multiple medications, different dosages, changing schedules, and the physical difficulty of opening bottles or reaching cabinets. LifeSphere removes the setup barrier with prescription OCR, removes the memory barrier with autonomous reminders, and removes the physical barrier with a rover that brings the dose directly to the user.
+
+## Where the schedule comes from
+
+There are two paths into the rover's schedule.
+
+### Prescription path
+
+The user or caregiver photographs a prescription using the companion mobile app. The image is preprocessed with grayscale conversion and adaptive Gaussian thresholding to separate ink from paper. Tesseract OCR reads the English text. A large language model then interprets the context to extract structured fields: medicine name, dosage, frequency, duration, and instructions. The LLM handles the variability of doctor handwriting better than raw OCR alone. The extracted data is presented in the app for review and editing. Once confirmed, the schedule is written to `lifesphere/hollowcore/med_schedule` in Firebase.
+
+### Touchscreen fallback
+
+A 3.5-inch 480x320 ILI9488 SPI TFT LCD with an XPT2046 resistive touch controller provides a local interface. An ESP32 microcontroller renders the UI, polls the touch controller, maps touch coordinates to on-screen buttons, and writes manual entries to `lifesphere/hollowcore/dispenser_manual`. The user or caregiver can select medications, confirm dosages, and review schedules without a phone.
+
+Both paths converge in Firebase. HollowRover reads the schedule from the shared state and populates its local dispenser memory.
+
+## The dispenser mechanism
+
+The rover carries a 20-slot carousel driven by a NEMA17 stepper motor through a 100-tooth ring gear. The reduction ratio is 5:1, meaning the driving pinion has 20 teeth. An AS5600 magnetic encoder provides closed-loop angle feedback. A TMC2209 stepper driver controls the motor. An MG995 servo opens a shutter to release the dose.
+
+The arithmetic is consistent: 360 degrees divided by 20 slots equals 18 degrees of carousel rotation per slot. With a 5:1 reduction and the standard 200 full steps per revolution of a NEMA17 stepper, the motor must turn 1000 steps for one full carousel revolution, which equals 50 steps per slot.
+
+Each slot holds one medication type. When the schedule triggers, the carousel rotates to the correct slot, the shutter opens, and the dose falls into a collection area. The source does not specify pill size limits, carousel diameter, or microstepping settings.
+
+## Preparing the dose
+
+When a scheduled time arrives:
+
+1. The rover verifies the local schedule against Firebase to ensure it has the latest version.
+2. It rotates the carousel to the target slot using the stepper motor and encoder feedback.
+3. The servo opens the shutter to release the dose.
+4. The rover packages the dose for delivery, likely with a cup of water from its water container.
+
+## Navigating to the user
+
+The rover must locate and reach the user before the dose can be handed over.
+
+1. **Positioning**: if the user is within UWB coverage, the rover uses three-anchor trilateration on the registered floor. If the user is outside UWB range, the rover falls back to BLE RSSI person-finding, sampling signal strength at multiple headings to estimate direction.
+2. **Floor selection**: in a multi-floor home, the rover compares its barometric reading to stored per-floor baselines and loads the matching SLAM map and anchor set.
+3. **Path planning**: Nav2 plans a collision-free path at up to 0.3 m/s with 0.35 m obstacle inflation.
+4. **Traversal**: Ackermann steering and rocker suspension let the rover reach the user across typical indoor terrain, including door lips and small thresholds.
+
+## Physical handoff
+
+The rover's 6-DOF arm is designed to hand medication and water to the user at an accessible height. This reduces the need for bending or reaching, which can be difficult or dangerous for someone with limited mobility. The arm uses MG996R metal-gear servos for the main joints and an MG90S micro servo for the gripper. A TF-Luna single-point time-of-flight sensor measures distances from 0.2 to 8 meters, which may assist in positioning the arm correctly relative to the user.
+
+The source states that dispensing and dosage mechanisms were rigorously tested and validated, though no quantitative figures are provided. The author confirmed the mechanism's reliability through physical build testing.
+
+## Reminders and adherence
+
+If the user is not immediately reachable, or if the handoff is not accepted, the rover can deliver reminders through Firebase. Reminder notifications reach the user or caregiver through the LifeSphere app. The system also tracks adherence patterns. Adherence entropy, computed as $$H(X) = -\sum p(x_i) \log_2 p(x_i)$$, quantifies schedule regularity. High entropy means irregular adherence. The source does not specify the outcome categories or the time window used for this computation.
+
+## How it connects to the rest of LifeSphere
+
+Medication delivery is a cross-subsystem workflow. Vital32 biomarkers may influence the schedule: if the user is asleep, HollowCore may suppress the reminder. If the user shows elevated cortisol, SphereAI may soften the reminder tone. EntryGuard ensures the home is secure before the rover begins its patrol to deliver medication.
+
+The shared state is the coordination layer. The schedule lives in Firebase. The rover reads it. The app writes it. The dispenser confirms execution. No subsystem owns the entire pipeline, so the failure of one node does not collapse the entire medication system.
+
+## Limits
+
+The source does not specify the internal packaging step between dispensing and handoff. It is reasonable to infer that the dose and water are combined into a deliverable unit, but this is not documented.
+
+Pill size limits, carousel diameter, and the specific behavior when a slot is empty are not described. The source also does not state how the rover handles missed doses, refused doses, or schedule conflicts where two medications are due at the same time.
+
+The touchscreen is driven directly by an ESP32 microcontroller with no onboard UI processor. This keeps cost low but means the interface rendering depends entirely on firmware.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Prescription Reading" icon="book" href="/medication/prescription-reading">
+    How the companion app turns a prescription photograph into structured schedule data.
+  </Card>
+
+  <Card title="Dispenser Overview" icon="pills" href="/medication/dispenser-overview">
+    The full carousel, gear reduction, encoder, shutter, and stepper driver system.
+  </Card>
+
+  <Card title="Carousel and Gear Reduction" icon="gears" href="/medication/carousel">
+    How the 20-slot carousel and 5:1 ring gear achieve precise slot positioning.
+  </Card>
+
+  <Card title="BLE Person-Finding" icon="bluetooth" href="/hollowrover/navigation/ble-person-finding">
+    How the rover locates the user when UWB is unavailable.
+  </Card>
+</CardGroup>

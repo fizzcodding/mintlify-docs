@@ -1,0 +1,78 @@
+---
+title: "Plausibility Filtering: Blocking Faulty Sensor Data Before AI Sees It"
+sidebarTitle: "Plausibility Filtering"
+description: "How Vital32 validates sensor readings against physical bounds before they enter inference pipelines, preventing hardware glitches from triggering false alerts across LifeSphere."
+icon: "shield-halved"
+---
+
+Every sensor can fail. A loose electrode, a dried-out contact pad, a sudden electrostatic discharge, or a communication-bus collision can produce a reading that looks biologically alarming but is physically impossible. Vital32's plausibility filter is the gate between raw hardware output and the shared biological state that every other subsystem trusts.
+
+## Why plausibility filtering is essential
+
+If a temperature sensor reports 5 degrees Celsius while the user is walking around the room, the anomaly detector might label it a hypothermia emergency. If a pulse oximeter drops to 60 percent because of motion artifact, HollowCore might switch on the air purifier and SphereAI might escalate to a guardian. Without a filter, one bad sample can cascade through the entire ecosystem.
+
+Plausibility filtering solves this by asking a simple question before any AI model runs: could this reading come from a living human in this context?
+
+## How it works in Vital32
+
+The source states that sensor readings are validated against physical plausibility bounds before entering inference. The exact bounds are not specified. Based on the description, the pipeline likely works as follows:
+
+1. **Range checks**: each sensor has a minimum and maximum value that a living human can reasonably produce. For example, skin surface temperature below roughly 20 degrees Celsius or above roughly 45 degrees Celsius would be rejected.
+2. **Cross-sensor consistency**: readings from multiple sensors are compared. If the accelerometer shows vigorous motion but the heart-rate channel is flatlined, the cardiac reading is treated as suspect.
+3. **Rate-of-change limits**: biological signals usually do not jump from normal to extreme in a single sample. A sudden discontinuity triggers a temporary hold until the next sample confirms or contradicts it.
+4. **Persistence rules**: a single outlier is ignored; a sustained outlier is eventually accepted as real biology because genuine emergencies can also produce extreme values.
+
+<Info>
+  These mechanisms are standard in medical-device signal processing. They are not unique to Vital32, but their presence confirms that the design treats data integrity as a safety issue rather than an afterthought.
+</Info>
+
+## Where it sits in the pipeline
+
+Plausibility filtering happens after signal conditioning but before feature extraction and AI inference. It protects every downstream model:
+
+- Anomaly detector
+- Cortisol estimator
+- Pre-seizure LSTM
+- Biological age clock
+- Fall detection state machine
+
+The filter also protects the Firebase shared state. Once a value is written to `lifesphere/vital32/heart_rate`, HollowRover, SphereAI, HollowCore, and EntryGuard all assume it is trustworthy. The filter is therefore a defense-in-depth layer for the entire ecosystem.
+
+## Why this matters
+
+False alerts erode trust. If a caregiver receives three emergency notifications in a week and two are sensor errors, they may disable notifications or ignore the system. For an elderly user living alone, a false dispatch can also cause distress: a rover arriving with sirens because of a bad electrode is not care, it is intrusion.
+
+Plausibility filtering keeps the signal-to-noise ratio high. It ensures that when the anomaly score spikes or the rover is dispatched, the underlying data is defensible.
+
+## How it connects to the rest of LifeSphere
+
+- **Security and data integrity**: the plausibility filter is one of three overlapping safeguards described in the architecture. The others are TLS encryption in transit and authenticated database access.
+- **Fault tolerance**: if a sensor begins producing persistent outliers, the filter may suppress most of its data. This degrades gracefully rather than crashing the inference pipeline.
+- **Guardian notifications**: the source mentions that watchdog timers send guardian alerts when nodes are unresponsive. A sensor that fails plausibility checks repeatedly could, in principle, trigger a maintenance notification rather than a medical alert.
+
+## Limits
+
+- The source does not specify the numerical bounds for any sensor.
+- No validation data is reported: we do not know how many false readings the filter catches in practice, or how many true anomalies it might delay.
+- The interaction between plausibility filtering and the 30-second AI cycle is not described. A reading rejected at second 1 may not be retried until the next scheduled sample.
+- The source is not fully consistent on some hardware details, so this site uses generic wording for them.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Signal Processing" icon="wave-square" href="/vital32/sensing/signal-processing">
+    How raw sensor data becomes a clean feature vector before filtering
+  </Card>
+
+  <Card title="Sensing Cadence" icon="wave-square" href="/vital32/sensing/sensing-cadence">
+    When each sensor is read and how timing affects plausibility checks
+  </Card>
+
+  <Card title="Security and Data Integrity" icon="lock" href="/core/security-and-data-integrity">
+    TLS, authentication, and how plausibility fits into the safety stack
+  </Card>
+
+  <Card title="Fault Tolerance" icon="shield-halved" href="/core/fault-tolerance">
+    How the system stays operational when sensors or networks fail
+  </Card>
+</CardGroup>

@@ -1,0 +1,84 @@
+---
+title: "HollowRover Software Stack: ROS2, AI, and Messaging"
+sidebarTitle: "Software Stack"
+description: "HollowRover runs ROS2 Humble on Ubuntu 22.04, combining SLAM, Nav2, local MQTT, AI inference, and Firebase listeners into one integrated autonomy layer."
+icon: "microchip"
+---
+
+HollowRover's software stack runs on a D-Robotics RDK X5 board under Ubuntu 22.04, using ROS2 Humble as the robotics middleware and hosting several specialized services for mapping, navigation, AI inference, and cross-subsystem communication.
+
+## ROS2 Humble and Ubuntu 22.04
+
+ROS2 Humble Hawksbill is a long-term support release of the Robot Operating System 2, a set of libraries and tools for building robot applications. It provides a publish-subscribe communication model, standardized message types, and a plugin architecture for planners, controllers, and sensors. Ubuntu 22.04 is the host operating system. Running a standard Ubuntu distribution means the rover can use conventional Linux packages, drivers, and container tooling without a custom embedded OS.
+
+In general, ROS2 replaces the original ROS1 with improved real-time support, better multi-robot discovery, and a modern middleware based on DDS (Data Distribution Service). For LifeSphere, ROS2 Humble is the foundation that hosts SLAM, navigation, sensor drivers, and custom protocol nodes.
+
+## SLAM Toolbox
+
+SLAM Toolbox is the package that builds and maintains the 2D occupancy grid. It performs scan matching between consecutive LiDAR frames to estimate robot motion, builds a pose graph of past positions, and can optimize that graph when loop closures are detected. In lifelong mapping mode, it continues to refine the map as the environment changes. The map is stored on the rover and consumed by Nav2 for collision checking and global planning.
+
+## Nav2
+
+Nav2 is the ROS2 navigation framework. It receives goal poses, plans global paths through the occupancy grid, generates local velocity commands, and runs recovery behaviors when plans fail. The LifeSphere configuration uses a 20.0 Hz controller frequency, a 0.3 m/s forward speed limit, and a 0.35 m obstacle inflation radius. Nav2 is what turns a destination command from the protocol engine into actual wheel movement with obstacle avoidance.
+
+## Mosquitto MQTT broker
+
+Mosquitto is an open-source MQTT broker running locally on the RDK X5. MQTT is a lightweight messaging protocol designed for IoT devices. HollowRover uses MQTT over local Wi-Fi for hardware-to-hardware commands that need lower latency than the cloud-mediated Firebase channel.
+
+Topics include `lifesphere/hollowcore/command` for device state changes, such as turning a light on or off, and `sphereai/command` for triggering calming audio playback. The broker also carries EntryGuard alert payloads and internal actuator commands. Because it runs on the rover, these messages do not leave the local network unless Wi-Fi is down.
+
+## Firebase listener
+
+The Firebase Realtime Database listener connects the rover to the shared biological state tree. It subscribes to fields such as `fall_detected`, `anomaly_score`, `seizure_prob`, and emotional state. When a subscribed field crosses a threshold, the listener triggers the corresponding protocol in the protocol engine. Firebase acts as the central synchronization layer, ensuring that a Vital32 biosignal change reaches the rover even when the signal originates from a different room or floor.
+
+## Protocol engine
+
+The protocol engine is the decision layer that translates biological state changes into physical actions. It defines the internal step sequences for fall response, pre-seizure cushioning, cortisol de-escalation, medication delivery, and security patrol. When a trigger condition is met, the protocol engine sets Nav2 goals, manipulator positions, audio outputs, and MQTT commands in the correct order. The source does not specify the full internal step definitions for every protocol.
+
+## Face recognition service
+
+Face recognition runs as a FastAPI service using InsightFace with the buffalo_sc model pack, MediaPipe for face detection and landmark alignment, and ONNX Runtime for model inference. FastAPI is a Python web framework for building APIs; here it exposes a video processing endpoint. The service streams annotated video as MJPEG, a motion JPEG format suitable for low-latency preview.
+
+InsightFace performs face embedding extraction, comparing detected faces against locally stored profiles. Profiles are kept on the rover and never transmitted to external servers. When an unregistered face is detected at a monitored chokepoint, the passive barrier protocol is triggered. The face recognition service also provides one factor of transaction authorization for HollowCore's financial anomaly workflow.
+
+## Whisper speech-to-text
+
+Whisper is an open-source speech recognition system from OpenAI. On HollowRover, it converts spoken user queries and utterances into text for the SphereAI language agent. Because Whisper runs on the RDK X5, the rover does not need continuous cloud connectivity to understand speech. The dedicated NPU on the board helps run Whisper alongside other AI workloads without starving SLAM or navigation of CPU time.
+
+## DistilBERT sentiment analysis
+
+DistilBERT is a lighter variant of the BERT language model, originally developed for natural language understanding. SphereAI uses it for sentiment classification on the text produced by Whisper. The output feeds into the meta-classifier that determines emotional state. Like Whisper, DistilBERT runs on the rover, benefiting from the NPU isolation that keeps AI inference off the main CPU cores.
+
+## Why NPU separation matters
+
+The RDK X5 includes a 10 TOPS neural processing unit (NPU), also referred to as a BPU. SLAM and Nav2 are compute-intensive robotics tasks that benefit from uninterrupted CPU access. By running Whisper, DistilBERT, and face recognition on the NPU, LifeSphere avoids CPU contention. Both SLAM and AI can operate in parallel rather than queuing for the same silicon.
+
+## How it connects to the rest of LifeSphere
+
+The software stack is the glue that turns biosignals into physical response. Vital32 writes to Firebase; the Firebase listener ingests those writes; the protocol engine decides what to do; Mosquitto dispatches local commands; Nav2 moves the rover; the arm actuators and audio outputs respond. Each layer is replaceable and observable, consistent with the distributed intelligence principle.
+
+ESP32 controllers handle motor and servo commands over a serial bridge at 115200 baud for sub-10 millisecond response times, below the latency of the MQTT and Firebase layers. This split ensures that low-level safety reactions, such as stopping motors when an ultrasonic sensor triggers, do not depend on the main software stack.
+
+## Limits
+
+The source does not describe logging, debugging interfaces, or over-the-air update mechanisms for the stack. Recovery behavior definitions in Nav2 are not specified. The face recognition service stream format and client consumption patterns are mentioned but not detailed.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Compute and NPU" icon="microchip" href="/hollowrover/components/compute-and-npu">
+    The RDK X5 board and why dedicated NPU silicon matters for parallel AI and SLAM.
+  </Card>
+
+  <Card title="Mapping and SLAM" icon="map" href="/hollowrover/navigation/mapping-and-slam">
+    How SLAM Toolbox builds the occupancy grids consumed by Nav2.
+  </Card>
+
+  <Card title="Path Planning and Safety" icon="route" href="/hollowrover/navigation/path-planning">
+    Nav2 configuration, speed limits, and safety inflation for indoor navigation.
+  </Card>
+
+  <Card title="Dual Controller Split" icon="gears" href="/hollowrover/components/dual-controller-split">
+    Why two ESP32 controllers isolate timing-critical tasks from servo PWM jitter.
+  </Card>
+</CardGroup>

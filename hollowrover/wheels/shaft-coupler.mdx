@@ -1,0 +1,79 @@
+---
+title: "Shaft Coupler: Connecting Wheel to Motor Without Lathe Work"
+sidebarTitle: "Shaft Coupler Design"
+description: "HollowRover wheels attach to Dake DK-37R gear motors through a custom 3D-printed shaft coupler with M4 printed threads. No lathe or specialized tooling is required."
+icon: "link"
+---
+
+Each HollowRover wheel connects to its Dake DK-37R gear motor through a dedicated shaft coupler that is itself 3D-printed as part of the wheel assembly. The coupler features M4 printed threads that allow the wheel to be secured to the motor shaft with standard hardware, eliminating the need for lathe-turned metal couplers or press-fit adapters.
+
+## What a Shaft Coupler Does
+
+A shaft coupler is the mechanical interface between a motor's output shaft and the driven load. In the case of HollowRover, the motor shaft is a cylindrical metal rod extending from the Dake DK-37R gear motor, and the driven load is the 3D-printed wheel. The coupler must accomplish three things:
+
+- **Torque transmission:** Transfer the motor's rotational force to the wheel without slipping.
+- **Concentric alignment:** Keep the wheel centered on the shaft so that it spins without wobble.
+- **Mechanical attachment:** Hold the wheel firmly so that it does not detach during motion or under load.
+
+If the coupler slips, the encoder on the motor shaft counts rotations that do not translate into wheel motion, corrupting the rover's odometry. If the coupler is off-center, the wheel wobbles, causing vibration, noise, and uneven wear. If the coupler fails entirely, the wheel separates from the motor, disabling the rover.
+
+## The Printed Coupler Design
+
+HollowRover's coupler is printed as an integrated part of the wheel structure. It includes M4 printed threads, meaning the screw threads are formed directly in the plastic during the 3D printing process. A standard M4 machine screw engages these threads to clamp the coupler onto the motor shaft.
+
+This design replaces the more common approaches seen in hobby robotics:
+
+- **Press-fit hubs:** The wheel hub has a hole slightly smaller than the shaft, and the user forces the shaft into the hole. This requires precise dimensional tolerance and is difficult to disassemble for maintenance.
+- **Keyed shafts and hubs:** The shaft has a flat machined into it, and the hub has a matching keyway. This prevents rotation but requires machining of the shaft.
+- **Set-screw hubs:** A metal hub with a threaded hole accepts a set screw that presses against the shaft. This works well but requires a metal hub and access to small fasteners.
+- **D-shaft adapters:** The motor shaft is flattened on one side, and the hub has a matching D-shaped hole. This provides anti-slip but requires a D-shaft motor.
+
+The printed threaded coupler eliminates the need for any of these: no shaft machining, no metal hub, no precision press-fit, and no specialized motor shaft geometry. The M4 screw is a standard hardware-store item.
+
+## Advantages of the Printed Threaded Coupler
+
+The primary advantage is accessibility. In contexts where precision machine tools are scarce, a design that can be printed and assembled with hand tools is a significant practical benefit. A caregiver, technician, or local volunteer with a basic 3D printer and a screwdriver can fabricate and install a replacement coupler.
+
+A second advantage is integrated construction. Because the coupler is part of the same print as the wheel hub and spokes, there is no joint between the coupler and the wheel body. This eliminates another potential failure point and ensures that the rotational alignment between motor shaft and wheel is fixed by the print geometry rather than by assembly tolerances.
+
+A third advantage is serviceability. If the coupler threads strip or the hub cracks, the entire wheel can be unbolted and replaced in minutes. The motor encoder, wiring, and suspension attachment points remain undisturbed.
+
+## Connection to the Rest of HollowRover
+
+The shaft coupler is the critical link between the drivetrain and the odometry system. The Dake DK-37R gear motors have encoders that count motor shaft revolutions. Nav2 and SLAM Toolbox use these encoder counts, fused with IMU data, to estimate the rover's position and build its map. The assumption underlying this fusion is that motor rotation equals wheel rotation equals ground travel. The coupler enforces this equality: if it grips the shaft firmly and maintains concentricity, the encoder measurements are trustworthy.
+
+The coupler also affects the rocker suspension. The passive rocker arms pivot to keep wheels on the ground, but they do so under spring pressure that pushes the wheels downward. The coupler must withstand both the spring force and the dynamic loads from rolling over thresholds, transmitting these forces into the motor mounting bracket without loosening or fatiguing.
+
+Finally, the coupler design supports the broader goal of local maintainability. A wheel that requires a lathe to reproduce cannot be field-repaired. A wheel that requires only a 3D printer and an M4 screw can.
+
+## General Background on Coupler Design
+
+In general mechanical engineering, couplers range from simple set-sc collars to precision zero-backlash couplings with elastomeric elements. The choice depends on the required torque, the acceptable misalignment, and the precision of motion transmission. For encoder-based drive systems, backlash (looseness in the coupling) is particularly harmful because it creates a dead zone where motor rotation does not immediately produce wheel rotation. The printed threaded coupler achieves low backlash through the clamping force of the M4 screw, which compresses the plastic around the shaft.
+
+## Why This Matters
+
+For an elderly user in a remote or underserved area, the difference between a serviceable robot and an unserviceable one is often a single mechanical part. The shaft coupler design ensures that if a wheel needs replacement, the repair is within reach of local capability. This aligns with LifeSphere's core principle that the system should be maintainable where it is deployed, not dependent on imported specialty components.
+
+## Limits
+
+The source document does not specify the depth or pitch of the printed M4 threads, the clamping force achievable with printed threads versus metal, or the expected number of assembly/disassembly cycles before thread wear becomes problematic. The fit between the motor shaft diameter and the coupler bore is not stated. Whether a flat or keyway on the motor shaft is used in addition to the screw clamp is not specified. Repeated thermal cycling and plastic creep could reduce clamping force over time, but this is not addressed.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Wheel Design Overview" icon="truck" href="/hollowrover/wheels/overview">
+    How the coupler fits into the complete wheel assembly.
+  </Card>
+
+  <Card title="Material and Printing" icon="gears" href="/hollowrover/wheels/material-and-printing">
+    Why PLA+ and single-piece printing support integrated coupler design.
+  </Card>
+
+  <Card title="Eight Iterations" icon="rotate" href="/hollowrover/wheels/eight-iterations">
+    How iterative prototyping likely refined the coupler-to-shaft interface.
+  </Card>
+
+  <Card title="Drivetrain and Steering" icon="route" href="/hollowrover/design-decisions">
+    How the motors, encoders, and Ackermann linkage work with the wheels.
+  </Card>
+</CardGroup>

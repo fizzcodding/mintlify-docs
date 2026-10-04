@@ -1,0 +1,75 @@
+---
+title: "SphereAI Limits and Ethics: Where Emotion Inference Ends"
+sidebarTitle: "Limits and Ethics"
+description: "SphereAI's emotion detection is helpful but bounded. Language coverage, inference uncertainty, voice privacy, and clinical unvalidation are honest limits users and caregivers should understand."
+icon: "circle-question"
+---
+
+SphereAI represents one of the most ambitious parts of LifeSphere: a machine that infers human emotion from speech, voice, and body, then acts on that inference. This page describes where that ambition reaches its limits and where ethical questions remain open.
+
+## Limit 1: Language Coverage Is Unspecified
+
+The source does not state which languages Whisper, DistilBERT, and the text-to-speech engine support. Whisper is known in the research community to handle many languages, but LifeSphere's specific deployment may be tuned for Bangla, English, or both. The source does not say. If the user speaks a language not covered by the models, the language agent fails silently or produces nonsense, and the meta-classifier loses its most informative input stream.
+
+This matters in Bangladesh, where elderly users may speak Bangla exclusively or code-switch between Bangla and English. A system that works beautifully in English may be useless or offensive in Bangla if the sentiment model misinterprets cultural speech patterns.
+
+## Limit 2: Emotion Inference Is Probabilistic, Not Diagnostic
+
+SphereAI outputs emotional_state, stress_level, loneliness_index, and cognitive_score. These are not clinical diagnoses. They are classification scores produced by models trained on data that is not described in the source. The scores may correlate with real emotional states, but correlation is not causation, and classification is not diagnosis.
+
+A high loneliness_index does not mean the user is clinically lonely. It means the model's weighted combination of language, voice, and biology produced a high score for the isolated state. A caregiver who treats this as a diagnosis may overreact. A caregiver who ignores it may miss a real need. The ambiguity is inherent and unavoidable.
+
+## Limit 3: Privacy of Voice Data
+
+Voice is biometrically rich. It carries not only what is said but who said it, how they said it, and potentially health indicators such as respiratory status or neurological function. SphereAI's wake-word stage keeps audio local, but the utterance following the wake word is processed on the RDK X5 and classified in the shared state. The Firebase shared state is encrypted in transit, but the voice features (MFCC, pitch, energy) and transcripts are stored alongside heart rate and medication schedules.
+
+The source does not specify how long these data are retained, whether transcripts can be deleted, or whether a user can opt out of voice recording without disabling SphereAI entirely. The privacy promise is architectural (local wake word, TLS encryption) rather than procedural (data minimization, retention schedule, audit log).
+
+## Limit 4: Local Wake-Word Guarantees Are Limited
+
+The ESP32-S3 runs the wake-word model locally, which is a strong privacy feature. However, the chip is not a secure enclave. A determined attacker with physical access or a firmware exploit could extract the wake-word model or intercept the UART handoff. The source does not describe threat modeling for the voice pipeline beyond the general Firebase authentication and TLS statements.
+
+Furthermore, false activations are possible. Television audio, conversation between visitors, or even a ringing phone may trigger the wake word. When this happens, the subsequent audio is routed to the RDK X5 and potentially processed. The user may be recorded without knowing it.
+
+## Limit 5: Predictive Claims Are Design Goals
+
+SphereAI is described as enabling early cognitive decline detection and longitudinal emotional modeling. These are not validated outcomes. No accuracy figures, AUC curves, or clinical study results are reported. The source explicitly states that all predictive claims are design goals and that longitudinal user studies are future work.
+
+This is not a flaw in the engineering. It is a boundary on the claims that users and caregivers should accept. SphereAI may help detect change; it does not replace a neurologist, a psychiatrist, or a caring family member.
+
+## Limit 6: Personality Data Is Explicitly Not Collected
+
+The removal of the Personality Mirror is a positive ethical choice, but it also means SphereAI cannot achieve the depth of personalization that some users might expect from AI companions. The system adapts to state, not to self. A user who wants the system to "really know them" will be disappointed, and that disappointment is by design.
+
+## Ethical Open Questions
+
+Several ethical questions are not resolved in the source:
+
+- **Consent**: Can an elderly user with cognitive variation meaningfully consent to continuous emotional surveillance? If a caregiver configures the system, whose preferences prevail?
+- **Agency**: If SphereAI detects stress and automatically dims the lights, lowers the temperature, and plays adhkar, has it helped the user or overridden their autonomy? The source does not describe an opt-out or override mechanism for automated emotional responses.
+- **Cultural specificity**: The Islamic integration is detailed. Integration for Hindu, Christian, Buddhist, or secular users is not mentioned. Is SphereAI's spiritual care universal or particular?
+- **Accountability**: If SphereAI misclassifies a user's emotional state and the resulting automation causes distress, who is responsible? The engineer, the caregiver, the user, or no one?
+
+## Why Honesty About Limits Builds Trust
+
+An AI system that claims to read emotions is easy to distrust. One that admits the boundaries of its inference, the uncertainty of its scores, and the openness of its ethical questions is harder to dismiss. This page exists because LifeSphere's core principle, "the technology responds to the user's biology," does not mean the technology understands the user's soul. The gap between response and understanding is where humility belongs.
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Design Decisions" icon="gears" href="/sphereai/design-decisions">
+    The engineering choices that produced these limits.
+  </Card>
+
+  <Card title="Ethics of Autonomy" icon="scale-balanced" href="/design/ethics-of-autonomy">
+    The broader ethical framework for automated caregiving.
+  </Card>
+
+  <Card title="Privacy by Design" icon="shield-halved" href="/design/privacy-by-design">
+    How LifeSphere handles sensitive data across all subsystems.
+  </Card>
+
+  <Card title="Honest Limits" icon="circle-question" href="/status/honest-limits">
+    Site-wide limits and unvalidated claims across the entire ecosystem.
+  </Card>
+</CardGroup>

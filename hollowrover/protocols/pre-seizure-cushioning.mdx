@@ -1,0 +1,75 @@
+---
+title: "HollowRover Pre-Seizure Cushioning Protocol"
+description: "HollowRover initiates a cushioning protocol when seizure probability crosses 0.85, though the model is unvalidated and the exact physical cushioning is unspecified."
+sidebarTitle: "Pre-Seizure Cushioning"
+icon: "brain"
+---
+
+HollowRover listens to the `seizure_prob` field in the shared biological state. When this probability crosses 0.85, the rover autonomously initiates its seizure protocol. The goal is to reach the user and provide physical protection before seizure onset. This page covers the model behind the probability, the trigger mechanics, what the rover does, and the honest limits of what is known about the cushioning itself.
+
+## Why this matters
+
+A seizure can cause sudden loss of consciousness, convulsive movement, and impact injuries from falling or colliding with nearby objects. If a caregiver could know 30 minutes in advance that a seizure is likely, they could place cushioning, clear hazards, or stay with the person. LifeSphere treats this early warning as a design goal. The rover's role is to turn that warning into physical presence and protective positioning without requiring a human to be in the home at the time.
+
+## The model behind the probability
+
+The `seizure_prob` value is produced by a pre-seizure LSTM model. The model accepts five-minute rolling windows of features derived from HRV, accelerometer motion, and skin temperature. The architecture uses two LSTM layers with 64 and 32 units, followed by dropout at 0.3, a dense layer of 16 units with ReLU activation, and a final dense layer with sigmoid activation that outputs a probability between 0 and 1.
+
+The model is trained on public seizure datasets: the CHB-MIT Scalp EEG Dataset and the Epilepsy iEEG Prediction dataset. These are brain-signal recordings. The worn Vital32 does not record brain signals; it records cardiac and motion signals. The source notes that this creates a signal-domain gap between training data and runtime inputs that is not resolved in the current design.
+
+No accuracy figures, AUC values, or real-world validation results are reported. The 30-minute pre-onset goal and the 0.85 threshold are design intentions, not clinically validated outcomes.
+
+## Trigger and protocol dispatch
+
+HollowRover subscribes to the shared state through Firebase. When `seizure_prob` exceeds 0.85, the following happens:
+
+1. **Trigger recognition**: the rover's listener registers the threshold crossing.
+2. **Protocol selection**: the seizure protocol is selected from the biomarker-triggered table.
+3. **Localization and floor selection**: the rover determines the user's horizontal position via UWB trilateration or BLE RSSI fallback, and determines the correct floor via barometric comparison to stored baselines.
+4. **Navigation**: SLAM Toolbox and Nav2 plan a safe path at up to 0.3 m/s with 0.35 m obstacle inflation.
+
+## What cushioning means
+
+The source states that the rover prepares a "pre-seizure cushioning deployment." It does not specify what the physical cushioning consists of. This could mean positioning a soft object near the user, moving furniture to clear space, or simply arriving to provide a physical presence that reduces the risk of a hard fall. The internal steps are not documented.
+
+The rover's manipulator arm is capable of retrieving objects from the floor and handing items to the user. Whether the arm participates in cushioning is not stated. The water spray module is present on the rover, but no connection to seizure response is described.
+
+Because the physical form of cushioning is unspecified, readers should treat this protocol as a design goal with a defined trigger and an undefined execution sequence. The system knows when to act, but the exact actions it performs upon arrival are not detailed in the source.
+
+## Human authorization and escalation
+
+The seizure protocol is an autonomous first response. The rover does not wait for guardian approval before moving. However, the system delivers a push notification to the guardian at the same time. If the guardian is available, they can monitor the live camera feed, speak to the user through SphereAI, or authorize additional steps. The rover's own actions are bounded by its safety rules: no contact with humans in a way that causes harm, no autonomous decisions to restrain or strike.
+
+## How it connects to the rest of LifeSphere
+
+The pre-seizure protocol spans three subsystems. Vital32 computes the features and runs the model. HollowRover performs the physical response. SphereAI may provide auditory reassurance or calming sound if the user is conscious and aware. HollowCore may adjust lighting to reduce sensory stress. The shared state makes this coordination possible: one field, `seizure_prob`, triggers parallel responses across the ecosystem.
+
+The rover's role is particularly important because the event may render the user unable to call for help or operate any device. The system must act on the user's biology, not on their explicit input.
+
+## Limits
+
+The pre-seizure LSTM model is unvalidated on real wearable data. The training datasets are EEG recordings, while runtime inputs are cardiac and motion signals. The source does not address how this gap affects performance. The 0.85 threshold and the 30-minute prediction horizon are design parameters, not validated clinical settings.
+
+The internal steps of the cushioning protocol are not specified. The rover's actions upon arrival are known only at a high level: it goes to the user and prepares cushioning. The exact mechanics remain a design gap.
+
+The source also does not state how the protocol interacts with other concurrent events, such as a simultaneous fall detection or an EntryGuard alert. In a real deployment, priority rules would be needed, but these are not documented.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Biomarker-Triggered Protocols" icon="heart-pulse" href="/hollowrover/protocols/biomarker-triggered">
+    The full trigger table including anomaly, seizure, cortisol, and fall conditions.
+  </Card>
+
+  <Card title="Fall Response" icon="person-falling" href="/hollowrover/protocols/fall-response">
+    A more mature protocol with a defined detection pipeline and navigation process.
+  </Card>
+
+  <Card title="Pre-Seizure LSTM" icon="brain" href="/ai/pre-seizure-lstm">
+    Architecture, training data, and known limitations of the seizure prediction model.
+  </Card>
+
+  <Card title="Anomaly Scoring" icon="scale-balanced" href="/ai/isolation-forest">
+    How the Isolation Forest baseline model interacts with emergency protocol dispatch.
+  </Card>
+</CardGroup>
